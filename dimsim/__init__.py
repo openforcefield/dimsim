@@ -3,7 +3,11 @@ dimsim
 Distributed simulation package
 """
 
-from importlib.metadata import version
+try:
+    from importlib.metadata import version
 
-__version__ = version("dimsim")
+    __version__ = version("dimsim")
+except Exception:
+    __version__ = "unknown"
+
 __author__ = "Lily Wang"

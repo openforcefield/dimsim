@@ -111,3 +111,4 @@ distance = "{base_version}+{distance}.{vcs}{rev}"
 dirty = "{base_version}.dirty"
 distance-dirty = "{base_version}+{distance}.{vcs}{rev}.dirty"
 
+
