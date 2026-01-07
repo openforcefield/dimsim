@@ -35,9 +35,9 @@ Thank you for your interest in contributing to dimsim! This document provides gu
 
 4. Check code style:
    ```bash
-   black dimsim tests
-   isort dimsim tests
-   flake8 dimsim tests
+   black dimsim
+   isort dimsim
+   flake8 dimsim
    ```
 
 5. Commit your changes:

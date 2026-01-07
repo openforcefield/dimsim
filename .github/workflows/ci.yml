@@ -63,13 +63,13 @@ jobs:
     
     - name: Check formatting with black
       run: |
-        black --check dimsim tests
+        black --check dimsim
     
     - name: Check import sorting with isort
       run: |
-        isort --check-only dimsim tests
+        isort --check-only dimsim
     
     - name: Lint with flake8
       run: |
-        flake8 dimsim tests --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 dimsim tests --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+        flake8 dimsim --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 dimsim --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics

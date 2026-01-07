@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "versioningit"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "dimsim"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Distributed simulation package"
 readme = "README.md"
 authors = [
@@ -61,13 +61,13 @@ namespaces = false
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-testpaths = ["tests"]
+testpaths = ["dimsim/_tests"]
 addopts = "-v --cov=dimsim --cov-report=xml --cov-report=term-missing"
 
 [tool.coverage.run]
 source = ["dimsim"]
 omit = [
-    "*/tests/*",
+    "*/_tests/*",
     "*/__init__.py",
 ]
 
@@ -99,3 +99,15 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
+
+[tool.versioningit]
+
+[tool.versioningit.vcs]
+method = "git"
+default-tag = "0.0.0"
+
+[tool.versioningit.format]
+distance = "{base_version}+{distance}.{vcs}{rev}"
+dirty = "{base_version}+{distance}.{vcs}{rev}.dirty"
+distance-dirty = "{base_version}+{distance}.{vcs}{rev}.dirty"
+
