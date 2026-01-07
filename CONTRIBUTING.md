@@ -11,6 +11,15 @@ Thank you for your interest in contributing to dimsim! This document provides gu
    cd dimsim
    ```
 3. Install the development dependencies:
+   
+   Using conda/mamba (recommended):
+   ```bash
+   mamba env create -f devtools/conda-envs/dev.yaml
+   mamba activate dimsim-dev
+   pip install -e .
+   ```
+   
+   Or using pip:
    ```bash
    pip install -e ".[dev]"
    ```

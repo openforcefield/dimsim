@@ -22,7 +22,15 @@ pip install -e .
 
 ### Development installation
 
-For development, install with the dev extras:
+For development, use conda/mamba to create an environment from the provided file:
+
+```bash
+mamba env create -f devtools/conda-envs/dev.yaml
+mamba activate dimsim-dev
+pip install -e .
+```
+
+Alternatively, install with pip using the dev extras:
 
 ```bash
 pip install -e ".[dev]"
