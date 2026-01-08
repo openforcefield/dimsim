@@ -1,0 +1,26 @@
+name: dimsim-dev
+channels:
+  - conda-forge
+dependencies:
+  - python >=3.9
+  - pip
+  - versioningit
+
+  # Core dependencies
+  - openff-toolkit
+
+  # Development and testing
+  - pytest
+  - pytest-cov
+  - pytest-xdist
+
+  # Linting and formatting
+  - black
+  - isort
+  - flake8
+  - mypy
+
+  # Documentation
+  - sphinx
+  - sphinx-rtd-theme
+  - sphinx-autodoc-typehints
