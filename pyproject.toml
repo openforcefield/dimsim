@@ -7,42 +7,37 @@ name = "dimsim"
 dynamic = ["version"]
 description = "Distributed simulation package"
 readme = "README.md"
-authors = [
-    {name = "Lily Wang"},
+license = "MIT"
+license-files = ["LICENSE"]
+maintainers = [
+  { name = "Lily Wang", email = "lily.wang@openforcefield.org" },
 ]
-license = {text = "MIT"}
+authors = [
+  { name = "Lily Wang", email = "lily.wang@openforcefield.org" },
+]
+
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = []
 
-[project.optional-dependencies]
-test = [
-    "pytest>=6.0",
-    "pytest-cov>=3.0",
-    "pytest-xdist>=2.5",
+optional-dependencies.doc = [
+  "openff-sphinx-theme @ git+https://github.com/openforcefield/openff-sphinx-theme.git@main",
+  "sphinx>=1.8",
 ]
-doc = [
-    "sphinx>=5.0",
-    "sphinx-rtd-theme>=1.0",
-    "sphinx-autodoc-typehints>=1.19",
-]
-dev = [
-    "dimsim[test,doc]",
-    "black>=23.0",
-    "isort>=5.12",
-    "flake8>=6.0",
-    "mypy>=1.0",
+optional-dependencies.test = [
+  "pytest>=6",
+  "pytest-cov>=3",
+  "pytest-xdist>=2.5",
 ]
 
 [project.urls]
@@ -53,11 +48,12 @@ Issues = "https://github.com/lilyminium/dimsim/issues"
 
 [tool.setuptools]
 zip-safe = false
-include-package-data = true
+include-package-data = false
 
 [tool.setuptools.packages.find]
 include = ["dimsim*"]
 namespaces = false
+exclude = [ 'dimsim._tests.data*' ]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -73,19 +69,14 @@ omit = [
 
 [tool.coverage.report]
 exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    'if __name__ == "__main__":',
-    "if TYPE_CHECKING:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
 ]
 
 [tool.black]
 line-length = 88
-target-version = ['py39', 'py310', 'py311', 'py312']
+target-version = ['py310', 'py311', 'py312', 'py313']
 include = '\.pyi?$'
 
 [tool.isort]
@@ -94,7 +85,7 @@ line_length = 88
 skip_gitignore = true
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false

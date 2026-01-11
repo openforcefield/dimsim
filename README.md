@@ -1,8 +1,8 @@
 # dimsim
 
-[![CI](https://github.com/lilyminium/dimsim/actions/workflows/ci.yml/badge.svg)](https://github.com/lilyminium/dimsim/actions/workflows/ci.yml)
+[![CI](https://github.com/openforcefield/dimsim/actions/workflows/gh-ci.yaml/badge.svg)](https://github.com/openforcefield/dimsim/actions/workflows/gh-ci.yaml)
 [![Documentation Status](https://readthedocs.org/projects/dimsim/badge/?version=latest)](https://dimsim.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/lilyminium/dimsim/branch/main/graph/badge.svg)](https://codecov.io/gh/lilyminium/dimsim)
+[![codecov](https://codecov.io/gh/openforcefield/dimsim/branch/main/graph/badge.svg)](https://codecov.io/gh/openforcefield/dimsim)
 
 Distributed simulation package
 
@@ -15,7 +15,7 @@ Distributed simulation package
 ### From source
 
 ```bash
-git clone https://github.com/lilyminium/dimsim.git
+git clone https://github.com/openforcefield/dimsim.git
 cd dimsim
 pip install -e .
 ```

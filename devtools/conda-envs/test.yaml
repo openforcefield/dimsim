@@ -1,6 +1,7 @@
-name: dimsim-dev
+name: dimsim-test
 channels:
   - conda-forge
+
 dependencies:
   - python >=3.10
   - pip
@@ -32,14 +33,3 @@ dependencies:
   - dask-jobqueue
   - dask-kubernetes
   - distributed
-
-  # Documentation dependencies
-  - sphinx >=4.5,<5
-  - nbsphinx
-  - sphinx-notfound-page
-  - sphinxcontrib-bibtex
-  - pandoc
-  - ipython
-
-  - pip:
-    - git+https://github.com/openforcefield/openff-sphinx-theme.git@main

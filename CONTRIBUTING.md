@@ -18,11 +18,14 @@ Thank you for your interest in contributing to dimsim! This document provides gu
    mamba activate dimsim-dev
    pip install -e .
    ```
-   
-   Or using pip:
+
+4. (Optional but recommended) Install pre-commit hooks:
    ```bash
-   pip install -e ".[dev]"
+   pip install pre-commit
+   pre-commit install
    ```
+   
+   This will automatically run code formatting and checks before each commit.
 
 ## Development Workflow
 
@@ -42,11 +45,16 @@ Thank you for your interest in contributing to dimsim! This document provides gu
    pytest
    ```
 
-4. Check code style:
+4. Check code style (or use pre-commit hooks):
    ```bash
    black dimsim
    isort dimsim
    flake8 dimsim
+   ```
+   
+   Or manually run all pre-commit hooks:
+   ```bash
+   pre-commit run --all-files
    ```
 
 5. Commit your changes:
