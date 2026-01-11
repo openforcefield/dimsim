@@ -77,4 +77,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 This package structure follows best practices from the [MolSSI Cookiecutter](https://github.com/molssi/cookiecutter-cms).
-

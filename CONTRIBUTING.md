@@ -11,7 +11,7 @@ Thank you for your interest in contributing to dimsim! This document provides gu
    cd dimsim
    ```
 3. Install the development dependencies:
-   
+
    Using conda/mamba (recommended):
    ```bash
    mamba env create -f devtools/conda-envs/dev.yaml
@@ -24,7 +24,7 @@ Thank you for your interest in contributing to dimsim! This document provides gu
    pip install pre-commit
    pre-commit install
    ```
-   
+
    This will automatically run code formatting and checks before each commit.
 
 ## Development Workflow
@@ -51,7 +51,7 @@ Thank you for your interest in contributing to dimsim! This document provides gu
    isort dimsim
    flake8 dimsim
    ```
-   
+
    Or manually run all pre-commit hooks:
    ```bash
    pre-commit run --all-files

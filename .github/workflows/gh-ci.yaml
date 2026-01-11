@@ -112,7 +112,7 @@ jobs:
       env:
         PYLINTRC: .pylintrc
       run: |
-        pylint openff.nagl
+        pylint dimsim
 
 
   pypi_check:
@@ -141,7 +141,7 @@ jobs:
         test -n "${DISTRIBUTION}" || { echo "no distribution dist/dimsim-*.tar.gz found"; exit 1; }
         echo "twine check $DISTRIBUTION"
         twine check $DISTRIBUTION
-  
+
   install_from_source_conda:
     runs-on: ubuntu-latest
     strategy:

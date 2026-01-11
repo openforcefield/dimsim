@@ -1,14 +1,13 @@
 [build-system]
-requires = ["setuptools>=61.0", "versioningit"]
 build-backend = "setuptools.build_meta"
+requires = [ "setuptools>=61", "versioningit" ]
 
 [project]
 name = "dimsim"
-dynamic = ["version"]
 description = "Distributed simulation package"
 readme = "README.md"
 license = "MIT"
-license-files = ["LICENSE"]
+license-files = [ "LICENSE" ]
 maintainers = [
   { name = "Lily Wang", email = "lily.wang@openforcefield.org" },
 ]
@@ -16,19 +15,21 @@ authors = [
   { name = "Lily Wang", email = "lily.wang@openforcefield.org" },
 ]
 
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
-    "Natural Language :: English",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Scientific/Engineering",
-]
 requires-python = ">=3.10"
-dependencies = []
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Natural Language :: English",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+]
+dynamic = [ "version" ]
+dependencies = [  ]
 
 optional-dependencies.doc = [
   "openff-sphinx-theme @ git+https://github.com/openforcefield/openff-sphinx-theme.git@main",
@@ -40,31 +41,40 @@ optional-dependencies.test = [
   "pytest-xdist>=2.5",
 ]
 
-[project.urls]
-Homepage = "https://github.com/lilyminium/dimsim"
-Documentation = "https://dimsim.readthedocs.io"
-Repository = "https://github.com/lilyminium/dimsim"
-Issues = "https://github.com/lilyminium/dimsim/issues"
+urls.Documentation = "https://dimsim.readthedocs.io"
+urls.Homepage = "https://github.com/lilyminium/dimsim"
+urls.Issues = "https://github.com/lilyminium/dimsim/issues"
+urls.Repository = "https://github.com/lilyminium/dimsim"
 
 [tool.setuptools]
 zip-safe = false
 include-package-data = false
 
 [tool.setuptools.packages.find]
-include = ["dimsim*"]
+include = [ "dimsim*" ]
 namespaces = false
 exclude = [ 'dimsim._tests.data*' ]
 
+[tool.black]
+line-length = 88
+target-version = [ 'py310', 'py311', 'py312', 'py313' ]
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 88
+skip_gitignore = true
+
 [tool.pytest.ini_options]
 minversion = "6.0"
-testpaths = ["dimsim/_tests"]
+testpaths = [ "dimsim/_tests" ]
 addopts = "-v --cov=dimsim --cov-report=xml --cov-report=term-missing"
 
 [tool.coverage.run]
-source = ["dimsim"]
+source = [ "dimsim" ]
 omit = [
-    "*/_tests/*",
-    "*/__init__.py",
+  "*/_tests/*",
+  "*/__init__.py",
 ]
 
 [tool.coverage.report]
@@ -73,16 +83,6 @@ exclude_lines = [
   "if TYPE_CHECKING:",
   "raise NotImplementedError",
 ]
-
-[tool.black]
-line-length = 88
-target-version = ['py310', 'py311', 'py312', 'py313']
-include = '\.pyi?$'
-
-[tool.isort]
-profile = "black"
-line_length = 88
-skip_gitignore = true
 
 [tool.mypy]
 python_version = "3.10"
@@ -101,5 +101,3 @@ default-tag = "0.0.0"
 distance = "{base_version}+{distance}.{vcs}{rev}"
 dirty = "{base_version}.dirty"
 distance-dirty = "{base_version}+{distance}.{vcs}{rev}.dirty"
-
-
