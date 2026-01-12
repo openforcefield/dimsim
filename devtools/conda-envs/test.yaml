@@ -17,6 +17,10 @@ dependencies:
   - openmm
   - openmmtools
 
+  - pytorch
+  - smee
+  - descent
+
   # Development and testing
   - pytest
   - pytest-cov
