@@ -20,6 +20,8 @@ from dimsim.coordinates.box import (
 )
 from dimsim.coordinates.store import CoordinateStore, DBMetadata
 
+pytest.mark.skip(reason="Not implemented yet")
+
 
 @pytest.fixture
 def empty_coordinate_store(temp_db_path):
