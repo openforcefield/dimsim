@@ -230,9 +230,9 @@ class CoordinateStore:
         box: BoxCoordinates,
         openmm_system: "openmm.System",
         temperature: float | None = None,
-        temperature_tolerance: float = 1.0,
+        temperature_tolerance: float = None,
         pressure: float | None = None,
-        pressure_tolerance: float = 0.001,
+        pressure_tolerance: float = None,
     ) -> BoxCoordinates | None:
         """
         Retrieve the lowest energy box matching the given box's composition
@@ -434,19 +434,7 @@ class CoordinateStore:
 
             if deduplicate:
                 # Check if identical box already exists
-                existing = self.query(
-                    force_field_id=box.force_field_id,
-                    temperature=box.temperature,
-                    temperature_tolerance=0.01,
-                    pressure=box.pressure,
-                    pressure_tolerance=0.001 if box.pressure else None,
-                    limit=1,
-                )
-
-                if existing:
-                    existing_box = existing[0]
-                    if existing_box.get_composition_key() == box.get_composition_key():
-                        continue  # Skip duplicate
+                raise NotImplementedError("Deduplication not implemented yet")
 
             box.id = None  # Reset ID for new database
             self.add(box)

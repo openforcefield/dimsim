@@ -78,7 +78,7 @@ def sample_coordinates():
         Sample coordinates array (n_atoms, 3)
     """
     np.random.seed(42)
-    return np.random.randn(450, 3) * 10.0  # 100*3 + 50*8 atoms
+    return np.random.randn(700, 3) * 10.0  # 100*3 + 50*8 atoms
 
 
 @pytest.fixture

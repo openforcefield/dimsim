@@ -164,7 +164,7 @@ class Substance(BaseModel):
         from openff.toolkit import Molecule, Topology
 
         molecules = []
-        for mol in self.molecules_species:
+        for mol in self.molecule_species:
             molecules.extend(
                 [Molecule.from_mapped_smiles(mol.mapped_smiles)] * mol.count
             )
