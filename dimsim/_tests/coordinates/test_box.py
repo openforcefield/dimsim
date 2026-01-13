@@ -4,7 +4,6 @@ import json
 import numpy as np
 import pytest
 from openff.toolkit import ForceField, Molecule, Topology
-from rdkit import Chem
 
 from dimsim._tests.utils import get_test_data_path
 from dimsim.coordinates.box import (
@@ -301,11 +300,9 @@ class TestBoxCoordinates:
         mol = Molecule.from_smiles(smiles)
         explicit_h_smiles = mol.to_smiles(mapped=True)
         randomized_order = np.random.permutation(np.arange(len(mol.atoms)))
-        rdmol = Molecule.from_mapped_smiles(explicit_h_smiles).to_rdkit()
-        for i, num in enumerate(randomized_order):
-            atom = rdmol.GetAtomWithIdx(i)
-            atom.SetAtomMapNum(int(num + 1))
-        randomized_smiles = Chem.MolToSmiles(rdmol, isomericSmiles=True)
+        new_atom_map = dict(zip(range(len(mol.atoms)), randomized_order))
+        new_molecule = mol.remap(new_atom_map)
+        randomized_smiles = new_molecule.to_smiles(mapped=True)
 
         assert explicit_h_smiles != randomized_smiles
 
