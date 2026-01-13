@@ -16,6 +16,7 @@ dependencies:
   - openff-nagl-base
   - openmm
   - openmmtools
+  - sqlmodel
 
   # Development and testing
   - pytest
