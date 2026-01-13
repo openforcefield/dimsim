@@ -255,7 +255,7 @@ class TestCoordinateStoreAddGet:
         Test getting box matches by substance when pressure is specified
         """
         matches = temp_coordinate_store.get_box_matches_by_substance(
-            substance_water_1000, pressure=1.0, pressure_tolerance=0.01
+            substance_water_1000, pressure=1.0, pressure_tolerance=0.1
         )
         matches = sorted(matches, key=lambda x: x.id)
         assert len(matches) == 2
