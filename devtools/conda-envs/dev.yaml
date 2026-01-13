@@ -17,6 +17,10 @@ dependencies:
   - openmmtools
   - sqlmodel
 
+  - pytorch
+  - smee
+  - descent
+
   # Development and testing
   - pytest
   - pytest-cov
