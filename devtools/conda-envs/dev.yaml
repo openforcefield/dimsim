@@ -15,6 +15,12 @@ dependencies:
   - openff-nagl-base
   - openmm
   - openmmtools
+  - sqlmodel
+  - rdkit
+
+  - pytorch
+  - smee
+  - descent
 
   - pytorch
   - smee
