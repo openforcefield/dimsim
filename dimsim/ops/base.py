@@ -2,15 +2,14 @@
 import pathlib
 import typing
 
-import torch
-
 import descent.targets.thermo
 import smee.mm
-from ..utils.openmm import SimulationTensorReporter
+import torch
+from smee.mm._ops import _unpack_force_field
+
 from ..configs.properties import PropertyConfigType
-from smee.mm._ops import (
-    _unpack_force_field,
-)
+from ..utils.openmm import SimulationTensorReporter
+
 
 class _OpKwargs(typing.TypedDict):
     """The keyword arguments passed to the custom PyTorch op for computing ensemble averages."""
@@ -85,7 +84,7 @@ def _compute_base_observables(
     for framedict in reporter.unpack_frames_as_dict():
         coords = framedict["coordinates"].to(theta[0].device)
         box_vectors = framedict["box_vectors"].to(theta[0].device)
-        
+
         with torch.enable_grad():
             potential = smee.compute_energy(system, force_field, coords, box_vectors)
 
@@ -107,7 +106,7 @@ def _compute_base_observables(
         values["volume"].append(torch.det(box_vectors))
         for key in custom_forcegroups.keys():
             values[key].append(framedict[key])
-    
+
     # stack into tensor such that shape is (*, n_frames)
     du_d_theta_array = [
         v if v is None
@@ -117,7 +116,7 @@ def _compute_base_observables(
 
 
 class BaseOp(torch.autograd.Function):
-    
+
 
     @staticmethod
     def _compute_base_observables(
@@ -139,6 +138,3 @@ class BaseOp(torch.autograd.Function):
             )
 
         return values, du_d_theta
-    
-
-
