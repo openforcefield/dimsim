@@ -10,13 +10,17 @@ import datetime
 import gzip
 import json
 import typing
+import warnings
 
+import descent.targets.thermo
 import numpy as np
 import openff.toolkit
 import openmm
 import pydantic
 from openff.toolkit import Molecule
+from openff.toolkit.utils.exceptions import MultipleComponentsInMoleculeWarning
 from openff.utilities.utilities import requires_package
+from rdkit import Chem
 from sqlalchemy import LargeBinary
 from sqlmodel import Column, Field, SQLModel
 
@@ -97,6 +101,9 @@ class Substance(BaseModel):
     """A substance in a simulation box, consisting of multiple molecule species."""
 
     molecule_species: list[MoleculeSpecies]
+
+    def __hash__(self) -> int:
+        return hash(self.to_composition_key())
 
     def to_string(self) -> str:
         """
@@ -221,6 +228,77 @@ class Substance(BaseModel):
 
         ...  # TODO: add graph isomorphism checks?
 
+    @classmethod
+    def from_data_entry(cls, entry, n_max_mols: int) -> "Substance":
+        smiles_a = entry["smiles_a"]
+        smiles_b = entry["smiles_b"]
+
+        fraction_a = 0.0 if entry["x_a"] is None else entry["x_a"]
+        fraction_b = 0.0 if entry["x_b"] is None else entry["x_b"]
+
+        assert np.isclose(fraction_a + fraction_b, 1.0)
+
+
+        smiles_and_fractions = []
+        if smiles_a is not None:
+            smiles_and_fractions.append((smiles_a, fraction_a))
+        if smiles_b is not None:
+            smiles_and_fractions.append((smiles_b, fraction_b))
+
+        all_molecule_species = []
+        for smiles, fraction in smiles_and_fractions:
+            n_molecules = fraction * n_max_mols
+
+            if "." in smiles:  # this is multi-molecule
+                # this will give us a MultipleComponentsInMoleculeWarning -- suppress
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore", category=MultipleComponentsInMoleculeWarning
+                    )
+                    mol = Molecule.from_mapped_smiles(
+                        smiles, allow_undefined_stereo=True
+                    )
+
+                # use rdkit to break them apart and reformat as smiles
+                rdmol = mol.to_rdkit()
+                components = Chem.GetMolFrags(rdmol, asMols=True, sanitizeFrags=False)
+                mols = [
+                    Molecule.from_rdkit(m, allow_undefined_stereo=True)
+                    for m in components
+                ]
+                component_smiles = [m.to_smiles(mapped=True) for m in mols]
+            else:
+                component_smiles = [smiles]
+
+            n_components = len(component_smiles)
+            for comp_smiles in component_smiles:
+                # probably want at least one in there?
+                molecule_species = max(1, int(n_molecules / n_components))
+                all_molecule_species.append(
+                    MoleculeSpecies(mapped_smiles=comp_smiles, count=molecule_species)
+                )
+        return cls(molecule_species=all_molecule_species)
+
+    @classmethod
+    def from_simulation_key(
+        cls, key: descent.targets.thermo.SimulationKey
+    ) -> "Substance":
+        """
+        Create Substance from a SimulationKey.
+
+        Parameters
+        ----------
+        key : descent.targets.thermo.SimulationKey
+            SimulationKey to create Substance from
+        """
+
+        molecule_species = [
+            MoleculeSpecies(mapped_smiles=smiles, count=count)
+            for smiles, count in zip(key.smiles, key.counts, strict=True)
+        ]
+        return cls(molecule_species=molecule_species)
+
+
 
 class CoordinatesDB(SQLModel, table=True):
     """Database model for coordinates."""
@@ -297,13 +375,13 @@ class BoxCoordinates(BaseModel):
         None, description="Potential energy of the system in kcal/mol"
     )
 
-    # Coordinates as numpy array (n_atoms, 3) in nanometers
+    # Coordinates as numpy array (n_atoms, 3) in angstrom
     # Stored as compressed binary in database
     coordinates: np.ndarray | None = pydantic.Field(
         None, description="Atomic coordinates in angstrom"
     )
 
-    # Box vectors (3, 3) in nanometers
+    # Box vectors (3, 3) in angstrom
     box_vectors: np.ndarray | None = pydantic.Field(
         None, description="Box vectors in angstrom"
     )
@@ -320,6 +398,86 @@ class BoxCoordinates(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+
+
+    def __hash__(self) -> int:
+        return hash(
+            (
+                self.substance.to_string(),
+                self.temperature,
+                self.pressure,
+                self.force_field_id,
+                self.potential_energy,
+                (
+                    self.coordinates.data.tobytes()
+                    if self.coordinates is not None
+                    else None
+                ),
+                (
+                    self.box_vectors.data.tobytes()
+                    if self.box_vectors is not None
+                    else None
+                ),
+                json.dumps(self.box_metadata, sort_keys=True),
+            )
+        )
+
+    def to_simulation_key(self) -> descent.targets.thermo.SimulationKey:
+        return descent.targets.thermo.SimulationKey(
+            smiles=[s.mapped_smiles for s in self.substance.molecule_species],
+            counts=[s.count for s in self.substance.molecule_species],
+            temperature=self.temperature,
+            pressure=self.pressure,
+        )
+
+    @classmethod
+    def from_simulation_key(
+        cls, key: descent.targets.thermo.SimulationKey
+    ) -> "BoxCoordinates":
+        """
+        Create BoxCoordinates from a SimulationKey.
+
+        Parameters
+        ----------
+        key : descent.targets.thermo.SimulationKey
+            SimulationKey to create BoxCoordinates from
+        """
+        substance = Substance.from_simulation_key(key)
+        return cls(
+            substance=substance,
+            temperature=key.temperature,
+            pressure=key.pressure,
+        )
+
+    @classmethod
+    def from_data_entry(
+        cls, entry: descent.targets.thermo.DataEntry,
+        n_max_mols: int = 1000
+    ) -> "BoxCoordinates":
+        """
+        Create BoxCoordinates from a DataEntry.
+
+        Parameters
+        ----------
+        entry : descent.targets.thermo.DataEntry
+            Data entry to create BoxCoordinates from
+        n_max_mols : int, default=1000
+            Maximum number of molecules to use for composition scaling
+
+        Returns
+        -------
+        BoxCoordinates
+            BoxCoordinates representation of the data entry.
+            The actual box data (coordinates, vectors etc) will be None.
+        """
+        substance = Substance.from_data_entry(entry, n_max_mols=n_max_mols)
+        return cls(
+            substance=substance,
+            temperature=entry.get("temperature"),
+            pressure=entry.get("pressure"),
+        )
+
+
 
     def get_molecule_string(self) -> str:
         """
@@ -564,3 +722,26 @@ class BoxCoordinates(BaseModel):
 
         # TODO: validate composition key, and warn if it mismatches
         return obj
+
+    @staticmethod
+    def get_lowest_energy_box(boxes: list["BoxCoordinates"]) -> "BoxCoordinates":
+        """
+        Get the BoxCoordinates object with the lowest potential energy
+        from a list of boxes.
+
+        Parameters
+        ----------
+        boxes : list[BoxCoordinates]
+            List of BoxCoordinates objects to search
+
+        Returns
+        -------
+        BoxCoordinates
+            BoxCoordinates object with the lowest potential energy
+        """
+        if any(box.potential_energy is None for box in boxes):
+            raise ValueError(
+                "All boxes must have potential energy defined to find the "
+                "lowest energy box."
+            )
+        return min(boxes, key=lambda box: box.potential_energy)
