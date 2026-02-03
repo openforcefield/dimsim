@@ -6,7 +6,6 @@ from dimsim._tests.utils import get_test_data_path
 from dimsim.datasets.thermoml import ThermoMLDataSet
 
 
-@pytest.mark.skip(reason="Not implemented yet")
 @pytest.mark.parametrize(
     "filename, expected",
     [
@@ -70,7 +69,9 @@ from dimsim.datasets.thermoml import ThermoMLDataSet
 )
 def test_load_property_types(filename: str, expected: dict):
     """Test loading a single data type from a ThermoML XML file"""
-    dataset = ThermoMLDataSet.from_xml(get_test_data_path(f"thermoml/{filename}"))
+    dataset = ThermoMLDataSet.from_xml(
+        open(get_test_data_path(f"thermoml/{filename}")).read()
+    )
     assert len(dataset) == 1
 
     entry = dataset[0]
@@ -99,7 +100,6 @@ def test_load_property_types(filename: str, expected: dict):
     assert entry["source"] == expected["source"]
 
 
-@pytest.mark.skip(reason="Not implemented yet")
 def test_load_single_osmotic():
     """
     Test loading a single osmotic coefficient data point from a ThermoML XML file.
@@ -109,7 +109,7 @@ def test_load_single_osmotic():
 
     """
     dataset = ThermoMLDataSet.from_xml(
-        get_test_data_path("thermoml/single_osmotic.xml")
+        open(get_test_data_path("thermoml/single_osmotic.xml")).read()
     )
     assert len(dataset) == 1
 
@@ -131,7 +131,6 @@ def test_load_single_osmotic():
     assert entry["source"] == "10.1016/j.fluid.2006.09.025"
 
 
-@pytest.mark.skip(reason="Not implemented yet")
 def test_load_from_doi():
     """Test loading a ThermoML dataset from a DOI"""
     dataset = ThermoMLDataSet.from_doi("10.1016/j.fluid.2014.12.023")

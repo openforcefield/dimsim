@@ -8,7 +8,6 @@ from collections.abc import Iterable, Mapping
 from enum import Enum, IntEnum, IntFlag
 
 from openff.toolkit import Quantity
-from openff.units import Measurement
 
 from dimsim.attributes.typing import is_instance_of_type, is_supported_type
 
@@ -96,7 +95,7 @@ class AttributeClass:
                 )
 
             elif isinstance(attribute_value, Iterable) and not isinstance(
-                attribute_value, (Quantity, Measurement)
+                attribute_value, Quantity  # need to add back Measurement
             ):
                 iterable_values = (
                     x for x in attribute_value if isinstance(x, AttributeClass)
