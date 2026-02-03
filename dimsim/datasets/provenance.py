@@ -5,12 +5,13 @@ from pydantic import BaseModel
 
 class MeasurementSource(BaseModel):
 
-    doi: str
+    doi: str | None = None
 
-    reference: str
+    reference: str | None = None
+
 
 class CalculationSource(BaseModel):
 
-    fidelity: str
+    fidelity: str | None = None
 
-    provenance: dict[str, Any]
+    provenance: dict[str, Any] | None = None

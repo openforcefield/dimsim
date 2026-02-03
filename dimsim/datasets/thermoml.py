@@ -1,6 +1,5 @@
 import copy
 import logging
-import pathlib
 import re
 import traceback
 import urllib.error
@@ -11,11 +10,13 @@ from xml.etree import ElementTree
 import numpy
 from openff.units import Quantity, Unit
 
-from dimsim import datasets
-from dimsim.datasets.dataSet import PhysicalPropertyDataSet
+from dimsim.datasets.datasets import PhysicalPropertyDataSet, PropertyPhase
 from dimsim.datasets.provenance import MeasurementSource
+from dimsim.substances import Component, MoleFraction, Substance
+from dimsim.thermodynamics import ThermodynamicState
 
 logger = logging.getLogger(__name__)
+
 
 def _unit_from_thermoml_string(full_string) -> Unit:
     """
@@ -76,17 +77,8 @@ class _ConstraintType(Enum):
 
     @staticmethod
     def from_node(node):
-        """Converts either a ConstraintType or VariableType xml node to a _ConstraintType.
-
-        Parameters
-        ----------
-        node: xml.etree.Element
-            The xml node to convert.
-
-        Returns
-        ----------
-        _ConstraintType
-            The converted constraint type.
+        """
+        Converts either a ConstraintType or VariableType xml node to a _ConstraintType.
         """
 
         try:
@@ -100,20 +92,8 @@ class _ConstraintType(Enum):
         return constraint_type
 
     def is_composition_constraint(self):
-        """Checks whether the purpose of this constraint is
-        to constrain the substance composition.
-
-        Returns
-        -------
-        bool
-            True if the constraint type is either a
-
-            - `_ConstraintType.ComponentMoleFraction`
-            - `_ConstraintType.ComponentMassFraction`
-            - `_ConstraintType.ComponentMolality`
-            - `_ConstraintType.SolventMoleFraction`
-            - `_ConstraintType.SolventMassFraction`
-            - `_ConstraintType.SolventMolality`
+        """
+        Checks whether the purpose of this constraint is to constrain the substance composition.
         """
         return (
             self == _ConstraintType.ComponentMoleFraction
@@ -126,8 +106,10 @@ class _ConstraintType(Enum):
 
 
 class _Constraint:
-    """A wrapper around a ThermoML `Constraint` node. A constraint
-    in ThermoML encompasses such constructs as temperature, pressure
+    """
+    A wrapper around a ThermoML `Constraint` node.
+
+    A constraint in ThermoML encompasses such constructs as temperature, pressure
     or composition at which a measurement was recorded.
     """
 
@@ -145,20 +127,8 @@ class _Constraint:
 
     @classmethod
     def from_node(cls, constraint_node, namespace):
-        """Creates a _Constraint from an xml node.
-
-        Parameters
-        ----------
-        constraint_node: Element
-            The xml node to convert.
-        namespace: dict of str and str
-            The xml namespace.
-
-        Returns
-        ----------
-        _Constraint, optional
-            The extracted constraint if the constraint type is supported,
-            otherwise `None`.
+        """
+        Creates a _Constraint from an xml node.
         """
         # Extract the xml nodes.
         type_node = constraint_node.find(".//ThermoML:ConstraintType/*", namespace)
@@ -190,7 +160,7 @@ class _Constraint:
         return None if return_value.type is _ConstraintType.Undefined else return_value
 
     @classmethod
-    def from_variable(cls, variable, value) -> _Constraint:
+    def from_variable(cls, variable, value):
         """
         Creates a _Constraint from an existing `_VariableDefinition` variable definition.
         """
@@ -207,10 +177,11 @@ class _Constraint:
 
 
 class _VariableDefinition:
-    """A wrapper around a ThermoML Variable node. A variable in
-    ThermoML is essentially just the definition of a `Constraint`
-    (the constraint type, the expected units, etc.) whose value is
-    defined inside of another ThermoML node.
+    """
+    A wrapper around a ThermoML Variable node.
+
+    A variable in ThermoML is essentially just the definition of a `Constraint` (the constraint
+    type, the expected units, etc.) whose value is defined inside of another ThermoML node.
     """
 
     def __init__(self):
@@ -225,19 +196,8 @@ class _VariableDefinition:
 
     @classmethod
     def from_node(cls, variable_node, namespace):
-        """Creates a `_VariableDefinition` from an xml node.
-
-        Parameters
-        ----------
-        variable_node: xml.etree.Element
-            The xml node to convert.
-        namespace: dict of str and str
-            The xml namespace.
-
-        Returns
-        ----------
-        _VariableDefinition
-            The created variable definition.
+        """
+        Creates a `_VariableDefinition` from an xml node.
         """
         # Extract the xml nodes.
         type_node = variable_node.find(".//ThermoML:VariableType/*", namespace)
@@ -268,7 +228,9 @@ class _VariableDefinition:
 
 
 class _PropertyUncertainty:
-    """A wrapper around a ThermoML PropUncertainty node."""
+    """
+    A wrapper around a ThermoML PropUncertainty node.
+    """
 
     # Reduce code redundancy by reusing this class for
     # both property and combined uncertainties.
@@ -280,19 +242,8 @@ class _PropertyUncertainty:
 
     @classmethod
     def from_xml(cls, node, namespace):
-        """Creates a _PropertyUncertainty from an xml node.
-
-        Parameters
-        ----------
-        node: Element
-            The xml node to convert.
-        namespace: dict of str and str
-            The xml namespace.
-
-        Returns
-        ----------
-        _Compound
-            The created property uncertainty.
+        """
+        Creates a _PropertyUncertainty from an xml node.
         """
 
         coverage_factor_node = node.find(
@@ -302,7 +253,8 @@ class _PropertyUncertainty:
             f"ThermoML:n{cls.prefix}UncertLevOfConfid", namespace
         )
 
-        # As defined by https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-7-reporting-uncertainty
+        # As defined by
+        # https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-7-reporting-uncertainty
         if coverage_factor_node is not None:
             coverage_factor = float(coverage_factor_node.text)
         elif confidence_node is not None and confidence_node.text == "95":
@@ -322,7 +274,9 @@ class _PropertyUncertainty:
 
 
 class _CombinedUncertainty(_PropertyUncertainty):
-    """A wrapper around a ThermoML CombPropUncertainty node."""
+    """
+    A wrapper around a ThermoML CombPropUncertainty node.
+    """
 
     prefix = "Comb"
 
@@ -1898,7 +1852,6 @@ class ThermoMLProperty:
             self.uncertainty = uncertainty_quantity
 
 
-
 class ThermoMLDataSet(PhysicalPropertyDataSet):
 
     @classmethod
@@ -1938,11 +1891,38 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
 
     @classmethod
     def from_file(cls, *file_list):
-        raise NotImplementedError()
+        return_value = None
+        counter = 0
+
+        for file in file_list:
+            data_set = cls._from_file(file)
+
+            counter += 1
+
+            if data_set is None or len(data_set) == 0:
+                continue
+
+            if return_value is None:
+                return_value = data_set
+            else:
+                return_value.merge(data_set)
+
+        return return_value
 
     @classmethod
-    def _from_file(cls, file):
-        raise NotImplementedError()
+    def _from_file(cls, path):
+
+        source = MeasurementSource(reference=path)
+        return_value = None
+
+        try:
+            with open(path) as file:
+                return_value = ThermoMLDataSet.from_xml(file.read(), source)
+
+        except FileNotFoundError:
+            logger.warning(f"No ThermoML file could not be found at {path}")
+
+        return return_value
 
     @classmethod
     def from_xml(
@@ -2017,53 +1997,11 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
         return return_value
 
 
-def thermoml_dataset_from_xml(
-    path: str | pathlib.Path,
-) -> datasets.Dataset:
-    """Load a ThermoML dataset from an XML file
-
-
-    Parameters
-    ----------
-    path : str | pathlib.Path
-        The path to the ThermoML XML file to load.
-
-
-    Returns
-    -------
-    datasets.Dataset
-        A ThermoML HuggingFace Dataset containing the data from the ThermoML XML file,
-        with the schema defined by :py:attr:`descent.targets.thermoml.DATA_SCHEMA`.
-    """
-    ...
-
-
-def thermoml_dataset_from_doi(
-    doi: str
-) -> datasets.Dataset:
-    """Download a ThermoML dataset from a DOI
-
-
-    Parameters
-    ----------
-    doi : str | pathlib.Path
-        The DOI of the ThermoML dataset to load.
-
-
-    Returns
-    -------
-    datasets.Dataset
-        A ThermoML HuggingFace Dataset containing the data from the ThermoML XML file,
-        with the schema defined by :py:attr:`descent.targets.thermoml.DATA_SCHEMA`.
-    """
-    ...
-
-
 def download_thermoml_to_dataset(
     url: str = "https://data.nist.gov/od/ds/mds2-2422/ThermoML.v2020-09-30.tgz"
-) -> datasets.Dataset:
-    """Download the ThermoML dataset from the given URL and
-    load it into a HuggingFace Dataset.
+):
+    """
+    Download the ThermoML dataset from the given URL and load it into a HuggingFace Dataset.
 
     Akin to
     openff.evaluator.datasets.curation.components.thermoml.ImportThermoMLDataSchema
