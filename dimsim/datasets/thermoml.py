@@ -2,12 +2,11 @@ import copy
 import logging
 import re
 import traceback
-import urllib.error
-import urllib.request
 from enum import Enum, unique
 from xml.etree import ElementTree
 
 import numpy
+import urllib3
 from openff.units import Quantity, Unit
 
 from dimsim.datasets.datasets import PhysicalPropertyDataSet, PropertyPhase
@@ -1759,28 +1758,26 @@ class ThermoMLProperty:
         if method_name_node is None or property_name_node is None:
             raise RuntimeError("A property does not have a name / method entry.")
 
-        if False:
-            # TODO: Implement or discard registration system
-            if property_name_node.text not in ThermoMLDataSet.registered_properties:
-                logging.debug(
-                    f"An unsupported property was found "
-                    f"({property_name_node.text}) and will be skipped."
-                )
+        if property_name_node.text not in ThermoMLDataSet.registered_properties:
+            logging.debug(
+                f"An unsupported property was found "
+                f"({property_name_node.text}) and will be skipped."
+            )
 
-                return None
+            return None
 
-            registered_plugin = ThermoMLDataSet.registered_properties[
-                property_name_node.text
-            ]
+        registered_plugin = ThermoMLDataSet.registered_properties[
+            property_name_node.text
+        ]
 
-            if (registered_plugin.supported_phases & phase) != phase:
-                logging.debug(
-                    f"The {property_name_node.text} property is currently only supported "
-                    f"when measured in the {str(registered_plugin.supported_phases)} phase, "
-                    f"and not the {str(phase)} phase."
-                )
+        if (registered_plugin.supported_phases & phase) != phase:
+            logging.debug(
+                f"The {property_name_node.text} property is currently only supported "
+                f"when measured in the {str(registered_plugin.supported_phases)} phase, "
+                f"and not the {str(phase)} phase."
+            )
 
-                return None
+            return None
 
         return_value = cls(property_name_node.text)
 
@@ -1856,6 +1853,11 @@ class ThermoMLProperty:
 
 class ThermoMLDataSet(PhysicalPropertyDataSet):
 
+    registered_properties = {}
+
+    def __init__(self):
+        super().__init__()
+
     @classmethod
     def from_doi(cls, *doi_list):
         return_value = None
@@ -1882,11 +1884,11 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
             source = MeasurementSource(reference=url)
 
         try:
-            request = urllib.request.urlopen(url)
+            request = urllib3.request("GET", url)
 
-            return cls.from_xml(request.read())
+            return cls.from_xml(request.data.decode("utf-8"))
 
-        except urllib.error.HTTPError:
+        except urllib3.exceptions.HTTPError:
             logger.warning(f"No ThermoML file could not be found at {url}")
 
         return None
@@ -1932,7 +1934,6 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
         xml: str,
         default_source: Source | None = None,
     ):
-
         root_node = ElementTree.fromstring(xml)
 
         if root_node is None:
