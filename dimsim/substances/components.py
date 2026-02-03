@@ -4,7 +4,7 @@ An API for defining and creating substances.
 
 from enum import Enum
 
-from openff.evaluator.attributes import UNDEFINED, Attribute, AttributeClass
+from dimsim.attributes import UNDEFINED, Attribute, AttributeClass
 
 
 class Component(AttributeClass):

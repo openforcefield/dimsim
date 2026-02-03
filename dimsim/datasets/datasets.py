@@ -13,12 +13,13 @@ from enum import IntFlag, unique
 
 import numpy
 import pandas
-from openff.toolkit import Quantity, Unit
+from openff.toolkit import Quantity
+from openff.units import Unit
 
-from dimsim.datasets.attributes import UNDEFINED, Attribute, AttributeClass
-from dimsim.datasets.datasets import CalculationSource, MeasurementSource, Source
-from dimsim.datasets.substances import Component, ExactAmount, MoleFraction, Substance
-from dimsim.datasets.thermodynamics import ThermodynamicState
+from dimsim.attributes import UNDEFINED, Attribute, AttributeClass
+from dimsim.datasets.provenance import CalculationSource, MeasurementSource, Source
+from dimsim.substances import Component, ExactAmount, MoleFraction, Substance
+from dimsim.thermodynamics import ThermodynamicState
 
 
 @unique

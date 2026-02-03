@@ -3,10 +3,7 @@ import pytest
 from openff.toolkit import Molecule
 
 from dimsim._tests.utils import get_test_data_path
-from dimsim.datasets.thermoml import (
-    thermoml_dataset_from_doi,
-    thermoml_dataset_from_xml,
-)
+from dimsim.datasets.thermoml import ThermoMLDataSet
 
 
 @pytest.mark.skip(reason="Not implemented yet")
@@ -73,7 +70,7 @@ from dimsim.datasets.thermoml import (
 )
 def test_load_property_types(filename: str, expected: dict):
     """Test loading a single data type from a ThermoML XML file"""
-    dataset = thermoml_dataset_from_xml(get_test_data_path(f"thermoml/{filename}"))
+    dataset = ThermoMLDataSet.from_xml(get_test_data_path(f"thermoml/{filename}"))
     assert len(dataset) == 1
 
     entry = dataset[0]
@@ -111,7 +108,7 @@ def test_load_single_osmotic():
     but is included here to ensure that ions are dealt with correctly.
 
     """
-    dataset = thermoml_dataset_from_xml(
+    dataset = ThermoMLDataSet.from_xml(
         get_test_data_path("thermoml/single_osmotic.xml")
     )
     assert len(dataset) == 1
@@ -137,7 +134,7 @@ def test_load_single_osmotic():
 @pytest.mark.skip(reason="Not implemented yet")
 def test_load_from_doi():
     """Test loading a ThermoML dataset from a DOI"""
-    dataset = thermoml_dataset_from_doi("10.1016/j.fluid.2014.12.023")
+    dataset = ThermoMLDataSet.from_doi("10.1016/j.fluid.2014.12.023")
     assert len(dataset) == 9
     for entry in dataset:
         assert entry["source"] == "10.1016/j.fluid.2014.12.023"

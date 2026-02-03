@@ -6,8 +6,9 @@ import abc
 import math
 import typing
 
-import numpy as np
-from openff.evaluator.attributes import UNDEFINED, Attribute, AttributeClass
+import numpy
+
+from dimsim.attributes import UNDEFINED, Attribute, AttributeClass
 
 
 class Amount(AttributeClass, abc.ABC):
@@ -65,7 +66,7 @@ class Amount(AttributeClass, abc.ABC):
         return f"<{self.__class__.__name__} {str(self)}>"
 
     def __eq__(self, other):
-        return type(self) is type(other) and np.isclose(self.value, other.value)
+        return type(self) is type(other) and numpy.isclose(self.value, other.value)
 
     def __ne__(self, other):
         return not (self == other)
@@ -88,7 +89,7 @@ class MoleFraction(Amount):
         number_of_molecules = self.value * total_substance_molecules
         fractional_number_of_molecules = number_of_molecules % 1
 
-        if np.isclose(fractional_number_of_molecules, 0.5):
+        if numpy.isclose(fractional_number_of_molecules, 0.5):
             number_of_molecules = int(number_of_molecules)
         else:
             number_of_molecules = int(round(number_of_molecules))

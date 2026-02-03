@@ -3,14 +3,18 @@ from typing import Any
 from pydantic import BaseModel
 
 
-class MeasurementSource(BaseModel):
+class Source(BaseModel):
+    pass
+
+
+class MeasurementSource(Source):
 
     doi: str | None = None
 
     reference: str | None = None
 
 
-class CalculationSource(BaseModel):
+class CalculationSource(Source):
 
     fidelity: str | None = None
 
