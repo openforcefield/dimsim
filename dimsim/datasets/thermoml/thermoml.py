@@ -1593,11 +1593,13 @@ class _PureOrMixtureData:
         )
 
         if compound_indices is None:
+            raise Exception("Failed to parse compound indices")
             # Most likely this entry depended on a non-parsable compound
             # and will be skipped entirely
             return None
 
         if len(compound_indices) == 0:
+            raise Exception("No compounds?")
             logging.debug("A PureOrMixtureData entry with no compounds was ignored.")
             return None
 
@@ -1857,7 +1859,7 @@ class ThermoMLProperty:
         if method_name_node is None or property_name_node is None:
             raise RuntimeError("A property does not have a name / method entry.")
 
-        if property_name_node.text not in ThermoMLDataSet.registered_properties:
+        if property_name_node.text not in ThermoMLDataSet._registered_properties:
             logging.debug(
                 f"An unsupported property was found "
                 f"({property_name_node.text}) and will be skipped."
@@ -1865,14 +1867,17 @@ class ThermoMLProperty:
 
             return None
 
-        registered_plugin = ThermoMLDataSet.registered_properties[
+        registered_plugin = ThermoMLDataSet._registered_properties[
             property_name_node.text
         ]
 
-        if (registered_plugin.supported_phases & phase) != phase:
+        if len(registered_plugin.phases) == 0:
+            raise Exception("Add back support for multiple phases")
+
+        if (registered_plugin.phases[0] & phase) != phase:
             logging.debug(
                 f"The {property_name_node.text} property is currently only supported "
-                f"when measured in the {str(registered_plugin.supported_phases)} phase, "
+                f"when measured in the {str(registered_plugin.phases)} phase, "
                 f"and not the {str(phase)} phase."
             )
 
@@ -1973,8 +1978,20 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
     >>> dataset = ThermoMLDataSet.from_doi(*thermoml_keys)
 
     """
+    from dimsim.configs.targets.thermo import (
+        DensityEntry,
+        DielectricConstantEntry,
+        EnthalpyOfMixingEntry,
+        ExcessMolarVolumeEntry,
+    )
 
-    registered_properties = {}
+    _registered_properties = {
+        'Mass density, kg/m3': DensityEntry,
+        'Excess molar volume, m3/mol': ExcessMolarVolumeEntry,
+        'Relative permittivity at zero frequency': DielectricConstantEntry,
+        'Excess molar enthalpy (molar enthalpy of mixing), kJ/mol': EnthalpyOfMixingEntry,
+        'Molar enthalpy of vaporization or sublimation, kJ/mol': EnthalpyOfMixingEntry,
+    }
 
     def __init__(self):
         """Constructs a new ThermoMLDataSet object."""
@@ -2138,15 +2155,8 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
         return return_value
 
     @classmethod
-    def from_xml(cls, xml, default_source):
+    def from_xml(cls, xml, source: MeasurementSource | None = None):
         """Load a ThermoML data set from an xml object.
-
-        .. versionchanged:: 0.4.11
-            As of 0.4.11, this will no longer raise an error if
-            the document contains a compound that cannot be parsed.
-            Instead, that compound will simply be skipped and parsing
-            will continue. See Issue #620 for more.
-
 
         Parameters
         ----------
@@ -2182,7 +2192,7 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
         if doi_node is not None:
             source = MeasurementSource(doi=doi_node.text)
         else:
-            source = default_source
+            source = MeasurementSource()
 
         return_value = ThermoMLDataSet()
         compounds = {}
@@ -2210,10 +2220,10 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
             properties = _PureOrMixtureData.from_xml_node(node, namespace, compounds)
 
             if properties is None or len(properties) == 0:
-                continue
+                raise Exception("No properties parsed")
 
             for measured_property in properties:
-                registered_plugin = ThermoMLDataSet.registered_properties[
+                registered_plugin = ThermoMLDataSet._registered_properties[
                     measured_property.type_string
                 ]
 
