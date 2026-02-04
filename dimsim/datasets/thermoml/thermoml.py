@@ -1,25 +1,39 @@
+"""
+An API for importing a ThermoML archive.
+"""
+
 import copy
 import logging
 import re
 import traceback
 from enum import Enum, unique
+from urllib.error import HTTPError
 from xml.etree import ElementTree
 
-import numpy
-import urllib3
-from openff.units import Quantity, Unit
+import numpy as np
+import requests
+from openff.units import unit
 
 from dimsim.datasets.datasets import PhysicalPropertyDataSet, PropertyPhase
-from dimsim.datasets.provenance import MeasurementSource, Source
+from dimsim.datasets.provenance import MeasurementSource
 from dimsim.substances import Component, MoleFraction, Substance
 from dimsim.thermodynamics import ThermodynamicState
 
 logger = logging.getLogger(__name__)
 
 
-def _unit_from_thermoml_string(full_string) -> Unit:
-    """
-    Extract the unit from a ThermoML property name.
+def _unit_from_thermoml_string(full_string):
+    """Extract the unit from a ThermoML property name.
+
+    Parameters
+    ----------
+    full_string: str
+        The string to convert to a Unit object.
+
+    Returns
+    ----------
+    dimsim.unit.Unit
+        The parsed unit.
     """
 
     full_string_split = full_string.split(",")
@@ -29,7 +43,7 @@ def _unit_from_thermoml_string(full_string) -> Unit:
     # Convert symbols like dm3 to dm**3
     unit_string = re.sub(r"([a-z])([0-9]+)", r"\1**\2", unit_string.strip())
 
-    return Unit(unit_string)
+    return unit.Unit(unit_string)
 
 
 def _phase_from_thermoml_string(string):
@@ -76,8 +90,17 @@ class _ConstraintType(Enum):
 
     @staticmethod
     def from_node(node):
-        """
-        Converts either a ConstraintType or VariableType xml node to a _ConstraintType.
+        """Converts either a ConstraintType or VariableType xml node to a _ConstraintType.
+
+        Parameters
+        ----------
+        node: xml.etree.Element
+            The xml node to convert.
+
+        Returns
+        ----------
+        _ConstraintType
+            The converted constraint type.
         """
 
         try:
@@ -91,8 +114,20 @@ class _ConstraintType(Enum):
         return constraint_type
 
     def is_composition_constraint(self):
-        """
-        Checks whether the purpose of this constraint is to constrain the substance composition.
+        """Checks whether the purpose of this constraint is
+        to constrain the substance composition.
+
+        Returns
+        -------
+        bool
+            True if the constraint type is either a
+
+            - `_ConstraintType.ComponentMoleFraction`
+            - `_ConstraintType.ComponentMassFraction`
+            - `_ConstraintType.ComponentMolality`
+            - `_ConstraintType.SolventMoleFraction`
+            - `_ConstraintType.SolventMassFraction`
+            - `_ConstraintType.SolventMolality`
         """
         return (
             self == _ConstraintType.ComponentMoleFraction
@@ -105,10 +140,8 @@ class _ConstraintType(Enum):
 
 
 class _Constraint:
-    """
-    A wrapper around a ThermoML `Constraint` node.
-
-    A constraint in ThermoML encompasses such constructs as temperature, pressure
+    """A wrapper around a ThermoML `Constraint` node. A constraint
+    in ThermoML encompasses such constructs as temperature, pressure
     or composition at which a measurement was recorded.
     """
 
@@ -126,8 +159,20 @@ class _Constraint:
 
     @classmethod
     def from_node(cls, constraint_node, namespace):
-        """
-        Creates a _Constraint from an xml node.
+        """Creates a _Constraint from an xml node.
+
+        Parameters
+        ----------
+        constraint_node: Element
+            The xml node to convert.
+        namespace: dict of str and str
+            The xml namespace.
+
+        Returns
+        ----------
+        _Constraint, optional
+            The extracted constraint if the constraint type is supported,
+            otherwise `None`.
         """
         # Extract the xml nodes.
         type_node = constraint_node.find(".//ThermoML:ConstraintType/*", namespace)
@@ -160,8 +205,20 @@ class _Constraint:
 
     @classmethod
     def from_variable(cls, variable, value):
-        """
-        Creates a _Constraint from an existing `_VariableDefinition` variable definition.
+        """Creates a _Constraint from an existing
+        `_VariableDefinition` variable definition.
+
+        Parameters
+        ----------
+        variable: _VariableDefinition
+            The variable to convert.
+        value: dimsim.unit.Quantity
+            The value of the constant.
+
+        Returns
+        ----------
+        _Constraint
+            The created constraint.
         """
         return_value = cls()
 
@@ -176,11 +233,10 @@ class _Constraint:
 
 
 class _VariableDefinition:
-    """
-    A wrapper around a ThermoML Variable node.
-
-    A variable in ThermoML is essentially just the definition of a `Constraint` (the constraint
-    type, the expected units, etc.) whose value is defined inside of another ThermoML node.
+    """A wrapper around a ThermoML Variable node. A variable in
+    ThermoML is essentially just the definition of a `Constraint`
+    (the constraint type, the expected units, etc.) whose value is
+    defined inside of another ThermoML node.
     """
 
     def __init__(self):
@@ -195,8 +251,19 @@ class _VariableDefinition:
 
     @classmethod
     def from_node(cls, variable_node, namespace):
-        """
-        Creates a `_VariableDefinition` from an xml node.
+        """Creates a `_VariableDefinition` from an xml node.
+
+        Parameters
+        ----------
+        variable_node: xml.etree.Element
+            The xml node to convert.
+        namespace: dict of str and str
+            The xml namespace.
+
+        Returns
+        ----------
+        _VariableDefinition
+            The created variable definition.
         """
         # Extract the xml nodes.
         type_node = variable_node.find(".//ThermoML:VariableType/*", namespace)
@@ -227,9 +294,7 @@ class _VariableDefinition:
 
 
 class _PropertyUncertainty:
-    """
-    A wrapper around a ThermoML PropUncertainty node.
-    """
+    """A wrapper around a ThermoML PropUncertainty node."""
 
     # Reduce code redundancy by reusing this class for
     # both property and combined uncertainties.
@@ -241,8 +306,19 @@ class _PropertyUncertainty:
 
     @classmethod
     def from_xml(cls, node, namespace):
-        """
-        Creates a _PropertyUncertainty from an xml node.
+        """Creates a _PropertyUncertainty from an xml node.
+
+        Parameters
+        ----------
+        node: Element
+            The xml node to convert.
+        namespace: dict of str and str
+            The xml namespace.
+
+        Returns
+        ----------
+        _Compound
+            The created property uncertainty.
         """
 
         coverage_factor_node = node.find(
@@ -273,9 +349,7 @@ class _PropertyUncertainty:
 
 
 class _CombinedUncertainty(_PropertyUncertainty):
-    """
-    A wrapper around a ThermoML CombPropUncertainty node.
-    """
+    """A wrapper around a ThermoML CombPropUncertainty node."""
 
     prefix = "Comb"
 
@@ -304,7 +378,7 @@ class _Compound:
         str, optional
             None if the identifier cannot be converted, otherwise the converted SMILES pattern.
         """
-        from openff.toolkit import Molecule
+        from openff.toolkit.topology import Molecule
 
         try:
             import rdkit.Chem
@@ -342,7 +416,7 @@ class _Compound:
         str, optional
             None if the identifier cannot be converted, otherwise the converted SMILES pattern.
         """
-        from openff.toolkit import Molecule
+        from openff.toolkit.topology import Molecule
         from openff.toolkit.utils.rdkit_wrapper import RDKitToolkitWrapper
 
         if thermoml_string is None:
@@ -367,7 +441,7 @@ class _Compound:
         str, None
             None if the identifier cannot be converted, otherwise the converted SMILES pattern.
         """
-        from openff.toolkit import Molecule
+        from openff.toolkit.topology import Molecule
         from openff.toolkit.utils import InvalidIUPACNameError, LicenseError
 
         if common_name is None:
@@ -751,13 +825,22 @@ class _PureOrMixtureData:
         return expanded_uncertainty / divisor
 
     @staticmethod
-    def _smiles_to_molecular_weight(smiles) -> Quantity:
-        """
-        Calculate the molecular weight of a substance specified by a smiles string.
+    def _smiles_to_molecular_weight(smiles):
+        """Calculates the molecular weight of a substance specified
+        by a smiles string.
 
+        Parameters
+        ----------
+        smiles: str
+            The smiles string to calculate the molecular weight of.
+
+        Returns
+        -------
+        dimsim.unit.Quantity
+            The molecular weight in units of grams per mole.
         """
 
-        from openff.toolkit import Molecule
+        from openff.toolkit.topology import Molecule
 
         try:
             molecule = Molecule.from_smiles(smiles)
@@ -770,23 +853,37 @@ class _PureOrMixtureData:
                 f"{smiles} smiles pattern: {formatted_exception}"
             )
 
-        molecular_weight = Quantity("0.0 dalton")
+        molecular_weight = 0.0 * unit.dalton
 
         for atom in molecule.atoms:
             molecular_weight += atom.mass
 
         # Molecular weight in Daltons is not a molar quantity, so need
         # multiply it through by Avogadro's number per mol to become gram/mol
-        return molecular_weight * Unit("avogadro_number / mole")
+        return unit.avogadro_number * molecular_weight / unit.mol
 
     @staticmethod
     def _solvent_mole_fractions_to_moles(
         solvent_mass, solvent_mole_fractions, solvent_compounds
-    ) -> dict[int, Quantity]:
+    ):
+        """Converts a set of solvent mole fractions to moles for a
+        given mass of solvent.
+
+        Parameters
+        ----------
+        solvent_mass: dimsim.unit.Quantity
+            The total mass of the solvent in units compatible with kg.
+        solvent_mole_fractions: dict of int and float
+            The mole fractions of any solvent compounds in the system.
+        solvent_compounds: dict of int and float
+            A dictionary of any solvent compounds in the system.
+
+        Returns
+        -------
+        dict of int and dimsim.unit.Quantity
+            A dictionary of the moles of each solvent compound.
         """
-        Converts a set of solvent mole fractions to moles for a given mass of solvent.
-        """
-        weighted_molecular_weights = 0.0 * Unit("gram / mole")
+        weighted_molecular_weights = 0.0 * unit.gram / unit.mole
         number_of_moles = {}
 
         for solvent_index in solvent_compounds:
@@ -828,6 +925,7 @@ class _PureOrMixtureData:
             A dictionary of compound indices and mole fractions.
         """
 
+        # noinspection PyTypeChecker
         number_of_constraints = len(constraints)
 
         mole_fractions = {}
@@ -836,8 +934,8 @@ class _PureOrMixtureData:
         for constraint in constraints:
             mole_fraction = constraint.value
 
-            if isinstance(mole_fraction, Quantity):
-                mole_fraction = mole_fraction.m_as("dimensionless")
+            if isinstance(mole_fraction, unit.Quantity):
+                mole_fraction = mole_fraction.to(unit.dimensionless).magnitude
 
             mole_fractions[constraint.compound_index] = mole_fraction
             total_mol_fraction += mole_fractions[constraint.compound_index]
@@ -908,6 +1006,7 @@ class _PureOrMixtureData:
             A dictionary of compound indices and mole fractions.
         """
 
+        # noinspection PyTypeChecker
         number_of_constraints = len(constraints)
 
         mass_fractions = {}
@@ -916,8 +1015,8 @@ class _PureOrMixtureData:
         for constraint in constraints:
             mass_fraction = constraint.value
 
-            if isinstance(mass_fraction, Quantity):
-                mass_fraction = mass_fraction.m_as("dimensionless").magnitude
+            if isinstance(mass_fraction, unit.Quantity):
+                mass_fraction = mass_fraction.to(unit.dimensionless).magnitude
 
             mass_fractions[constraint.compound_index] = mass_fraction
             total_mass_fraction += mass_fraction
@@ -943,16 +1042,16 @@ class _PureOrMixtureData:
                     continue
 
                 mass_fractions[compound_index] = 1.0 - total_mass_fraction
-                if isinstance(mass_fractions[compound_index], Quantity):
+                if isinstance(mass_fractions[compound_index], unit.Quantity):
                     mass_fractions[compound_index] = (
-                        mass_fractions[compound_index].m_as("dimensionless").magnitude
+                        mass_fractions[compound_index].to(unit.dimensionless).magnitude
                     )
 
-        total_mass = Quantity("1 gram")
+        total_mass = 1 * unit.gram
         total_solvent_mass = total_mass
 
         moles = {}
-        total_moles = Quantity("0 mole")
+        total_moles = 0.0 * unit.mole
 
         for compound_index in compounds:
             compound_smiles = compounds[compound_index].smiles
@@ -1013,13 +1112,13 @@ class _PureOrMixtureData:
             A dictionary of compound indices and mole fractions.
         """
         number_of_moles = {}
-
+        # noinspection PyTypeChecker
         number_of_constraints = len(constraints)
 
         mole_fractions = {}
 
-        total_number_of_moles = Quantity("0.0 moles")
-        total_solvent_mass = Quantity("1.0 kilograms")
+        total_number_of_moles = 0.0 * unit.moles
+        total_solvent_mass = 1.0 * unit.kilograms
 
         for constraint in constraints:
             molality = constraint.value
@@ -1286,14 +1385,14 @@ class _PureOrMixtureData:
 
         # Make sure we haven't picked up a dimensionless unit be accident.
         for compound_index in mole_fractions:
-            if isinstance(mole_fractions[compound_index], Quantity):
+            if isinstance(mole_fractions[compound_index], unit.Quantity):
                 mole_fractions[compound_index] = (
-                    mole_fractions[compound_index].m_as("dimensionless")
+                    mole_fractions[compound_index].to(unit.dimensionless).magnitude
                 )
 
         total_mol_fraction = sum([value for value in mole_fractions.values()])
 
-        if not numpy.isclose(total_mol_fraction, 1.0):
+        if not np.isclose(total_mol_fraction, 1.0):
             raise ValueError(
                 f"The total mole fraction {total_mol_fraction} is not equal to 1.0"
             )
@@ -1303,7 +1402,7 @@ class _PureOrMixtureData:
         for compound_index in compounds:
             compound = compounds[compound_index]
 
-            if numpy.isclose(mole_fractions[compound_index], 0.0):
+            if np.isclose(mole_fractions[compound_index], 0.0):
                 continue
 
             substance.add_component(
@@ -1387,7 +1486,7 @@ class _PureOrMixtureData:
                 variable_value = float(
                     variable_node.find("ThermoML:nVarValue", namespace).text
                 )
-                value_as_quantity = Quantity(
+                value_as_quantity = unit.Quantity(
                     variable_value, variable_definition.default_unit
                 )
 
@@ -1832,12 +1931,18 @@ class ThermoMLProperty:
         return return_value
 
     def set_value(self, value, uncertainty):
-        """
-        Set the value and uncertainty of this property, adding units if necessary.
+        """Set the value and uncertainty of this property, adding units if necessary.
+
+        Parameters
+        ----------
+        value: float or unit.Quantity
+            The value of the property
+        uncertainty: float or unit.Quantity, optional
+            The uncertainty in the value.
         """
         value_quantity = value
 
-        if not isinstance(value_quantity, Quantity):
+        if not isinstance(value_quantity, unit.Quantity):
             value_quantity = value * self.default_unit
 
         self.value = value_quantity
@@ -1845,21 +1950,50 @@ class ThermoMLProperty:
         if uncertainty is not None:
             uncertainty_quantity = uncertainty
 
-            if not isinstance(uncertainty_quantity, Quantity):
+            if not isinstance(uncertainty_quantity, unit.Quantity):
                 uncertainty_quantity = uncertainty * self.default_unit
 
             self.uncertainty = uncertainty_quantity
 
 
 class ThermoMLDataSet(PhysicalPropertyDataSet):
+    """A dataset of physical property measurements created from a ThermoML dataset.
+
+    Examples
+    --------
+
+    For example, we can use the DOI `10.1016/j.jct.2005.03.012` as a key
+    for retrieving the dataset from the ThermoML Archive:
+
+    >>> dataset = ThermoMLDataSet.from_doi('10.1016/j.jct.2005.03.012')
+
+    You can also specify multiple ThermoML Archive keys to create a dataset from multiple ThermoML files:
+
+    >>> thermoml_keys = ['10.1021/acs.jced.5b00365', '10.1021/acs.jced.5b00474']
+    >>> dataset = ThermoMLDataSet.from_doi(*thermoml_keys)
+
+    """
 
     registered_properties = {}
 
     def __init__(self):
+        """Constructs a new ThermoMLDataSet object."""
         super().__init__()
 
     @classmethod
     def from_doi(cls, *doi_list):
+        """Load a ThermoML data set from a list of DOIs
+
+        Parameters
+        ----------
+        doi_list: str
+            The list of DOIs to pull data from
+
+        Returns
+        -------
+        ThermoMLDataSet
+            The loaded data set.
+        """
         return_value = None
 
         for doi in doi_list:
@@ -1879,22 +2013,86 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
         return return_value
 
     @classmethod
-    def _from_url(cls, url: str, source: MeasurementSource | None):
-        if not source:
+    def from_url(cls, *url_list):
+        """Load a ThermoML data set from a list of URLs
+
+        Parameters
+        ----------
+        url_list: str
+            The list of URLs to pull data from
+
+        Returns
+        -------
+        ThermoMLDataSet
+            The loaded data set.
+        """
+
+        return_value = None
+
+        for url in url_list:
+            data_set = cls._from_url(url)
+
+            if data_set is None or len(data_set) == 0:
+                continue
+
+            if return_value is None:
+                return_value = data_set
+            else:
+                return_value.merge(data_set)
+
+        return return_value
+
+    @classmethod
+    def _from_url(cls, url, source=None):
+        """Load a ThermoML data set from a given URL
+
+        Parameters
+        ----------
+        url: str
+            The URL to pull data from
+        source: Source, optional
+            An optional source which gives more information (e.g DOIs) for the url.
+
+        Returns
+        ----------
+        ThermoMLDataSet
+            The loaded data set.
+        """
+        if source is None:
             source = MeasurementSource(reference=url)
 
+        return_value = None
+
         try:
-            request = urllib3.request("GET", url)
+            request = requests.get(url)
+            request.raise_for_status()
 
-            return cls.from_xml(request.data.decode("utf-8"))
+            # Handle the case where ThermoML returns a 404 error code, but rather
+            # redirects to an error page with code 200.
+            if request.text.startswith("<html>"):
+                raise HTTPError(url, 404, "Not found", None, None)
 
-        except urllib3.exceptions.HTTPError:
+            return_value = cls.from_xml(request.text, source)
+
+        except (HTTPError, requests.exceptions.HTTPError):
             logger.warning(f"No ThermoML file could not be found at {url}")
 
-        return None
+        return return_value
 
     @classmethod
     def from_file(cls, *file_list):
+        """Load a ThermoML data set from a list of files
+
+        Parameters
+        ----------
+        file_list: str
+            The list of files to pull data from
+
+        Returns
+        -------
+        ThermoMLDataSet
+            The loaded data set.
+        """
         return_value = None
         counter = 0
 
@@ -1915,7 +2113,18 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
 
     @classmethod
     def _from_file(cls, path):
+        """Load a ThermoML data set from a given file
 
+        Parameters
+        ----------
+        path: str
+            The file path to pull data from
+
+        Returns
+        -------
+        ThermoMLDataSet
+            The loaded data set.
+        """
         source = MeasurementSource(reference=path)
         return_value = None
 
@@ -1929,11 +2138,28 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
         return return_value
 
     @classmethod
-    def from_xml(
-        cls,
-        xml: str,
-        default_source: Source | None = None,
-    ):
+    def from_xml(cls, xml, default_source):
+        """Load a ThermoML data set from an xml object.
+
+        .. versionchanged:: 0.4.11
+            As of 0.4.11, this will no longer raise an error if
+            the document contains a compound that cannot be parsed.
+            Instead, that compound will simply be skipped and parsing
+            will continue. See Issue #620 for more.
+
+
+        Parameters
+        ----------
+        xml: str
+            The xml string to parse.
+        default_source: Source
+            The source to use if one cannot be parsed from the archive itself.
+
+        Returns
+        -------
+        ThermoMLDataSet
+            The loaded ThermoML data set.
+        """
         root_node = ElementTree.fromstring(xml)
 
         if root_node is None:
@@ -1998,27 +2224,3 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
                 return_value.add_properties(mapped_property)
 
         return return_value
-
-
-def download_thermoml_to_dataset(
-    url: str = "https://data.nist.gov/od/ds/mds2-2422/ThermoML.v2020-09-30.tgz"
-):
-    """
-    Download the ThermoML dataset from the given URL and load it into a HuggingFace Dataset.
-
-    Akin to
-    openff.evaluator.datasets.curation.components.thermoml.ImportThermoMLDataSchema
-
-    Parameters
-    ----------
-    url : str, optional
-        The URL to download the ThermoML dataset from, by default
-        "https://data.nist.gov/od/ds/mds2-2422/ThermoML.v2020-09-30.tgz"
-
-    Returns
-    -------
-    datasets.Dataset
-        A ThermoML HuggingFace Dataset containing the data from the ThermoML XML file,
-        with the schema defined by :py:attr:`descent.targets.thermoml.DATA_SCHEMA`.
-    """
-    ...

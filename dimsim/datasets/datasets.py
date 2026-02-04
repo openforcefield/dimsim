@@ -13,13 +13,13 @@ from enum import IntFlag, unique
 
 import numpy
 import pandas
-from openff.toolkit import Quantity
-from openff.units import Unit
+from openff.units import unit
 
 from dimsim.attributes import UNDEFINED, Attribute, AttributeClass
 from dimsim.datasets.provenance import CalculationSource, MeasurementSource, Source
 from dimsim.substances import Component, ExactAmount, MoleFraction, Substance
 from dimsim.thermodynamics import ThermodynamicState
+from dimsim.utils.serialization import TypedBaseModel, TypedJSONEncoder
 
 
 @unique
@@ -98,7 +98,7 @@ class PhysicalProperty(AttributeClass, abc.ABC):
     @classmethod
     @abc.abstractmethod
     def default_unit(cls):
-        """openff.evaluator.unit.Unit: The default unit (e.g. g / mol) associated with this
+        """dimsim.unit.Unit: The default unit (e.g. g / mol) associated with this
         class of property."""
         raise NotImplementedError()
 
@@ -124,11 +124,11 @@ class PhysicalProperty(AttributeClass, abc.ABC):
 
     value = Attribute(
         docstring="The measured / estimated value of this property.",
-        type_hint=Quantity,
+        type_hint=unit.Quantity,
     )
     uncertainty = Attribute(
         docstring="The uncertainty in measured / estimated value of this property.",
-        type_hint=Quantity,
+        type_hint=unit.Quantity,
         optional=True,
     )
 
@@ -170,9 +170,9 @@ class PhysicalProperty(AttributeClass, abc.ABC):
             The phase that the property was measured in.
         substance : Substance
             The composition of the substance that was measured.
-        value: openff.evaluator.unit.Quantity
+        value: dimsim.unit.Quantity
             The value of the measured physical property.
-        uncertainty: openff.evaluator.unit.Quantity
+        uncertainty: dimsim.unit.Quantity
             The uncertainty in the measured value.
         source: Source
             The source of this property.
@@ -226,7 +226,7 @@ class PhysicalProperty(AttributeClass, abc.ABC):
             "source": self.source,
             "metadata": self.metadata,
         }
-        serialized = json.dumps(obj, sort_keys=True)  # probably needs TypedJSONEncoder ported
+        serialized = json.dumps(obj, sort_keys=True, cls=TypedJSONEncoder)
         return int(hashlib.sha256(serialized.encode("utf-8")).hexdigest(), 16)
 
     def get_property_hash(self) -> int:
@@ -285,7 +285,7 @@ class PhysicalProperty(AttributeClass, abc.ABC):
             )
 
 
-class PhysicalPropertyDataSet:
+class PhysicalPropertyDataSet(TypedBaseModel):
     """
     An object for storing and curating data sets of both physical property
     measurements and estimated. This class defines a number of convenience
@@ -467,11 +467,15 @@ class PhysicalPropertyDataSet:
 
         for physical_property in self:
             # Extract the measured state.
-            temperature = physical_property.thermodynamic_state.temperature.m_as("kelvin")
+            temperature = physical_property.thermodynamic_state.temperature.to(
+                unit.kelvin
+            ).magnitude
             pressure = None
 
             if physical_property.thermodynamic_state.pressure != UNDEFINED:
-                pressure = physical_property.thermodynamic_state.pressure.m_as("kilopascal")
+                pressure = physical_property.thermodynamic_state.pressure.to(
+                    unit.kilopascal
+                ).magnitude
 
             phase = str(physical_property.phase)
 
@@ -600,7 +604,7 @@ class PhysicalPropertyDataSet:
             The constructed data set.
         """
 
-        from openff.evaluator import properties
+        from dimsim import properties
 
         property_header_matches = {
             re.match(r"^([a-zA-Z]+) Value \(([a-zA-Z0-9+-/\s*^]*)\)$", header)
@@ -620,7 +624,7 @@ class PhysicalPropertyDataSet:
             assert hasattr(properties, property_type_string)
             property_type = getattr(properties, property_type_string)
 
-            property_unit = Unit(property_unit_string)
+            property_unit = unit.Unit(property_unit_string)
             assert property_unit is not None
 
             assert (
@@ -647,8 +651,8 @@ class PhysicalPropertyDataSet:
 
             # Extract the state at which the measurement was made.
             thermodynamic_state = ThermodynamicState(
-                temperature=Quantity(data_row["Temperature (K)"], "kelvin"),
-                pressure=Quantity(data_row["Pressure (kPa)"], "kilopascal"),
+                temperature=data_row["Temperature (K)"] * unit.kelvin,
+                pressure=data_row["Pressure (kPa)"] * unit.kilopascal,
             )
             property_phase = PropertyPhase.from_string(data_row["Phase"])
 

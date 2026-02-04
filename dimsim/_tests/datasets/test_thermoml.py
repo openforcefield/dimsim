@@ -1,9 +1,9 @@
-import numpy as np
+import numpy
 import pytest
 from openff.toolkit import Molecule
 
 from dimsim._tests.utils import get_test_data_path
-from dimsim.datasets.thermoml import ThermoMLDataSet
+from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
 
 
 @pytest.mark.parametrize(
@@ -89,12 +89,12 @@ def test_load_property_types(filename: str, expected: dict):
 
     assert entry["temperature"] == expected["temperature"]
     if expected["pressure"] is not None:
-        assert np.isclose(entry["pressure"], expected["pressure"], atol=1e-3)
+        assert numpy.isclose(entry["pressure"], expected["pressure"], atol=1e-3)
     else:
         assert entry["pressure"] is None
 
-    assert np.isclose(entry["value"], expected["value"], atol=1e-5)
-    assert np.isclose(entry["std"], expected["std"], atol=1e-5)
+    assert numpy.isclose(entry["value"], expected["value"], atol=1e-5)
+    assert numpy.isclose(entry["std"], expected["std"], atol=1e-5)
     assert entry["units"] == expected["units"]
 
     assert entry["source"] == expected["source"]
@@ -123,10 +123,10 @@ def test_load_single_osmotic():
     Molecule.from_mapped_smiles(entry["smiles_b"])
     assert entry["x_b"] == 0.99914
 
-    assert np.isclose(entry["temperature"], 298.15, atol=1e-3)
+    assert numpy.isclose(entry["temperature"], 298.15, atol=1e-3)
     assert entry["pressure"] is None
-    assert np.isclose(entry["value"], 0.7389, atol=1e-5)
-    assert np.isclose(entry["std"], 0.00655, atol=1e-5)
+    assert numpy.isclose(entry["value"], 0.7389, atol=1e-5)
+    assert numpy.isclose(entry["std"], 0.00655, atol=1e-5)
     assert entry["units"] == "dimensionless"
     assert entry["source"] == "10.1016/j.fluid.2006.09.025"
 

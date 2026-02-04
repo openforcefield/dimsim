@@ -19,7 +19,7 @@ class Substance(AttributeClass):
     --------
     A neat liquid containing only a single component:
 
-    >>> from openff.evaluator.substances import Component, ExactAmount, MoleFraction
+    >>> from dimsim.substances import Component, ExactAmount, MoleFraction
     >>> liquid = Substance()
     >>> liquid.add_component(Component(smiles='O'), MoleFraction(1.0))
 

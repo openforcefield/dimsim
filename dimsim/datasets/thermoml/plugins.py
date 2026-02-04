@@ -5,7 +5,7 @@ framework.
 
 import functools
 
-from dimsim.datasets.thermoml import ThermoMLDataSet
+from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
 
 
 class _ThermoMLPlugin:
