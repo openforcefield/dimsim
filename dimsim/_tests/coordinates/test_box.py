@@ -5,13 +5,15 @@ import numpy as np
 import pytest
 from openff.toolkit import ForceField, Molecule, Topology
 
-from dimsim._tests.utils import get_test_data_path, rng
+from dimsim._tests.utils import get_test_data_path
 from dimsim.coordinates.box import (
     BoxCoordinates,
     CoordinatesDB,
     MoleculeSpecies,
     Substance,
 )
+
+rng = np.random.default_rng(42)
 
 
 class TestMoleculeSpecies:
