@@ -66,9 +66,7 @@ Thank you for your interest in contributing to dimsim! This document provides gu
 ## Code Style
 
 This project uses:
-- **black** for code formatting (line length: 88)
-- **isort** for import sorting
-- **flake8** for linting
+- **ruff** for code formatting and linting
 - Type hints are encouraged but not required
 
 ## Testing
