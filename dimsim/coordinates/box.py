@@ -62,9 +62,7 @@ class MoleculeSpecies(BaseModel):
         return f"{self.mapped_smiles}<{self.count}>"
 
     @classmethod
-    def from_string(
-        cls, s: str, flatten: bool = True
-    ) -> "MoleculeSpecies | list[MoleculeSpecies]":
+    def from_string(cls, s: str, flatten: bool = True) -> "MoleculeSpecies | list[MoleculeSpecies]":
         """
         Create a MoleculeSpecies (or multiple) from its string representation.
 
@@ -118,9 +116,7 @@ class Substance(BaseModel):
         str
             Canonical composition key
         """
-        sorted_species = sorted(
-            [s.to_inchi_composition() for s in self.molecule_species]
-        )
+        sorted_species = sorted([s.to_inchi_composition() for s in self.molecule_species])
         return "|".join(f"{inchi}:{count}" for inchi, count in sorted_species)
 
     @classmethod
@@ -165,16 +161,12 @@ class Substance(BaseModel):
 
         molecules = []
         for mol in self.molecule_species:
-            molecules.extend(
-                [Molecule.from_mapped_smiles(mol.mapped_smiles)] * mol.count
-            )
+            molecules.extend([Molecule.from_mapped_smiles(mol.mapped_smiles)] * mol.count)
         top = Topology.from_molecules(molecules)
         return top
 
     @classmethod
-    def from_openff_topology(
-        cls, topology: "openff.toolkit.Topology"
-    ) -> "BoxCoordinates":
+    def from_openff_topology(cls, topology: "openff.toolkit.Topology") -> "BoxCoordinates":
         """
         Create BoxCoordinates from an OpenFF Toolkit Topology object.
 
@@ -195,9 +187,7 @@ class Substance(BaseModel):
             mol = molecules[key]
             mapped_smiles = mol.to_smiles(mapped=True)
             count = len(topology.identical_molecule_groups[key])
-            molecule_species.append(
-                MoleculeSpecies(mapped_smiles=mapped_smiles, count=count)
-            )
+            molecule_species.append(MoleculeSpecies(mapped_smiles=mapped_smiles, count=count))
 
         return cls(molecule_species=molecule_species)
 
@@ -237,29 +227,15 @@ class CoordinatesDB(SQLModel, table=True):
         description="Canonical composition key (InChI:count|InChI:count|...)",
     )
     molecule_species: str = Field(
-        index=True,
-        description=(
-            "String representation of molecule species "
-            "(SMILES<count>|SMILES<count>|...)"
-        )
+        index=True, description=("String representation of molecule species (SMILES<count>|SMILES<count>|...)")
     )
-    n_molecules: int = Field(
-        index=True, description="Total number of molecules in the box"
-    )
+    n_molecules: int = Field(index=True, description="Total number of molecules in the box")
     temperature: float | None = Field(index=True, description="Temperature in Kelvin")
     pressure: float | None = Field(index=True, description="Pressure in atm")
-    force_field_id: str | None = Field(
-        index=True, description="Identifier for the force field used"
-    )
-    potential_energy: float | None = Field(
-        index=True, description="Potential energy of the system in kcal/mol"
-    )
-    coordinates: bytes = Field(
-        sa_column=Column(LargeBinary), description="Compressed binary coordinates"
-    )
-    box_vectors: bytes | None = Field(
-        sa_column=Column(LargeBinary), description="Compressed binary box vectors"
-    )
+    force_field_id: str | None = Field(index=True, description="Identifier for the force field used")
+    potential_energy: float | None = Field(index=True, description="Potential energy of the system in kcal/mol")
+    coordinates: bytes = Field(sa_column=Column(LargeBinary), description="Compressed binary coordinates")
+    box_vectors: bytes | None = Field(sa_column=Column(LargeBinary), description="Compressed binary box vectors")
     box_metadata: str = Field(default="{}", description="JSON-encoded metadata")
     created_at: datetime.datetime = Field(
         default_factory=datetime.datetime.now,
@@ -282,31 +258,21 @@ class BoxCoordinates(BaseModel):
     substance: Substance
 
     # Thermodynamic state
-    temperature: float | None = pydantic.Field(
-        None, description="Temperature in Kelvin"
-    )
+    temperature: float | None = pydantic.Field(None, description="Temperature in Kelvin")
     pressure: float | None = pydantic.Field(None, description="Pressure in atm")
 
     # Force field identifier
-    force_field_id: str | None = pydantic.Field(
-        None, description="Identifier for the force field used"
-    )
+    force_field_id: str | None = pydantic.Field(None, description="Identifier for the force field used")
 
     # Energy (kcal/mol)
-    potential_energy: float | None = pydantic.Field(
-        None, description="Potential energy of the system in kcal/mol"
-    )
+    potential_energy: float | None = pydantic.Field(None, description="Potential energy of the system in kcal/mol")
 
     # Coordinates as numpy array (n_atoms, 3) in nanometers
     # Stored as compressed binary in database
-    coordinates: np.ndarray | None = pydantic.Field(
-        None, description="Atomic coordinates in angstrom"
-    )
+    coordinates: np.ndarray | None = pydantic.Field(None, description="Atomic coordinates in angstrom")
 
     # Box vectors (3, 3) in nanometers
-    box_vectors: np.ndarray | None = pydantic.Field(
-        None, description="Box vectors in angstrom"
-    )
+    box_vectors: np.ndarray | None = pydantic.Field(None, description="Box vectors in angstrom")
 
     # typing.Optional metadata (flat-bottom restraints, simulation details, etc.)
     box_metadata: dict[str, typing.Any] = pydantic.Field(
@@ -314,9 +280,7 @@ class BoxCoordinates(BaseModel):
     )
 
     # Timestamp
-    created_at: datetime.datetime | None = pydantic.Field(
-        None, description="Timestamp when the box was created"
-    )
+    created_at: datetime.datetime | None = pydantic.Field(None, description="Timestamp when the box was created")
 
     class Config:
         arbitrary_types_allowed = True
@@ -379,9 +343,7 @@ class BoxCoordinates(BaseModel):
         return top
 
     @classmethod
-    def from_openff_topology(
-        cls, topology: "openff.toolkit.Topology"
-    ) -> "BoxCoordinates":
+    def from_openff_topology(cls, topology: "openff.toolkit.Topology") -> "BoxCoordinates":
         """
         Create BoxCoordinates from an OpenFF Toolkit Topology object.
 
@@ -407,9 +369,7 @@ class BoxCoordinates(BaseModel):
         if box_vectors is not None:
             box_vectors = box_vectors.m_as(unit.angstrom)
 
-        return cls(
-            substance=substance, coordinates=coordinates, box_vectors=box_vectors
-        )
+        return cls(substance=substance, coordinates=coordinates, box_vectors=box_vectors)
 
     @requires_package("openmm")
     def get_energy_for_system(self, system: "openmm.System") -> float:
@@ -492,19 +452,11 @@ class BoxCoordinates(BaseModel):
         CoordinatesDB
             Database model object
         """
-        assert (
-            self.coordinates is not None
-        ), "Coordinates must be set to store in database"
-        assert (
-            self.box_vectors is not None
-        ), "Box vectors must be set to store in database"
+        assert self.coordinates is not None, "Coordinates must be set to store in database"
+        assert self.box_vectors is not None, "Box vectors must be set to store in database"
 
         coords_bytes = gzip.compress(self.coordinates.tobytes())
-        box_vectors_bytes = (
-            gzip.compress(self.box_vectors.tobytes())
-            if self.box_vectors is not None
-            else None
-        )
+        box_vectors_bytes = gzip.compress(self.box_vectors.tobytes()) if self.box_vectors is not None else None
 
         return CoordinatesDB(
             composition_key=self.substance.to_composition_key(),
@@ -538,13 +490,9 @@ class BoxCoordinates(BaseModel):
         substance = Substance.from_string(db_model.molecule_species)
 
         # Decompress coordinates
-        coords = np.frombuffer(
-            gzip.decompress(db_model.coordinates), dtype=np.float64
-        ).reshape(-1, 3)
+        coords = np.frombuffer(gzip.decompress(db_model.coordinates), dtype=np.float64).reshape(-1, 3)
 
-        box_vectors = np.frombuffer(
-            gzip.decompress(db_model.box_vectors), dtype=np.float64
-        ).reshape(3, 3)
+        box_vectors = np.frombuffer(gzip.decompress(db_model.box_vectors), dtype=np.float64).reshape(3, 3)
 
         obj = cls(
             id=db_model.id,
@@ -555,9 +503,7 @@ class BoxCoordinates(BaseModel):
             potential_energy=db_model.potential_energy,
             coordinates=coords,
             box_vectors=box_vectors,
-            box_metadata=(
-                json.loads(db_model.box_metadata) if db_model.box_metadata else {}
-            ),
+            box_metadata=(json.loads(db_model.box_metadata) if db_model.box_metadata else {}),
             created_at=db_model.created_at,
         )
         assert obj.n_molecules == db_model.n_molecules

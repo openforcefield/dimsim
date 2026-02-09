@@ -3,6 +3,7 @@ import pytest
 
 from dimsim.coordinates.box import BoxCoordinates, MoleculeSpecies, Substance
 
+rng = np.random.default_rng(42)
 # ============================================================================
 # Fixtures
 # ============================================================================
@@ -43,9 +44,7 @@ def sample_molecule_species():
     """
     return [
         MoleculeSpecies(mapped_smiles="[H:1][O:2][H:3]", count=100),
-        MoleculeSpecies(
-            mapped_smiles="[C:1]([H:2])([H:3])([H:4])[C:5]([H:6])([H:7])[H:8]", count=50
-        ),
+        MoleculeSpecies(mapped_smiles="[C:1]([H:2])([H:3])([H:4])[C:5]([H:6])([H:7])[H:8]", count=50),
     ]
 
 
@@ -77,8 +76,7 @@ def sample_coordinates():
     np.ndarray
         Sample coordinates array (n_atoms, 3)
     """
-    np.random.seed(42)
-    return np.random.randn(700, 3) * 10.0  # 100*3 + 50*8 atoms
+    return rng.normal(size=(700, 3)) * 10.0  # 100*3 + 50*8 atoms
 
 
 @pytest.fixture
@@ -95,9 +93,7 @@ def sample_box_vectors():
 
 
 @pytest.fixture
-def sample_binary_box_coordinates(
-    sample_substance, sample_coordinates, sample_box_vectors
-):
+def sample_binary_box_coordinates(sample_substance, sample_coordinates, sample_box_vectors):
     """
     Create a sample BoxCoordinates object for testing.
 

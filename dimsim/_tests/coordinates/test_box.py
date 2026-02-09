@@ -13,6 +13,8 @@ from dimsim.coordinates.box import (
     Substance,
 )
 
+rng = np.random.default_rng(42)
+
 
 class TestMoleculeSpecies:
     """Tests for MoleculeSpecies class."""
@@ -92,10 +94,7 @@ class TestSubstance:
     def test_to_string(self, sample_substance):
         """Test converting Substance to string representation."""
         result = sample_substance.to_string()
-        expected = (
-            "[H:1][O:2][H:3]<100>|"
-            "[C:1]([H:2])([H:3])([H:4])[C:5]([H:6])([H:7])[H:8]<50>"
-        )
+        expected = "[H:1][O:2][H:3]<100>|[C:1]([H:2])([H:3])([H:4])[C:5]([H:6])([H:7])[H:8]<50>"
         assert result == expected
 
     def test_from_string(self):
@@ -137,9 +136,7 @@ class TestSubstance:
         other = Substance(
             molecule_species=[
                 MoleculeSpecies(mapped_smiles="[H:1][O:2][H:3]", count=100),
-                MoleculeSpecies(
-                    mapped_smiles="[C:1][H:2][H:3][H:4][H:5]", count=25
-                ),  # Different molecule
+                MoleculeSpecies(mapped_smiles="[C:1][H:2][H:3][H:4][H:5]", count=25),  # Different molecule
             ]
         )
         assert not sample_substance.is_equivalent_to(other)
@@ -158,7 +155,7 @@ class TestSubstance:
 
     def test_from_openff_topology(self):
         jsonfile = get_test_data_path("thermoml/isopropanol-water-topology.json")
-        with open(jsonfile, "r") as f:
+        with open(jsonfile) as f:
             contents = f.read()
         topology = Topology.from_json(contents)
 
@@ -183,10 +180,7 @@ class TestBoxCoordinates:
     def test_get_molecule_string(self, sample_binary_box_coordinates):
         """Test getting string representation of molecules."""
         result = sample_binary_box_coordinates.get_molecule_string()
-        expected = (
-            "[H:1][O:2][H:3]<100>|"
-            "[C:1]([H:2])([H:3])([H:4])[C:5]([H:6])([H:7])[H:8]<50>"
-        )
+        expected = "[H:1][O:2][H:3]<100>|[C:1]([H:2])([H:3])([H:4])[C:5]([H:6])([H:7])[H:8]<50>"
         assert result == expected
 
     def test_get_composition_key(self, sample_binary_box_coordinates):
@@ -221,16 +215,14 @@ class TestBoxCoordinates:
 
     def test_from_openff_topology(self):
         jsonfile = get_test_data_path("thermoml/isopropanol-water-topology.json")
-        with open(jsonfile, "r") as f:
+        with open(jsonfile) as f:
             contents = f.read()
         topology = Topology.from_json(contents)
 
         box = BoxCoordinates.from_openff_topology(topology)
         assert box.n_molecules == 1000
         assert len(box.substance.molecule_species) == 2
-        expected_composition_key = (
-            "InChI=1/C3H8O/c1-3(2)4/h3-4H,1-2H3:505|InChI=1/H2O/h1H2:495"
-        )
+        expected_composition_key = "InChI=1/C3H8O/c1-3(2)4/h3-4H,1-2H3:505|InChI=1/H2O/h1H2:495"
         assert box.get_composition_key() == expected_composition_key
         first_coordinates = [1.4742e01, 1.7520e00, 6.1683e01]
         assert np.allclose(box.coordinates[0], first_coordinates)
@@ -299,7 +291,7 @@ class TestBoxCoordinates:
     def test_has_equivalent_molecular_species_robust_to_remapping(self, smiles):
         mol = Molecule.from_smiles(smiles)
         explicit_h_smiles = mol.to_smiles(mapped=True)
-        randomized_order = np.random.permutation(np.arange(len(mol.atoms)))
+        randomized_order = rng.permutation(np.arange(len(mol.atoms)))
         new_atom_map = dict(zip(range(len(mol.atoms)), randomized_order))
         new_molecule = mol.remap(new_atom_map)
         randomized_smiles = new_molecule.to_smiles(mapped=True)
@@ -307,25 +299,15 @@ class TestBoxCoordinates:
         assert explicit_h_smiles != randomized_smiles
 
         box1 = BoxCoordinates(
-            substance=Substance(
-                molecule_species=[
-                    MoleculeSpecies(mapped_smiles=explicit_h_smiles, count=10)
-                ]
-            ),
+            substance=Substance(molecule_species=[MoleculeSpecies(mapped_smiles=explicit_h_smiles, count=10)]),
         )
         box2 = BoxCoordinates(
-            substance=Substance(
-                molecule_species=[
-                    MoleculeSpecies(mapped_smiles=randomized_smiles, count=10)
-                ]
-            ),
+            substance=Substance(molecule_species=[MoleculeSpecies(mapped_smiles=randomized_smiles, count=10)]),
         )
         assert box1.get_composition_key() == box2.get_composition_key()
         assert box1.has_equivalent_molecular_species(box2)
 
-    def test_load_coordinates_from_other_without_coords_fails(
-        self, sample_binary_box_coordinates
-    ):
+    def test_load_coordinates_from_other_without_coords_fails(self, sample_binary_box_coordinates):
         """Test that loading from box without coordinates fails."""
         box_no_coords = BoxCoordinates(
             substance=sample_binary_box_coordinates.substance,
@@ -351,12 +333,7 @@ class TestBoxCoordinates:
         original_coords = np.vstack(
             [
                 np.array([[1.0, 2.0, 3.0], [1.1, 2.1, 3.1], [1.2, 2.2, 3.2]] * 3),
-                np.array(
-                    [
-                        [4.0, 5.0, 6.0], [4.1, 5.1, 6.1], [4.2, 5.2, 6.2],
-                        [4.3, 5.3, 6.3], [4.4, 5.4, 6.4]
-                    ] * 2
-                ),
+                np.array([[4.0, 5.0, 6.0], [4.1, 5.1, 6.1], [4.2, 5.2, 6.2], [4.3, 5.3, 6.3], [4.4, 5.4, 6.4]] * 2),
             ]
         )
         assert original_coords.shape == (19, 3)
@@ -376,12 +353,7 @@ class TestBoxCoordinates:
         # just scale for testing
         new_coords = np.vstack(
             [
-                np.array(
-                    [
-                        [4.0, 5.0, 6.0], [4.1, 5.1, 6.1], [4.2, 5.2, 6.2],
-                        [4.3, 5.3, 6.3], [4.4, 5.4, 6.4]]
-                    * 2
-                )
+                np.array([[4.0, 5.0, 6.0], [4.1, 5.1, 6.1], [4.2, 5.2, 6.2], [4.3, 5.3, 6.3], [4.4, 5.4, 6.4]] * 2)
                 * 10,
                 np.array([[1.0, 2.0, 3.0], [1.1, 2.1, 3.1], [1.2, 2.2, 3.2]] * 3) * 10,
             ]
@@ -427,15 +399,11 @@ class TestBoxCoordinates:
 
     def test_with_coordinates_from_other(self, sample_binary_box_coordinates):
         """Test creating new box with coordinates from another."""
-        result = sample_binary_box_coordinates.with_coordinates_from_other(
-            sample_binary_box_coordinates
-        )
+        result = sample_binary_box_coordinates.with_coordinates_from_other(sample_binary_box_coordinates)
         assert result is not None
         assert isinstance(result, BoxCoordinates)
         assert result is not sample_binary_box_coordinates
-        assert np.allclose(
-            result.coordinates, sample_binary_box_coordinates.coordinates
-        )
+        assert np.allclose(result.coordinates, sample_binary_box_coordinates.coordinates)
 
     def test_to_db_model(self, sample_binary_box_coordinates):
         """Test converting BoxCoordinates to database model."""
@@ -445,9 +413,7 @@ class TestBoxCoordinates:
         assert db_model.temperature == sample_binary_box_coordinates.temperature
         assert db_model.pressure == sample_binary_box_coordinates.pressure
         assert db_model.force_field_id == sample_binary_box_coordinates.force_field_id
-        assert (
-            db_model.potential_energy == sample_binary_box_coordinates.potential_energy
-        )
+        assert db_model.potential_energy == sample_binary_box_coordinates.potential_energy
         assert db_model.n_molecules == 150
         assert isinstance(db_model.coordinates, bytes)
         assert isinstance(db_model.box_vectors, bytes)
@@ -484,17 +450,11 @@ class TestBoxCoordinates:
         assert result.force_field_id == sample_binary_box_coordinates.force_field_id
         assert result.potential_energy == sample_binary_box_coordinates.potential_energy
         assert len(result.substance.molecule_species) == 2
-        assert (
-            result.coordinates.shape == sample_binary_box_coordinates.coordinates.shape
-        )
-        assert (
-            result.box_vectors.shape == sample_binary_box_coordinates.box_vectors.shape
-        )
+        assert result.coordinates.shape == sample_binary_box_coordinates.coordinates.shape
+        assert result.box_vectors.shape == sample_binary_box_coordinates.box_vectors.shape
         assert result.box_metadata["equilibration_steps"] == 10000
 
-    def test_from_db_model_without_box_vectors_fails(
-        self, sample_binary_box_coordinates
-    ):
+    def test_from_db_model_without_box_vectors_fails(self, sample_binary_box_coordinates):
         """Test creating BoxCoordinates from DB model without box vectors."""
         sample_binary_box_coordinates.box_vectors = None
 
@@ -514,9 +474,5 @@ class TestBoxCoordinates:
         assert result.pressure == sample_binary_box_coordinates.pressure
         assert result.force_field_id == sample_binary_box_coordinates.force_field_id
         assert result.n_molecules == sample_binary_box_coordinates.n_molecules
-        assert np.allclose(
-            result.coordinates, sample_binary_box_coordinates.coordinates
-        )
-        assert np.allclose(
-            result.box_vectors, sample_binary_box_coordinates.box_vectors
-        )
+        assert np.allclose(result.coordinates, sample_binary_box_coordinates.coordinates)
+        assert np.allclose(result.box_vectors, sample_binary_box_coordinates.box_vectors)
