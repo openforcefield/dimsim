@@ -7,7 +7,6 @@ force fields, and energies.
 """
 
 import pathlib
-import typing
 
 import openmm
 from openff.toolkit import ForceField
@@ -48,22 +47,16 @@ class CoordinateStore:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Create engine
-        self.engine = create_engine(
-            f"sqlite:///{self.db_path}", connect_args={"check_same_thread": False}
-        )
+        self.engine = create_engine(f"sqlite:///{self.db_path}", connect_args={"check_same_thread": False})
 
         # Create tables
         SQLModel.metadata.create_all(self.engine)
 
         # Initialize and validate metadata
         with Session(self.engine) as session:
-            existing = session.exec(
-                select(DBMetadata).where(DBMetadata.key == "schema_version")
-            ).first()
+            existing = session.exec(select(DBMetadata).where(DBMetadata.key == "schema_version")).first()
             if not existing:
-                session.add(
-                    DBMetadata(key="schema_version", value=str(self.SCHEMA_VERSION))
-                )
+                session.add(DBMetadata(key="schema_version", value=str(self.SCHEMA_VERSION)))
                 session.commit()
             else:
                 existing_version = int(existing.value)
@@ -164,9 +157,7 @@ class CoordinateStore:
         comp_key = substance.to_composition_key()
 
         with Session(self.engine) as session:
-            query = select(CoordinatesDB).where(
-                CoordinatesDB.composition_key == comp_key
-            )
+            query = select(CoordinatesDB).where(CoordinatesDB.composition_key == comp_key)
 
             if temperature is not None and temperature_tolerance is not None:
                 query = query.where(
@@ -180,9 +171,7 @@ class CoordinateStore:
 
             if pressure is not None and pressure_tolerance is not None:
                 query = query.where(
-                    CoordinatesDB.pressure.between(
-                        pressure - pressure_tolerance, pressure + pressure_tolerance
-                    )
+                    CoordinatesDB.pressure.between(pressure - pressure_tolerance, pressure + pressure_tolerance)
                 )
             elif pressure_tolerance is not None:
                 query = query.where(CoordinatesDB.pressure == pressure)
@@ -230,9 +219,9 @@ class CoordinateStore:
         box: BoxCoordinates,
         openmm_system: "openmm.System",
         temperature: float | None = None,
-        temperature_tolerance: float = None,
+        temperature_tolerance: float | None = None,
         pressure: float | None = None,
-        pressure_tolerance: float = None,
+        pressure_tolerance: float | None = None,
     ) -> BoxCoordinates | None:
         """
         Retrieve the lowest energy box matching the given box's composition
@@ -274,9 +263,7 @@ class CoordinateStore:
         matches_and_energies = []
         for match in matches:
             box_with_coords = box.with_coordinates_from_other(match)
-            matches_and_energies.append(
-                (box_with_coords, box_with_coords.get_energy_for_system(openmm_system))
-            )
+            matches_and_energies.append((box_with_coords, box_with_coords.get_energy_for_system(openmm_system)))
         lowest_box, _ = min(matches_and_energies, key=lambda be: be[1])
         return lowest_box
 
@@ -313,9 +300,7 @@ class CoordinateStore:
         BoxCoordinates or None
             Lowest energy BoxCoordinates object or None if no matches found
         """
-        openmm_system = forcefield.create_openmm_system(
-            box.substance.to_openff_topology()
-        )
+        openmm_system = forcefield.create_openmm_system(box.substance.to_openff_topology())
         return self.get_lowest_energy_box_by_system(
             box=box,
             openmm_system=openmm_system,
@@ -336,9 +321,7 @@ class CoordinateStore:
         """
         with Session(self.engine) as session:
             ffs = session.exec(
-                select(CoordinatesDB.force_field_id)
-                .distinct()
-                .order_by(CoordinatesDB.force_field_id)
+                select(CoordinatesDB.force_field_id).distinct().order_by(CoordinatesDB.force_field_id)
             ).all()
         return list(ffs)
 
@@ -353,9 +336,7 @@ class CoordinateStore:
         """
         with Session(self.engine) as session:
             comps = session.exec(
-                select(CoordinatesDB.composition_key)
-                .distinct()
-                .order_by(CoordinatesDB.composition_key)
+                select(CoordinatesDB.composition_key).distinct().order_by(CoordinatesDB.composition_key)
             ).all()
         return list(comps)
 
@@ -387,9 +368,7 @@ class CoordinateStore:
                 session.delete(db_coord)
                 session.commit()
 
-    def export_to_db(
-        self, target_db_path: pathlib.Path, ids: typing.Optional[list[int]] = None
-    ):
+    def export_to_db(self, target_db_path: pathlib.Path, ids: list[int] | None = None):
         """
         Export boxes to another database file.
 

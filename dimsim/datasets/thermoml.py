@@ -24,9 +24,7 @@ def thermoml_dataset_from_xml(
     ...
 
 
-def thermoml_dataset_from_doi(
-    doi: str
-) -> datasets.Dataset:
+def thermoml_dataset_from_doi(doi: str) -> datasets.Dataset:
     """Download a ThermoML dataset from a DOI
 
 
@@ -46,7 +44,7 @@ def thermoml_dataset_from_doi(
 
 
 def download_thermoml_to_dataset(
-    url: str = "https://data.nist.gov/od/ds/mds2-2422/ThermoML.v2020-09-30.tgz"
+    url: str = "https://data.nist.gov/od/ds/mds2-2422/ThermoML.v2020-09-30.tgz",
 ) -> datasets.Dataset:
     """Download the ThermoML dataset from the given URL and
     load it into a HuggingFace Dataset.

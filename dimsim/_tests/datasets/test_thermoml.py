@@ -111,9 +111,7 @@ def test_load_single_osmotic():
     but is included here to ensure that ions are dealt with correctly.
 
     """
-    dataset = thermoml_dataset_from_xml(
-        get_test_data_path("thermoml/single_osmotic.xml")
-    )
+    dataset = thermoml_dataset_from_xml(get_test_data_path("thermoml/single_osmotic.xml"))
     assert len(dataset) == 1
 
     entry = dataset[0]

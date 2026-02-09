@@ -101,9 +101,7 @@ class TestCoordinateStoreInit:
         from sqlmodel import Session, select
 
         with Session(empty_coordinate_store.engine) as session:
-            metadata = session.exec(
-                select(DBMetadata).where(DBMetadata.key == "schema_version")
-            ).first()
+            metadata = session.exec(select(DBMetadata).where(DBMetadata.key == "schema_version")).first()
             assert metadata is not None
             assert metadata.value == "1"
 
@@ -123,9 +121,7 @@ class TestCoordinateStoreInit:
 
         # Manually change schema version in database
         with Session(store1.engine) as session:
-            metadata = session.exec(
-                select(DBMetadata).where(DBMetadata.key == "schema_version")
-            ).first()
+            metadata = session.exec(select(DBMetadata).where(DBMetadata.key == "schema_version")).first()
             metadata.value = "999"
             session.add(metadata)
             session.commit()
@@ -148,9 +144,7 @@ class TestCoordinateStoreAddGet:
         assert empty_coordinate_store.count() == 1
 
     @pytest.mark.skip(reason="Not implemented yet")
-    def test_add_box_duplicate(
-        self, empty_coordinate_store, sample_binary_box_coordinates
-    ):
+    def test_add_box_duplicate(self, empty_coordinate_store, sample_binary_box_coordinates):
         """Test adding a duplicate box."""
         assert empty_coordinate_store.count() == 0
         box_id1 = empty_coordinate_store.add(sample_binary_box_coordinates)
@@ -176,9 +170,7 @@ class TestCoordinateStoreAddGet:
         result = empty_coordinate_store.get(99999)
         assert result is None
 
-    def test_add_multiple_boxes(
-        self, empty_coordinate_store, sample_binary_box_coordinates
-    ):
+    def test_add_multiple_boxes(self, empty_coordinate_store, sample_binary_box_coordinates):
         """Test adding multiple boxes."""
         ids = []
         for i in range(3):
@@ -211,9 +203,7 @@ class TestCoordinateStoreAddGet:
         This tests multiple counts of substance for water.
         """
         water = Substance(
-            molecule_species=[
-                MoleculeSpecies(mapped_smiles="[H:2][O:1][H:3]", count=100)
-            ],
+            molecule_species=[MoleculeSpecies(mapped_smiles="[H:2][O:1][H:3]", count=100)],
         )
         matches = temp_coordinate_store.get_box_matches_by_substance(water)
         assert len(matches) == 0
@@ -230,9 +220,7 @@ class TestCoordinateStoreAddGet:
         for box in matches:
             assert box.substance.to_composition_key() == "InChI=1/H2O/h1H2:2000"
 
-    def test_get_box_matches_by_substance_temperature(
-        self, temp_coordinate_store, substance_water_1000
-    ):
+    def test_get_box_matches_by_substance_temperature(self, temp_coordinate_store, substance_water_1000):
         """
         Test getting box matches by substance with temperature
         """
@@ -249,9 +237,7 @@ class TestCoordinateStoreAddGet:
         assert matches[1].temperature == 298.15
         assert matches[1].pressure is None
 
-    def test_get_box_matches_by_substance_pressure_wide(
-        self, temp_coordinate_store, substance_water_1000
-    ):
+    def test_get_box_matches_by_substance_pressure_wide(self, temp_coordinate_store, substance_water_1000):
         """
         Test getting box matches by substance when pressure is specified
         """
@@ -270,9 +256,7 @@ class TestCoordinateStoreAddGet:
         assert matches[2].temperature == 313.15
         assert np.allclose(matches[2].pressure, 0.9969, atol=0.001)
 
-    def test_get_box_matches_by_substance_pressure_narrow(
-        self, temp_coordinate_store, substance_water_1000
-    ):
+    def test_get_box_matches_by_substance_pressure_narrow(self, temp_coordinate_store, substance_water_1000):
         # test filter narrow
         matches = temp_coordinate_store.get_box_matches_by_substance(
             substance_water_1000, pressure=1.0, pressure_tolerance=0.0001
@@ -283,9 +267,7 @@ class TestCoordinateStoreAddGet:
         assert matches[0].temperature == 298.15
         assert matches[0].pressure == 1.0
 
-    def test_get_box_matches_by_substance_pressure_none(
-        self, temp_coordinate_store, substance_water_1000
-    ):
+    def test_get_box_matches_by_substance_pressure_none(self, temp_coordinate_store, substance_water_1000):
         matches = temp_coordinate_store.get_box_matches_by_substance(
             substance_water_1000,
             pressure=None,
@@ -297,9 +279,7 @@ class TestCoordinateStoreAddGet:
         assert matches[0].temperature == 298.15
         assert matches[0].pressure is None
 
-    def test_get_box_matches_by_substance_both(
-        self, temp_coordinate_store, substance_water_1000
-    ):
+    def test_get_box_matches_by_substance_both(self, temp_coordinate_store, substance_water_1000):
         matches = temp_coordinate_store.get_box_matches_by_substance(
             substance_water_1000,
             temperature=298.15,
@@ -317,14 +297,9 @@ class TestCoordinateStoreAddGet:
 class TestCoordinateStoreGetLowestEnergy:
     """Tests for getting lowest energy box."""
 
-    def test_get_lowest_energy_no_matches(
-        self, temp_coordinate_store, sample_binary_box_coordinates
-    ):
+    def test_get_lowest_energy_no_matches(self, temp_coordinate_store, sample_binary_box_coordinates):
         """Test getting lowest energy when no matches exist."""
-        result = temp_coordinate_store.get_lowest_energy_box_by_system(
-            sample_binary_box_coordinates,
-            openmm.System()
-        )
+        result = temp_coordinate_store.get_lowest_energy_box_by_system(sample_binary_box_coordinates, openmm.System())
         assert result is None
 
     @pytest.mark.skip(reason="Not implemented yet")
@@ -338,9 +313,7 @@ class TestCoordinateStoreGetLowestEnergy:
         assert lowest.id == 4
 
     @pytest.mark.skip(reason="Not implemented yet")
-    def test_get_lowest_energy_tip3p_mod(
-        self, temp_coordinate_store, substance_water_1000
-    ):
+    def test_get_lowest_energy_tip3p_mod(self, temp_coordinate_store, substance_water_1000):
         """Ensure force field parameters affect results"""
         ff = ForceField("tip3p.offxml")
         handler = ff.get_parameter_handler("LibraryCharges")
@@ -354,9 +327,7 @@ class TestCoordinateStoreGetLowestEnergy:
         assert lowest.id == 3
 
     @pytest.mark.skip(reason="Not implemented yet")
-    def test_get_lowest_energy_tip3p_mod_state(
-        self, temp_coordinate_store, substance_water_1000
-    ):
+    def test_get_lowest_energy_tip3p_mod_state(self, temp_coordinate_store, substance_water_1000):
         """Ensure thermophysical state affects results"""
         ff = ForceField("tip3p.offxml")
         box = BoxCoordinates(
@@ -371,9 +342,7 @@ class TestCoordinateStoreGetLowestEnergy:
 class TestCoordinateStoreQuery:
     """Tests for querying database metadata."""
 
-    def test_get_force_fields(
-        self, empty_coordinate_store, sample_binary_box_coordinates
-    ):
+    def test_get_force_fields(self, empty_coordinate_store, sample_binary_box_coordinates):
         """Test getting list of force fields."""
         # Add boxes with different force fields
         for ff_id in ["openff-2.1.0", "openff-2.0.0", "amber14"]:
@@ -423,9 +392,7 @@ class TestCoordinateStoreExportMerge:
         assert target_store.count() == 3
 
     @pytest.mark.skip(reason="Not implemented yet")
-    def test_merge_from_db(
-        self, temp_coordinate_store, sample_binary_box_coordinates, tmp_path
-    ):
+    def test_merge_from_db(self, temp_coordinate_store, sample_binary_box_coordinates, tmp_path):
         """Test merging boxes from another database."""
 
         new_store = CoordinateStore(tmp_path / "new.sqlite")
