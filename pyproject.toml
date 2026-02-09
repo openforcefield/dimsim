@@ -14,7 +14,6 @@ maintainers = [
 authors = [
   { name = "Lily Wang", email = "lily.wang@openforcefield.org" },
 ]
-
 requires-python = ">=3.11"
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -24,11 +23,11 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering",
 ]
 dynamic = [ "version" ]
-dependencies = [  ]
-
+dependencies = []
 optional-dependencies.doc = [
   "openff-sphinx-theme @ git+https://github.com/openforcefield/openff-sphinx-theme.git@main",
   "sphinx>=1.8",
@@ -38,7 +37,6 @@ optional-dependencies.test = [
   "pytest-cov>=3",
   "pytest-xdist>=2.5",
 ]
-
 urls.Documentation = "https://dimsim.readthedocs.io"
 urls.Homepage = "https://github.com/lilyminium/dimsim"
 urls.Issues = "https://github.com/lilyminium/dimsim/issues"
@@ -47,62 +45,42 @@ urls.Repository = "https://github.com/lilyminium/dimsim"
 [tool.setuptools]
 zip-safe = false
 include-package-data = false
-
-[tool.setuptools.packages.find]
-include = [ "dimsim*" ]
-namespaces = false
-exclude = [ 'dimsim._tests.data*' ]
-
-[tool.black]
-line-length = 88
-target-version = [ 'py310', 'py311', 'py312', 'py313' ]
-include = '\.pyi?$'
+packages.find.include = [ "dimsim*" ]
+packages.find.namespaces = false
+packages.find.exclude = [ "dimsim._tests.data*" ]
 
 [tool.ruff]
 line-length = 119
-
 lint.select = [ "E", "F", "I", "NPY", "RUF", "UP", "W" ]
-
 lint.isort.known-third-party = [ "openff.toolkit", "openff.utilities", "openff.units", "openff.interchange" ]
 
-[tool.isort]
-profile = "black"
-line_length = 88
-skip_gitignore = true
+[tool.pytest]
+ini_options.minversion = "6.0"
+ini_options.testpaths = [ "dimsim/_tests" ]
+ini_options.addopts = "-v --cov=dimsim --cov-report=xml --cov-report=term-missing"
 
-[tool.pytest.ini_options]
-minversion = "6.0"
-testpaths = [ "dimsim/_tests" ]
-addopts = "-v --cov=dimsim --cov-report=xml --cov-report=term-missing"
-
-[tool.coverage.run]
-source = [ "dimsim" ]
-omit = [
-  "*/_tests/*",
+[tool.coverage]
+run.omit = [
   "*/__init__.py",
+  "*/_tests/*",
 ]
-
-[tool.coverage.report]
-exclude_lines = [
-  "pragma: no cover",
+run.source = [ "dimsim" ]
+report.exclude_lines = [
   "if TYPE_CHECKING:",
+  "pragma: no cover",
   "raise NotImplementedError",
 ]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
 
 [tool.versioningit]
-
-[tool.versioningit.vcs]
-method = "git"
-default-tag = "0.0.0"
-
-[tool.versioningit.format]
-distance = "{base_version}+{distance}.{vcs}{rev}"
-dirty = "{base_version}.dirty"
-distance-dirty = "{base_version}+{distance}.{vcs}{rev}.dirty"
+format.distance = "{base_version}+{distance}.{vcs}{rev}"
+format.dirty = "{base_version}.dirty"
+format.distance-dirty = "{base_version}+{distance}.{vcs}{rev}.dirty"
+vcs.method = "git"
+vcs.default-tag = "0.0.0"
