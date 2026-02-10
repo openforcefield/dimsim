@@ -2,9 +2,9 @@ name: dimsim-docs
 channels:
   - conda-forge
 dependencies:
-  - python >=3.10
+  - python >=3.11
   - pip
-  - versioningit
+  - setuptools_scm
 
   # Base dependencies
   - pydantic >=2.0
