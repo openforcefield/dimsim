@@ -7,23 +7,19 @@ dependencies:
   - pip
 
   # Base dependencies
-  - pydantic >=2.0
+  - pydantic =2.11
   - pyyaml
 
   # Core dependencies
-  - openff-toolkit
+  - openff-toolkit >=0.18  # just to help solver
   - openff-nagl-models
-  - openff-nagl-base
-  - openmm
-  - openmmtools
+  - openff-nagl-base >=0.5.4
+  - openmm =8.4
+  - openmmtools >=0.26.0
   - sqlmodel
   - rdkit
 
-  - pytorch
-  - smee
-  - descent
-
-  - pytorch
+  - pytorch >=2.6
   - smee
   - descent
 
