@@ -17,10 +17,11 @@ dependencies:
   - openmm
   - openmmtools
   - sqlmodel
-  - rdkit
+  - rdkit >=2024
 
   - pytorch
-  - smee
+  - smee-base
+  - pydantic-units
   - descent
 
   - pytorch
