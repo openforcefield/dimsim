@@ -1,6 +1,7 @@
 import numpy
 import pytest
 from openff.toolkit import Molecule
+from openff.units import Unit
 
 from dimsim._tests.utils import get_test_data_path
 from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
@@ -17,7 +18,7 @@ from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
                 "temperature": 293.15,
                 "pressure": 1.0,
                 "value": 0.96488,
-                "std": 0.05,
+                "std": 0.00005,
                 "units": "g/mL",
                 "source": "",
             },
@@ -96,7 +97,7 @@ def test_load_property_types(filename: str, expected: dict):
 
     assert numpy.isclose(entry["value"], expected["value"], atol=1e-5)
     assert numpy.isclose(entry["std"], expected["std"], atol=1e-5)
-    assert entry["units"] == expected["units"]
+    assert Unit(entry["units"]) == Unit(expected["units"])
 
     assert entry["source"] == expected["source"]
 

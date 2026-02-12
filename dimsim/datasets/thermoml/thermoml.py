@@ -13,7 +13,8 @@ from xml.etree import ElementTree
 
 import numpy as np
 import requests
-from openff.units import unit
+from openff.toolkit import Molecule, Quantity
+from openff.units import Unit, unit
 
 from dimsim.datasets.datasets import PhysicalPropertyDataSet, PropertyPhase
 from dimsim.datasets.provenance import MeasurementSource
@@ -38,6 +39,12 @@ _TYPE_TAG_MAPPING = {
     "Mass density, kg/m3": "density",
 }
 
+# tests like kcal/mol, g/cc, etc.
+_TAG_UNIT_MAPPING = {
+    "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "kcal/mol",
+    "Mass density, kg/m3": "gram / milliliter",
+}
+
 
 def _unit_from_thermoml_string(full_string):
     """Extract the unit from a ThermoML property name.
@@ -60,7 +67,7 @@ def _unit_from_thermoml_string(full_string):
     # Convert symbols like dm3 to dm**3
     unit_string = re.sub(r"([a-z])([0-9]+)", r"\1**\2", unit_string.strip())
 
-    return unit.Unit(unit_string)
+    return Unit(unit_string)
 
 
 def _phase_from_thermoml_string(string):
@@ -383,7 +390,6 @@ class _Compound:
         str, optional
             None if the identifier cannot be converted, otherwise the converted SMILES pattern.
         """
-        from openff.toolkit.topology import Molecule
 
         try:
             import rdkit.Chem
@@ -421,7 +427,6 @@ class _Compound:
         str, optional
             None if the identifier cannot be converted, otherwise the converted SMILES pattern.
         """
-        from openff.toolkit.topology import Molecule
         from openff.toolkit.utils.rdkit_wrapper import RDKitToolkitWrapper
 
         if thermoml_string is None:
@@ -444,7 +449,6 @@ class _Compound:
         str, None
             None if the identifier cannot be converted, otherwise the converted SMILES pattern.
         """
-        from openff.toolkit.topology import Molecule
         from openff.toolkit.utils import InvalidIUPACNameError, LicenseError
 
         if common_name is None:
@@ -798,8 +802,6 @@ class _PureOrMixtureData:
             The molecular weight in units of grams per mole.
         """
 
-        from openff.toolkit.topology import Molecule
-
         try:
             molecule = Molecule.from_smiles(smiles)
 
@@ -808,7 +810,7 @@ class _PureOrMixtureData:
 
             raise ValueError(f"The toolkit raised an exception for the {smiles} smiles pattern: {formatted_exception}")
 
-        molecular_weight = 0.0 * unit.dalton
+        molecular_weight = Quantity(0.0, "dalton")
 
         for atom in molecule.atoms:
             molecular_weight += atom.mass
@@ -2044,20 +2046,33 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
 
                 from dimsim.datasets.entry import DataEntry
 
+                unit_to_use = _TAG_UNIT_MAPPING[measured_property.type_string]
+
+                assert Unit(measured_property.default_unit).is_compatible_with(unit_to_use)
+
                 entry = DataEntry(
                     tag=_TYPE_TAG_MAPPING[measured_property.type_string],
                     smiles=[component.smiles for component in measured_property.substance.components],
                     x=[value[0].value for value in measured_property.substance.amounts.values()],
                     temperature=measured_property.thermodynamic_state.temperature.m_as("kelvin"),
                     pressure=measured_property.thermodynamic_state.pressure.m_as("atmosphere"),
-                    value=measured_property.value.m_as(measured_property.default_unit),
-                    std=measured_property.uncertainty,
-                    units=str(measured_property.default_unit),
+                    value=measured_property.value.m_as(unit_to_use),
+                    std=measured_property.uncertainty.m_as(unit_to_use),
+                    units=unit_to_use,
                 )
 
                 # mapped_property = registered_plugin.conversion_function(measured_property)
 
-                entry["source"] = str(source)
+                # Could wrap this into a Source.__repr__()? Kinda ugly ...
+                if source.doi is not None:
+                    stringified_source = source.doi
+                elif source.reference is not None:
+                    stringified_source = source.reference
+                else:
+                    stringified_source = ""
+
+                # This is fragile, but the pyarrow-compatible type really prefers it being a simple string
+                entry["source"] = stringified_source
 
                 # https://github.com/openforcefield/openff-evaluator/blob/c9b55687be3381768d75afdea01e9e18b5a35fac/openff/evaluator/datasets/datasets.py#L105-L110
                 entry["id"] = str(uuid.uuid4()).replace("-", "")
