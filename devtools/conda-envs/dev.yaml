@@ -16,7 +16,7 @@ dependencies:
   - openmm
   - openmmtools
   - sqlmodel
-  - rdkit
+  - rdkit =2023
 
   - pytorch
   - smee

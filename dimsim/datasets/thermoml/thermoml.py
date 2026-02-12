@@ -178,12 +178,8 @@ class _Constraint:
         type_node = constraint_node.find(".//ThermoML:ConstraintType/*", namespace)
         value_node = constraint_node.find("./ThermoML:nConstraintValue", namespace)
 
-        solvent_index_nodes = constraint_node.find(
-            "./ThermoML:Solvent//ThermoML:nOrgNum", namespace
-        )
-        compound_index_node = constraint_node.find(
-            "./ThermoML:ConstraintID/ThermoML:RegNum/*", namespace
-        )
+        solvent_index_nodes = constraint_node.find("./ThermoML:Solvent//ThermoML:nOrgNum", namespace)
+        compound_index_node = constraint_node.find("./ThermoML:ConstraintID/ThermoML:RegNum/*", namespace)
 
         value = float(value_node.text)
         # Determine what the default unit for this variable should be.
@@ -269,12 +265,8 @@ class _VariableDefinition:
         type_node = variable_node.find(".//ThermoML:VariableType/*", namespace)
         index_node = variable_node.find("ThermoML:nVarNumber", namespace)
 
-        solvent_index_nodes = variable_node.find(
-            "./ThermoML:Solvent//ThermoML:nOrgNum", namespace
-        )
-        compound_index_node = variable_node.find(
-            "./ThermoML:VariableID/ThermoML:RegNum/*", namespace
-        )
+        solvent_index_nodes = variable_node.find("./ThermoML:Solvent//ThermoML:nOrgNum", namespace)
+        compound_index_node = variable_node.find("./ThermoML:VariableID/ThermoML:RegNum/*", namespace)
 
         return_value = cls()
 
@@ -321,12 +313,8 @@ class _PropertyUncertainty:
             The created property uncertainty.
         """
 
-        coverage_factor_node = node.find(
-            f"ThermoML:n{cls.prefix}CoverageFactor", namespace
-        )
-        confidence_node = node.find(
-            f"ThermoML:n{cls.prefix}UncertLevOfConfid", namespace
-        )
+        coverage_factor_node = node.find(f"ThermoML:n{cls.prefix}CoverageFactor", namespace)
+        confidence_node = node.find(f"ThermoML:n{cls.prefix}UncertLevOfConfid", namespace)
 
         # As defined by
         # https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-7-reporting-uncertainty
@@ -422,9 +410,7 @@ class _Compound:
         if thermoml_string is None:
             raise ValueError("The string cannot be `None`.")
 
-        molecule = Molecule.from_smiles(
-            thermoml_string, toolkit_registry=RDKitToolkitWrapper()
-        )
+        molecule = Molecule.from_smiles(thermoml_string, toolkit_registry=RDKitToolkitWrapper())
 
         return molecule.to_smiles(isomeric=True, explicit_hydrogens=False, mapped=False)
 
@@ -488,28 +474,15 @@ class _Compound:
 
         smiles = None
 
-        if (
-            len(inchi_identifier_nodes) > 0
-            and inchi_identifier_nodes[0].text is not None
-        ):
+        if len(inchi_identifier_nodes) > 0 and inchi_identifier_nodes[0].text is not None:
             # Convert InChI key to a smiles pattern.
             smiles = cls.smiles_from_inchi_string(inchi_identifier_nodes[0].text)
 
-        if (
-            smiles is None
-            and len(smiles_identifier_nodes) > 0
-            and smiles_identifier_nodes[0].text is not None
-        ):
+        if smiles is None and len(smiles_identifier_nodes) > 0 and smiles_identifier_nodes[0].text is not None:
             # Standardise the smiles pattern using OE.
-            smiles = cls.smiles_from_thermoml_smiles_string(
-                smiles_identifier_nodes[0].text
-            )
+            smiles = cls.smiles_from_thermoml_smiles_string(smiles_identifier_nodes[0].text)
 
-        if (
-            smiles is None
-            and len(common_identifier_nodes) > 0
-            and common_identifier_nodes[0].text is not None
-        ):
+        if smiles is None and len(common_identifier_nodes) > 0 and common_identifier_nodes[0].text is not None:
             # Convert the common name to a smiles pattern.
             smiles = cls.smiles_from_common_name(common_identifier_nodes[0].text)
 
@@ -567,18 +540,12 @@ class _PureOrMixtureData:
             compound_index = int(index_node.text)
 
             if compound_index not in compounds:
-                logging.debug(
-                    "A PureOrMixtureData entry depends on an "
-                    "unsupported compound and has been ignored"
-                )
+                logging.debug("A PureOrMixtureData entry depends on an unsupported compound and has been ignored")
 
                 return None
 
             if compound_index in compound_indices:
-                raise ValueError(
-                    "A ThermoML:PureOrMixtureData states its dependency on the "
-                    "same compound twice."
-                )
+                raise ValueError("A ThermoML:PureOrMixtureData states its dependency on the same compound twice.")
 
             compound_indices.append(compound_index)
 
@@ -610,17 +577,13 @@ class _PureOrMixtureData:
         properties = {}
 
         for property_node in property_nodes:
-            property_definition = ThermoMLProperty.from_xml_node(
-                property_node, namespace, parent_phases
-            )
+            property_definition = ThermoMLProperty.from_xml_node(property_node, namespace, parent_phases)
 
             if property_definition is None:
                 continue
 
             if property_definition.index in properties:
-                raise ValueError(
-                    "A ThermoML data set contains two properties with the same index"
-                )
+                raise ValueError("A ThermoML data set contains two properties with the same index")
 
             properties[property_definition.index] = property_definition
 
@@ -649,19 +612,11 @@ class _PureOrMixtureData:
             logging.debug("An unsupported constraint has been ignored.")
             return False
 
-        if (
-            constraint.compound_index is not None
-            and constraint.compound_index not in compounds
-        ):
-            logging.debug(
-                "A constraint exists upon a non-existent compound and will be ignored."
-            )
+        if constraint.compound_index is not None and constraint.compound_index not in compounds:
+            logging.debug("A constraint exists upon a non-existent compound and will be ignored.")
             return False
 
-        if (
-            constraint.type.is_composition_constraint()
-            and constraint.compound_index is None
-        ):
+        if constraint.type.is_composition_constraint() and constraint.compound_index is None:
             logging.debug(
                 "An unsupported constraint has been ignored - composition constraints"
                 "need to have a corresponding compound_index."
@@ -778,9 +733,7 @@ class _PureOrMixtureData:
 
         combined = len(property_definition.combined_uncertainty_definitions) > 0
 
-        prefix = (
-            _CombinedUncertainty.prefix if combined else _PropertyUncertainty.prefix
-        )
+        prefix = _CombinedUncertainty.prefix if combined else _PropertyUncertainty.prefix
 
         if combined:
             index_node = node.find(
@@ -788,13 +741,9 @@ class _PureOrMixtureData:
                 namespace,
             )
         else:
-            index_node = node.find(
-                "./ThermoML:PropUncertainty/ThermoML:nUncertAssessNum", namespace
-            )
+            index_node = node.find("./ThermoML:PropUncertainty/ThermoML:nUncertAssessNum", namespace)
 
-        expanded_uncertainty_node = node.find(
-            ".//ThermoML:n" + prefix + "ExpandUncertValue", namespace
-        )
+        expanded_uncertainty_node = node.find(".//ThermoML:n" + prefix + "ExpandUncertValue", namespace)
 
         if index_node is None or expanded_uncertainty_node is None:
             return None
@@ -802,24 +751,16 @@ class _PureOrMixtureData:
         expanded_uncertainty = float(expanded_uncertainty_node.text)
         index = int(index_node.text)
 
-        if (
-            combined
-            and index not in property_definition.combined_uncertainty_definitions
-        ):
+        if combined and index not in property_definition.combined_uncertainty_definitions:
             return None
 
-        if (
-            not combined
-            and index not in property_definition.property_uncertainty_definitions
-        ):
+        if not combined and index not in property_definition.property_uncertainty_definitions:
             return None
 
         divisor = (
             property_definition.combined_uncertainty_definitions[index].coverage_factor
             if combined
-            else property_definition.property_uncertainty_definitions[
-                index
-            ].coverage_factor
+            else property_definition.property_uncertainty_definitions[index].coverage_factor
         )
 
         return expanded_uncertainty / divisor
@@ -848,10 +789,7 @@ class _PureOrMixtureData:
         except Exception as e:
             formatted_exception = traceback.format_exception(None, e, e.__traceback__)
 
-            raise ValueError(
-                f"The toolkit raised an exception for the "
-                f"{smiles} smiles pattern: {formatted_exception}"
-            )
+            raise ValueError(f"The toolkit raised an exception for the {smiles} smiles pattern: {formatted_exception}")
 
         molecular_weight = 0.0 * unit.dalton
 
@@ -863,9 +801,7 @@ class _PureOrMixtureData:
         return unit.avogadro_number * molecular_weight / unit.mol
 
     @staticmethod
-    def _solvent_mole_fractions_to_moles(
-        solvent_mass, solvent_mole_fractions, solvent_compounds
-    ):
+    def _solvent_mole_fractions_to_moles(solvent_mass, solvent_mole_fractions, solvent_compounds):
         """Converts a set of solvent mole fractions to moles for a
         given mass of solvent.
 
@@ -890,9 +826,7 @@ class _PureOrMixtureData:
             solvent_smiles = solvent_compounds[solvent_index].smiles
 
             solvent_fraction = solvent_mole_fractions[solvent_index]
-            solvent_weight = _PureOrMixtureData._smiles_to_molecular_weight(
-                solvent_smiles
-            )
+            solvent_weight = _PureOrMixtureData._smiles_to_molecular_weight(solvent_smiles)
 
             weighted_molecular_weights += solvent_weight * solvent_fraction
 
@@ -940,10 +874,7 @@ class _PureOrMixtureData:
             mole_fractions[constraint.compound_index] = mole_fraction
             total_mol_fraction += mole_fractions[constraint.compound_index]
 
-        if (
-            number_of_constraints != len(compounds)
-            and solvent_mole_fractions is not None
-        ) or (
+        if (number_of_constraints != len(compounds) and solvent_mole_fractions is not None) or (
             number_of_constraints != len(compounds) - 1
             and number_of_constraints != len(compounds)
             and solvent_mole_fractions is None
@@ -974,16 +905,12 @@ class _PureOrMixtureData:
             remaining_mole_fraction = 1.0 - total_mol_fraction
 
             for solvent_index in solvent_mole_fractions:
-                mole_fractions[solvent_index] = (
-                    solvent_mole_fractions[solvent_index] * remaining_mole_fraction
-                )
+                mole_fractions[solvent_index] = solvent_mole_fractions[solvent_index] * remaining_mole_fraction
 
         return mole_fractions
 
     @staticmethod
-    def _convert_mass_fractions(
-        constraints, compounds, solvent_mole_fractions=None, solvent_compounds=None
-    ):
+    def _convert_mass_fractions(constraints, compounds, solvent_mole_fractions=None, solvent_compounds=None):
         """Converts a set of `_Constraint` to mole fractions.
 
         Parameters
@@ -1021,10 +948,7 @@ class _PureOrMixtureData:
             mass_fractions[constraint.compound_index] = mass_fraction
             total_mass_fraction += mass_fraction
 
-        if (
-            number_of_constraints != len(compounds)
-            and solvent_mole_fractions is not None
-        ) or (
+        if (number_of_constraints != len(compounds) and solvent_mole_fractions is not None) or (
             number_of_constraints != len(compounds) - 1
             and number_of_constraints != len(compounds)
             and solvent_mole_fractions is None
@@ -1043,9 +967,7 @@ class _PureOrMixtureData:
 
                 mass_fractions[compound_index] = 1.0 - total_mass_fraction
                 if isinstance(mass_fractions[compound_index], unit.Quantity):
-                    mass_fractions[compound_index] = (
-                        mass_fractions[compound_index].to(unit.dimensionless).magnitude
-                    )
+                    mass_fractions[compound_index] = mass_fractions[compound_index].to(unit.dimensionless).magnitude
 
         total_mass = 1 * unit.gram
         total_solvent_mass = total_mass
@@ -1055,21 +977,14 @@ class _PureOrMixtureData:
 
         for compound_index in compounds:
             compound_smiles = compounds[compound_index].smiles
-            compound_weight = _PureOrMixtureData._smiles_to_molecular_weight(
-                compound_smiles
-            )
+            compound_weight = _PureOrMixtureData._smiles_to_molecular_weight(compound_smiles)
 
-            moles[compound_index] = (
-                total_mass * mass_fractions[compound_index] / compound_weight
-            )
+            moles[compound_index] = total_mass * mass_fractions[compound_index] / compound_weight
             total_moles += moles[compound_index]
 
             total_solvent_mass -= total_mass * mass_fractions[compound_index]
 
-        if (
-            number_of_constraints == len(compounds)
-            and solvent_mole_fractions is not None
-        ):
+        if number_of_constraints == len(compounds) and solvent_mole_fractions is not None:
             solvent_moles = _PureOrMixtureData._solvent_mole_fractions_to_moles(
                 total_solvent_mass, solvent_mole_fractions, solvent_compounds
             )
@@ -1087,9 +1002,7 @@ class _PureOrMixtureData:
         return mole_fractions
 
     @staticmethod
-    def _convert_molality(
-        constraints, compounds, solvent_mole_fractions=None, solvent_compounds=None
-    ):
+    def _convert_molality(constraints, compounds, solvent_mole_fractions=None, solvent_compounds=None):
         """Converts a set of `_Constraint` to mole fractions.
 
         Parameters
@@ -1127,12 +1040,8 @@ class _PureOrMixtureData:
             number_of_moles[constraint.compound_index] = moles
             total_number_of_moles += moles
 
-        if (
-            number_of_constraints != len(compounds) - 1
-            and solvent_mole_fractions is None
-        ) or (
-            number_of_constraints != len(compounds)
-            and solvent_mole_fractions is not None
+        if (number_of_constraints != len(compounds) - 1 and solvent_mole_fractions is None) or (
+            number_of_constraints != len(compounds) and solvent_mole_fractions is not None
         ):
             raise ValueError(
                 f"The number of molality constraints ({number_of_constraints}) must be one "
@@ -1140,10 +1049,7 @@ class _PureOrMixtureData:
                 f"solvent list is not present, otherwise there must be an equal number."
             )
 
-        if (
-            number_of_constraints == len(compounds) - 1
-            and solvent_mole_fractions is None
-        ):
+        if number_of_constraints == len(compounds) - 1 and solvent_mole_fractions is None:
             # In this case, there is no explicit solvent entry and the last component
             # whose molality has not been constrained is considered to be the 'solvent'
             for compound_index in compounds:
@@ -1151,19 +1057,14 @@ class _PureOrMixtureData:
                     continue
 
                 compound_smiles = compounds[compound_index].smiles
-                compound_weight = _PureOrMixtureData._smiles_to_molecular_weight(
-                    compound_smiles
-                )
+                compound_weight = _PureOrMixtureData._smiles_to_molecular_weight(compound_smiles)
 
                 moles = total_solvent_mass / compound_weight
 
                 number_of_moles[compound_index] = moles
                 total_number_of_moles += moles
 
-        elif (
-            number_of_constraints == len(compounds)
-            and solvent_mole_fractions is not None
-        ):
+        elif number_of_constraints == len(compounds) and solvent_mole_fractions is not None:
             solvent_moles = _PureOrMixtureData._solvent_mole_fractions_to_moles(
                 total_solvent_mass, solvent_mole_fractions, solvent_compounds
             )
@@ -1272,20 +1173,13 @@ class _PureOrMixtureData:
             component_constraint_type == _ConstraintType.Undefined
             and solvent_constraint_type != _ConstraintType.Undefined
         ):
-            logging.debug(
-                f"A property with only solvent composition "
-                f"constraints {solvent_constraint_type} was found."
-            )
+            logging.debug(f"A property with only solvent composition constraints {solvent_constraint_type} was found.")
 
             return None
 
         solvent_mole_fractions = {}
 
-        solvent_constraints = [
-            constraint
-            for constraint in constraints
-            if constraint.type == solvent_constraint_type
-        ]
+        solvent_constraints = [constraint for constraint in constraints if constraint.type == solvent_constraint_type]
 
         solvent_compounds = {}
 
@@ -1304,10 +1198,7 @@ class _PureOrMixtureData:
             return None
 
         # Make sure all of the solvents have not been removed.
-        if (
-            solvent_constraint_type != _ConstraintType.Undefined
-            and len(solvent_indices) == 0
-        ):
+        if solvent_constraint_type != _ConstraintType.Undefined and len(solvent_indices) == 0:
             logging.debug(
                 "The composition of a solvent was found, however the "
                 "solvent list is empty. This usually only occurs in "
@@ -1318,9 +1209,7 @@ class _PureOrMixtureData:
             return None
 
         remaining_constraints = [
-            constraint
-            for constraint in constraints
-            if constraint.type == component_constraint_type
+            constraint for constraint in constraints if constraint.type == component_constraint_type
         ]
 
         remaining_compounds = {}
@@ -1333,19 +1222,13 @@ class _PureOrMixtureData:
 
         # Determine the mole fractions of the solvent species, if any.
         if solvent_constraint_type == _ConstraintType.SolventMoleFraction:
-            solvent_mole_fractions = _PureOrMixtureData._convert_mole_fractions(
-                solvent_constraints, solvent_compounds
-            )
+            solvent_mole_fractions = _PureOrMixtureData._convert_mole_fractions(solvent_constraints, solvent_compounds)
 
         elif solvent_constraint_type == _ConstraintType.SolventMassFraction:
-            solvent_mole_fractions = _PureOrMixtureData._convert_mass_fractions(
-                solvent_constraints, solvent_compounds
-            )
+            solvent_mole_fractions = _PureOrMixtureData._convert_mass_fractions(solvent_constraints, solvent_compounds)
 
         elif solvent_constraint_type == _ConstraintType.SolventMolality:
-            solvent_mole_fractions = _PureOrMixtureData._convert_molality(
-                solvent_constraints, solvent_compounds
-            )
+            solvent_mole_fractions = _PureOrMixtureData._convert_molality(solvent_constraints, solvent_compounds)
 
         elif solvent_constraint_type == _ConstraintType.Undefined:
             solvent_mole_fractions = None
@@ -1386,16 +1269,12 @@ class _PureOrMixtureData:
         # Make sure we haven't picked up a dimensionless unit be accident.
         for compound_index in mole_fractions:
             if isinstance(mole_fractions[compound_index], unit.Quantity):
-                mole_fractions[compound_index] = (
-                    mole_fractions[compound_index].to(unit.dimensionless).magnitude
-                )
+                mole_fractions[compound_index] = mole_fractions[compound_index].to(unit.dimensionless).magnitude
 
         total_mol_fraction = sum([value for value in mole_fractions.values()])
 
         if not np.isclose(total_mol_fraction, 1.0):
-            raise ValueError(
-                f"The total mole fraction {total_mol_fraction} is not equal to 1.0"
-            )
+            raise ValueError(f"The total mole fraction {total_mol_fraction} is not equal to 1.0")
 
         substance = Substance()
 
@@ -1471,9 +1350,7 @@ class _PureOrMixtureData:
             skip_entry = False
 
             for variable_node in variable_nodes:
-                variable_index = int(
-                    variable_node.find("./ThermoML:nVarNumber", namespace).text
-                )
+                variable_index = int(variable_node.find("./ThermoML:nVarNumber", namespace).text)
 
                 if variable_index not in variable_definitions:
                     # The property was constrained by an unsupported variable and
@@ -1483,17 +1360,11 @@ class _PureOrMixtureData:
 
                 variable_definition = variable_definitions[variable_index]
 
-                variable_value = float(
-                    variable_node.find("ThermoML:nVarValue", namespace).text
-                )
-                value_as_quantity = unit.Quantity(
-                    variable_value, variable_definition.default_unit
-                )
+                variable_value = float(variable_node.find("ThermoML:nVarValue", namespace).text)
+                value_as_quantity = unit.Quantity(variable_value, variable_definition.default_unit)
 
                 # Convert the 'variable' into a full constraint entry
-                constraint = _Constraint.from_variable(
-                    variable_definition, value_as_quantity
-                )
+                constraint = _Constraint.from_variable(variable_definition, value_as_quantity)
                 constraints.append(constraint)
 
                 if constraint.type == _ConstraintType.Temperature:
@@ -1506,29 +1377,20 @@ class _PureOrMixtureData:
 
             # Extract the thermodynamic state that the property was measured at.
             if temperature_constraint is None:
-                logging.debug(
-                    "A property did not report the temperature it "
-                    "was measured at and will be ignored."
-                )
+                logging.debug("A property did not report the temperature it was measured at and will be ignored.")
                 continue
 
             temperature = temperature_constraint.value
-            pressure = (
-                None if pressure_constraint is None else pressure_constraint.value
-            )
+            pressure = None if pressure_constraint is None else pressure_constraint.value
 
-            thermodynamic_state = ThermodynamicState(
-                temperature=temperature, pressure=pressure
-            )
+            thermodynamic_state = ThermodynamicState(temperature=temperature, pressure=pressure)
 
             # Now extract the actual values of the measured properties, and their
             # uncertainties
             property_nodes = value_node.findall("ThermoML:PropertyValue", namespace)
 
             for property_node in property_nodes:
-                property_index = int(
-                    property_node.find("./ThermoML:nPropNumber", namespace).text
-                )
+                property_index = int(property_node.find("./ThermoML:nPropNumber", namespace).text)
 
                 if property_index not in property_definitions:
                     # Most likely the property was dropped earlier due to an unsupported phase / type
@@ -1536,26 +1398,20 @@ class _PureOrMixtureData:
 
                 property_definition = property_definitions[property_index]
 
-                uncertainty = _PureOrMixtureData.extract_uncertainty(
-                    property_node, namespace, property_definition
-                )
+                uncertainty = _PureOrMixtureData.extract_uncertainty(property_node, namespace, property_definition)
 
                 measured_property = copy.deepcopy(property_definition)
 
                 measured_property.thermodynamic_state = thermodynamic_state
 
-                property_value_node = property_node.find(
-                    ".//ThermoML:nPropValue", namespace
-                )
+                property_value_node = property_node.find(".//ThermoML:nPropValue", namespace)
 
                 measured_property.set_value(
                     float(property_value_node.text),
                     None if uncertainty is None else float(uncertainty),
                 )
 
-                mixture = _PureOrMixtureData.build_substance(
-                    measured_property, constraints, compounds
-                )
+                mixture = _PureOrMixtureData.build_substance(measured_property, constraints, compounds)
 
                 if mixture is None:
                     continue
@@ -1588,9 +1444,7 @@ class _PureOrMixtureData:
 
         # Figure out which compounds are going to be associated with
         # the property entries.
-        compound_indices = _PureOrMixtureData.extract_compound_indices(
-            node, namespace, compounds
-        )
+        compound_indices = _PureOrMixtureData.extract_compound_indices(node, namespace, compounds)
 
         if compound_indices is None:
             raise Exception("Failed to parse compound indices")
@@ -1612,8 +1466,7 @@ class _PureOrMixtureData:
 
             if phase == PropertyPhase.Undefined:
                 logging.debug(
-                    f"A property was measured in an unsupported phase "
-                    f"({phase_node.text}) and will be skipped."
+                    f"A property was measured in an unsupported phase ({phase_node.text}) and will be skipped."
                 )
 
                 return None
@@ -1621,9 +1474,7 @@ class _PureOrMixtureData:
             all_phases = phase if all_phases is None else all_phases | phase
 
         # Extract property definitions - values come later!
-        property_definitions = _PureOrMixtureData.extract_property_definitions(
-            node, namespace, all_phases
-        )
+        property_definitions = _PureOrMixtureData.extract_property_definitions(node, namespace, all_phases)
 
         if len(property_definitions) == 0:
             return None
@@ -1633,18 +1484,14 @@ class _PureOrMixtureData:
             property_definitions[property_index].phase |= all_phases
 
         # Extract any constraints on the system e.g pressure, temperature
-        global_constraints = _PureOrMixtureData.extract_global_constraints(
-            node, namespace, compounds
-        )
+        global_constraints = _PureOrMixtureData.extract_global_constraints(node, namespace, compounds)
 
         if global_constraints is None:
             return None
 
         # Extract any variables set on the system e.g pressure, temperature
         # Only the definition entry and not the value of the variable is extracted
-        variable_definitions = _PureOrMixtureData.extract_variable_definitions(
-            node, namespace, compounds
-        )
+        variable_definitions = _PureOrMixtureData.extract_variable_definitions(node, namespace, compounds)
 
         if len(global_constraints) == 0 and len(variable_definitions) == 0:
             logging.debug("A PureOrMixtureData entry with no constraints was ignored.")
@@ -1703,10 +1550,7 @@ class ThermoMLProperty:
                 standard_state = ThermoMLProperty.SoluteStandardState.Undefined
 
             if standard_state == _ConstraintType.Undefined:
-                logging.debug(
-                    f"{node.tag}->{node.text} is an unsupported "
-                    f"solute standard state type."
-                )
+                logging.debug(f"{node.tag}->{node.text} is an unsupported solute standard state type.")
 
             return standard_state
 
@@ -1771,16 +1615,12 @@ class ThermoMLProperty:
             if property_node is None:
                 continue
 
-            uncertainty_definition = _CombinedUncertainty.from_xml(
-                property_node, namespace
-            )
+            uncertainty_definition = _CombinedUncertainty.from_xml(property_node, namespace)
 
             if uncertainty_definition is None:
                 continue
 
-            combined_uncertainty_definitions[uncertainty_definition.index] = (
-                uncertainty_definition
-            )
+            combined_uncertainty_definitions[uncertainty_definition.index] = uncertainty_definition
 
         property_nodes = node.findall("ThermoML:PropUncertainty", namespace)
 
@@ -1788,16 +1628,12 @@ class ThermoMLProperty:
             if property_node is None:
                 continue
 
-            uncertainty_definition = _PropertyUncertainty.from_xml(
-                property_node, namespace
-            )
+            uncertainty_definition = _PropertyUncertainty.from_xml(property_node, namespace)
 
             if uncertainty_definition is None:
                 continue
 
-            property_uncertainty_definitions[uncertainty_definition.index] = (
-                uncertainty_definition
-            )
+            property_uncertainty_definitions[uncertainty_definition.index] = uncertainty_definition
 
     @classmethod
     def from_xml_node(cls, node, namespace, parent_phases):
@@ -1829,47 +1665,33 @@ class ThermoMLProperty:
         if phase_node is not None:
             phase |= _phase_from_thermoml_string(phase_node.text)
 
-        reference_phase_node = node.find(
-            "./ThermoML:RefPhaseID//ThermoML:eRefPhase", namespace
-        )
+        reference_phase_node = node.find("./ThermoML:RefPhaseID//ThermoML:eRefPhase", namespace)
 
         if reference_phase_node is not None:
             phase |= _phase_from_thermoml_string(reference_phase_node.text)
 
         if phase == PropertyPhase.Undefined:
-            logging.debug(
-                f"A property was measured in an unsupported phase "
-                f"({phase_node.text}) and will be skipped."
-            )
+            logging.debug(f"A property was measured in an unsupported phase ({phase_node.text}) and will be skipped.")
 
             return None
 
-        property_group_node = node.find(
-            "./ThermoML:Property-MethodID//ThermoML:PropertyGroup//*", namespace
-        )
+        property_group_node = node.find("./ThermoML:Property-MethodID//ThermoML:PropertyGroup//*", namespace)
 
         property_name_node = property_group_node.find("./ThermoML:ePropName", namespace)
         method_name_node = property_group_node.find("./ThermoML:eMethodName", namespace)
 
         if method_name_node is None:
-            method_name_node = property_group_node.find(
-                "./ThermoML:sMethodName", namespace
-            )
+            method_name_node = property_group_node.find("./ThermoML:sMethodName", namespace)
 
         if method_name_node is None or property_name_node is None:
             raise RuntimeError("A property does not have a name / method entry.")
 
         if property_name_node.text not in ThermoMLDataSet._registered_properties:
-            logging.debug(
-                f"An unsupported property was found "
-                f"({property_name_node.text}) and will be skipped."
-            )
+            logging.debug(f"An unsupported property was found ({property_name_node.text}) and will be skipped.")
 
             return None
 
-        registered_plugin = ThermoMLDataSet._registered_properties[
-            property_name_node.text
-        ]
+        registered_plugin = ThermoMLDataSet._registered_properties[property_name_node.text]
 
         if len(registered_plugin.phases) == 0:
             raise Exception("Add back support for multiple phases")
@@ -1877,8 +1699,8 @@ class ThermoMLProperty:
         if (registered_plugin.phases[0] & phase) != phase:
             logging.debug(
                 f"The {property_name_node.text} property is currently only supported "
-                f"when measured in the {str(registered_plugin.phases)} phase, "
-                f"and not the {str(phase)} phase."
+                f"when measured in the {registered_plugin.phases!s} phase, "
+                f"and not the {phase!s} phase."
             )
 
             return None
@@ -1905,9 +1727,7 @@ class ThermoMLProperty:
         return_value.combined_uncertainty_definitions = combined_uncertainty_definitions
         return_value.property_uncertainty_definitions = property_uncertainty_definitions
 
-        solvent_index_nodes = node.findall(
-            "./ThermoML:Solvent//ThermoML:nOrgNum", namespace
-        )
+        solvent_index_nodes = node.findall("./ThermoML:Solvent//ThermoML:nOrgNum", namespace)
 
         if solvent_index_nodes is not None:
             for solvent_index_node in solvent_index_nodes:
@@ -1919,16 +1739,12 @@ class ThermoMLProperty:
         standard_state_node = node.find("./ThermoML:eStandardState", namespace)
 
         if standard_state_node is not None:
-            return_value.solute_standard_state = (
-                ThermoMLProperty.SoluteStandardState.from_node(standard_state_node)
-            )
+            return_value.solute_standard_state = ThermoMLProperty.SoluteStandardState.from_node(standard_state_node)
 
         # Property->Property-MethodID->RegNum describes which compound is referred
         # to if the property is based on one of the compounds e.g. the activity
         # coefficient of compound 2.
-        target_compound_node = node.find(
-            "./ThermoML:Property-MethodID/ThermoML:RegNum/ThermoML:nOrgNum", namespace
-        )
+        target_compound_node = node.find("./ThermoML:Property-MethodID/ThermoML:RegNum/ThermoML:nOrgNum", namespace)
 
         if target_compound_node is not None:
             return_value.target_compound_index = int(target_compound_node.text)
@@ -1978,6 +1794,7 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
     >>> dataset = ThermoMLDataSet.from_doi(*thermoml_keys)
 
     """
+
     from dimsim.configs.targets.thermo import (
         DensityEntry,
         DielectricConstantEntry,
@@ -1986,11 +1803,11 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
     )
 
     _registered_properties = {
-        'Mass density, kg/m3': DensityEntry,
-        'Excess molar volume, m3/mol': ExcessMolarVolumeEntry,
-        'Relative permittivity at zero frequency': DielectricConstantEntry,
-        'Excess molar enthalpy (molar enthalpy of mixing), kJ/mol': EnthalpyOfMixingEntry,
-        'Molar enthalpy of vaporization or sublimation, kJ/mol': EnthalpyOfMixingEntry,
+        "Mass density, kg/m3": DensityEntry,
+        "Excess molar volume, m3/mol": ExcessMolarVolumeEntry,
+        "Relative permittivity at zero frequency": DielectricConstantEntry,
+        "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": EnthalpyOfMixingEntry,
+        "Molar enthalpy of vaporization or sublimation, kJ/mol": EnthalpyOfMixingEntry,
     }
 
     def __init__(self):
@@ -2177,9 +1994,7 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
             return None
 
         if root_node.tag.find("DataReport") < 0:
-            logger.warning(
-                "The ThermoML XML document does not contain the expected root node."
-            )
+            logger.warning("The ThermoML XML document does not contain the expected root node.")
             return None
 
         # Extract the namespace that will prefix all type names
@@ -2209,9 +2024,7 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
                 continue
 
             if compound.index in compounds:
-                raise RuntimeError(
-                    "A ThermoML data set contains two compounds with the same index"
-                )
+                raise RuntimeError("A ThermoML data set contains two compounds with the same index")
 
             compounds[compound.index] = compound
 
@@ -2223,13 +2036,9 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
                 raise Exception("No properties parsed")
 
             for measured_property in properties:
-                registered_plugin = ThermoMLDataSet._registered_properties[
-                    measured_property.type_string
-                ]
+                registered_plugin = ThermoMLDataSet._registered_properties[measured_property.type_string]
 
-                mapped_property = registered_plugin.conversion_function(
-                    measured_property
-                )
+                mapped_property = registered_plugin.conversion_function(measured_property)
                 mapped_property.source = source
                 return_value.add_properties(mapped_property)
 

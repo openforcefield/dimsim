@@ -82,7 +82,7 @@ class PropertyPhase(IntFlag):
         return " + ".join([phase.name for phase in PropertyPhase if self & phase])
 
     def __repr__(self):
-        return f"<PropertyPhase {str(self)}>"
+        return f"<PropertyPhase {self!s}>"
 
 
 class PhysicalProperty(AttributeClass, abc.ABC):
@@ -117,8 +117,7 @@ class PhysicalProperty(AttributeClass, abc.ABC):
         type_hint=PropertyPhase,
     )
     thermodynamic_state = Attribute(
-        docstring="The thermodynamic state that this property"
-        "was measured / estimated at.",
+        docstring="The thermodynamic state that this propertywas measured / estimated at.",
         type_hint=ThermodynamicState,
     )
 
@@ -145,8 +144,7 @@ class PhysicalProperty(AttributeClass, abc.ABC):
     )
 
     gradients = Attribute(
-        docstring="The gradients of this property with respect to "
-        "different force field parameters.",
+        docstring="The gradients of this property with respect to different force field parameters.",
         type_hint=list,
         optional=True,
     )
@@ -199,7 +197,7 @@ class PhysicalProperty(AttributeClass, abc.ABC):
         if "id" not in state:
             state["id"] = str(uuid.uuid4()).replace("-", "")
 
-        super(PhysicalProperty, self).__setstate__(state)
+        super().__setstate__(state)
 
     def _get_raw_property_hash(self) -> int:
         """
@@ -256,7 +254,7 @@ class PhysicalProperty(AttributeClass, abc.ABC):
             The hash value of the property.
         """
 
-        # hash() truncates the value returned from an object’s custom __hash__()
+        # hash() truncates the value returned from an object's custom __hash__()
         # method to the size of a Py_ssize_t.
 
         # see https://docs.python.org/3/library/functions.html#hash
@@ -274,15 +272,12 @@ class PhysicalProperty(AttributeClass, abc.ABC):
         return raw_property_hash % mod
 
     def validate(self, attribute_type=None):
-        super(PhysicalProperty, self).validate(attribute_type)
+        super().validate(attribute_type)
 
         assert self.value.units.dimensionality == self.default_unit().dimensionality
 
         if self.uncertainty != UNDEFINED:
-            assert (
-                self.uncertainty.units.dimensionality
-                == self.default_unit().dimensionality
-            )
+            assert self.uncertainty.units.dimensionality == self.default_unit().dimensionality
 
 
 class PhysicalPropertyDataSet(TypedBaseModel):
@@ -359,10 +354,7 @@ class PhysicalPropertyDataSet(TypedBaseModel):
                 physical_property.validate()
 
             if physical_property.id in all_ids:
-                raise KeyError(
-                    f"A property with the unique id {physical_property.id} already "
-                    f"exists."
-                )
+                raise KeyError(f"A property with the unique id {physical_property.id} already exists.")
 
             all_ids.add(physical_property.id)
 
@@ -467,15 +459,11 @@ class PhysicalPropertyDataSet(TypedBaseModel):
 
         for physical_property in self:
             # Extract the measured state.
-            temperature = physical_property.thermodynamic_state.temperature.to(
-                unit.kelvin
-            ).magnitude
+            temperature = physical_property.thermodynamic_state.temperature.to(unit.kelvin).magnitude
             pressure = None
 
             if physical_property.thermodynamic_state.pressure != UNDEFINED:
-                pressure = physical_property.thermodynamic_state.pressure.to(
-                    unit.kilopascal
-                ).magnitude
+                pressure = physical_property.thermodynamic_state.pressure.to(unit.kilopascal).magnitude
 
             phase = str(physical_property.phase)
 
@@ -500,9 +488,7 @@ class PhysicalPropertyDataSet(TypedBaseModel):
             default_units[physical_property.__class__.__name__] = default_unit
 
             value = (
-                None
-                if physical_property.value == UNDEFINED
-                else physical_property.value.to(default_unit).magnitude
+                None if physical_property.value == UNDEFINED else physical_property.value.to(default_unit).magnitude
             )
             uncertainty = (
                 None
@@ -537,20 +523,14 @@ class PhysicalPropertyDataSet(TypedBaseModel):
                 data_row[f"Mole Fraction {index + 1}"] = amounts[index][MoleFraction]
                 data_row[f"Exact Amount {index + 1}"] = amounts[index][ExactAmount]
 
-            data_row[f"{type(physical_property).__name__} Value ({default_unit:~})"] = (
-                value
-            )
-            data_row[
-                f"{type(physical_property).__name__} Uncertainty ({default_unit:~})"
-            ] = uncertainty
+            data_row[f"{type(physical_property).__name__} Value ({default_unit:~})"] = value
+            data_row[f"{type(physical_property).__name__} Uncertainty ({default_unit:~})"] = uncertainty
 
             data_row["Source"] = source
 
             data_rows.append(data_row)
 
-            maximum_number_of_components = max(
-                maximum_number_of_components, len(physical_property.substance)
-            )
+            maximum_number_of_components = max(maximum_number_of_components, len(physical_property.substance))
 
         # Set up the column headers.
         if len(data_rows) == 0:
@@ -627,10 +607,7 @@ class PhysicalPropertyDataSet(TypedBaseModel):
             property_unit = unit.Unit(property_unit_string)
             assert property_unit is not None
 
-            assert (
-                property_unit.dimensionality
-                == property_type.default_unit().dimensionality
-            )
+            assert property_unit.dimensionality == property_type.default_unit().dimensionality
 
             property_headers[match.group(0)] = (property_type, property_unit)
 
@@ -705,9 +682,7 @@ class PhysicalPropertyDataSet(TypedBaseModel):
                     phase=property_phase,
                     value=data_row[property_header] * property_unit,
                     uncertainty=(
-                        None
-                        if uncertainty_header not in data_row
-                        else data_row[uncertainty_header] * property_unit
+                        None if uncertainty_header not in data_row else data_row[uncertainty_header] * property_unit
                     ),
                     substance=substance,
                     source=MeasurementSource(
@@ -747,10 +722,7 @@ class PhysicalPropertyDataSet(TypedBaseModel):
         assert len(all_ids) == len(self)
 
     def __str__(self):
-        return (
-            f"n_properties={len(self)} n_substances={len(self.substances)} "
-            f"n_sources={len(self.sources)}"
-        )
+        return f"n_properties={len(self)} n_substances={len(self.substances)} n_sources={len(self.sources)}"
 
     def __repr__(self):
-        return f"<PhysicalPropertyDataSet {str(self)}>"
+        return f"<PhysicalPropertyDataSet {self!s}>"

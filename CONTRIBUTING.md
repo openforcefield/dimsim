@@ -45,14 +45,7 @@ Thank you for your interest in contributing to dimsim! This document provides gu
    pytest
    ```
 
-4. Check code style (or use pre-commit hooks):
-   ```bash
-   black dimsim
-   isort dimsim
-   flake8 dimsim
-   ```
-
-   Or manually run all pre-commit hooks:
+4. Check code style (easiest to use pre-commit hooks):
    ```bash
    pre-commit run --all-files
    ```
@@ -73,9 +66,7 @@ Thank you for your interest in contributing to dimsim! This document provides gu
 ## Code Style
 
 This project uses:
-- **black** for code formatting (line length: 88)
-- **isort** for import sorting
-- **flake8** for linting
+- **ruff** for code formatting and linting
 - Type hints are encouraged but not required
 
 ## Testing

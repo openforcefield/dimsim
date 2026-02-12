@@ -26,8 +26,7 @@ def _type_string_to_object(type_string):
 
     if last_period_index < 0 or last_period_index == len(type_string) - 1:
         raise ValueError(
-            "The type string is invalid - it should be of the form "
-            "module_path.class_name: {}".format(type_string)
+            f"The type string is invalid - it should be of the form module_path.class_name: {type_string}"
         )
 
     type_string_split = type_string.split(".")
@@ -81,7 +80,7 @@ def _type_to_type_string(object_type):
 
     qualified_name = object_type.__qualname__
 
-    return_value = "{}.{}".format(object_type.__module__, qualified_name)
+    return_value = f"{object_type.__module__}.{qualified_name}"
 
     if return_value.startswith("evaluator."):
         return_value = return_value.replace("evaluator.", "dimsim.")
@@ -177,16 +176,14 @@ def deserialize_measurement(serialized):
 
 def serialize_enum(enum):
     if not isinstance(enum, Enum):
-        raise ValueError("{} is not an Enum".format(type(enum)))
+        raise ValueError(f"{type(enum)} is not an Enum")
 
     return {"value": enum.value}
 
 
 def deserialize_enum(enum_dictionary):
     if "@type" not in enum_dictionary:
-        raise ValueError(
-            "The serialized enum dictionary must includewhich type the enum is."
-        )
+        raise ValueError("The serialized enum dictionary must includewhich type the enum is.")
 
     if "value" not in enum_dictionary:
         raise ValueError("The serialized enum dictionary must includethe enum value.")
@@ -197,23 +194,21 @@ def deserialize_enum(enum_dictionary):
     enum_class = _type_string_to_object(enum_type_string)
 
     if not issubclass(enum_class, Enum):
-        raise ValueError("<{}> is not an Enum".format(enum_class))
+        raise ValueError(f"<{enum_class}> is not an Enum")
 
     return enum_class(enum_value)
 
 
 def serialize_set(set_object):
     if not isinstance(set_object, set):
-        raise ValueError("{} is not a set".format(type(set)))
+        raise ValueError(f"{type(set)} is not a set")
 
     return {"value": list(set_object)}
 
 
 def deserialize_set(set_dictionary):
     if "value" not in set_dictionary:
-        raise ValueError(
-            "The serialized set dictionary must includethe value of the set."
-        )
+        raise ValueError("The serialized set dictionary must includethe value of the set.")
 
     set_value = set_dictionary["value"]
 
@@ -225,16 +220,14 @@ def deserialize_set(set_dictionary):
 
 def serialize_frozen_set(set_object):
     if not isinstance(set_object, frozenset):
-        raise ValueError("{} is not a frozenset".format(type(frozenset)))
+        raise ValueError(f"{type(frozenset)} is not a frozenset")
 
     return {"value": list(set_object)}
 
 
 def deserialize_frozen_set(set_dictionary):
     if "value" not in set_dictionary:
-        raise ValueError(
-            "The serialized frozenset dictionary must includethe value of the set."
-        )
+        raise ValueError("The serialized frozenset dictionary must includethe value of the set.")
 
     set_value = set_dictionary["value"]
 
@@ -271,7 +264,7 @@ class TypedJSONEncoder(json.JSONEncoder):
         if type_to_serialize in TypedJSONEncoder._natively_supported_types:
             # If the value is a native type, then let the default serializer
             # handle it.
-            return super(TypedJSONEncoder, self).default(value_to_serialize)
+            return super().default(value_to_serialize)
 
         # Otherwise, we need to add a @type attribute to it.
         type_tag = _type_to_type_string(type_to_serialize)
@@ -304,10 +297,8 @@ class TypedJSONEncoder(json.JSONEncoder):
 
             except Exception as e:
                 raise ValueError(
-                    "{} ({}) could not be serialized "
-                    "using a specialized custom encoder: {}".format(
-                        value_to_serialize, type_to_serialize, e
-                    )
+                    f"{value_to_serialize} ({type_to_serialize}) could not be serialized "
+                    f"using a specialized custom encoder: {e}"
                 )
 
         elif hasattr(value_to_serialize, "__getstate__"):
@@ -316,17 +307,15 @@ class TypedJSONEncoder(json.JSONEncoder):
 
             except Exception as e:
                 raise ValueError(
-                    "{} ({}) could not be serialized "
-                    "using its __getstate__ method: {}".format(
-                        value_to_serialize, type_to_serialize, e
-                    )
+                    f"{value_to_serialize} ({type_to_serialize}) could not be serialized "
+                    f"using its __getstate__ method: {e}"
                 )
 
         else:
             raise ValueError(
-                "Objects of type {} are not serializable, please either"
+                f"Objects of type {type_to_serialize} are not serializable, please either"
                 "add a __getstate__ method, or add the object to the list"
-                "of custom supported types.".format(type_to_serialize)
+                "of custom supported types."
             )
 
         serializable_dictionary["@type"] = type_tag
@@ -379,10 +368,8 @@ class TypedJSONDecoder(json.JSONDecoder):
 
             except Exception as e:
                 raise ValueError(
-                    "{} ({}) could not be deserialized "
-                    "using a specialized custom decoder: {}".format(
-                        object_dictionary, type(class_type), e
-                    )
+                    f"{object_dictionary} ({type(class_type)}) could not be deserialized "
+                    f"using a specialized custom decoder: {e}"
                 )
 
         elif hasattr(class_type, "__setstate__"):
@@ -406,9 +393,9 @@ class TypedJSONDecoder(json.JSONDecoder):
 
         else:
             raise ValueError(
-                "Objects of type {} are not deserializable, please either"
+                f"Objects of type {type(class_type)} are not deserializable, please either"
                 "add a __setstate__ method, or add the object to the list"
-                "of custom supported types.".format(type(class_type))
+                "of custom supported types."
             )
 
         return deserialized_object
@@ -478,7 +465,7 @@ class TypedBaseModel(ABC):
         cls
             The parsed class.
         """
-        with open(file_path, "r") as file:
+        with open(file_path) as file:
             return cls.parse_json(file.read())
 
     @classmethod

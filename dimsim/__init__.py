@@ -2,6 +2,7 @@
 dimsim
 Distributed simulation package
 """
+
 from openff.units import Quantity, Unit, unit
 
 # from dimsim.plugins import register_default_plugins, register_external_plugins
@@ -20,6 +21,6 @@ __author__ = "Lily Wang"
 
 __all__ = (
     "Quantity",
-    "unit",
     "Unit",
+    "unit",
 )

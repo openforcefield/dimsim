@@ -4,7 +4,6 @@ An API for defining and creating substances.
 
 import abc
 import math
-import typing
 
 import numpy
 
@@ -18,7 +17,7 @@ class Amount(AttributeClass, abc.ABC):
 
     value = Attribute(
         docstring="The value of this amount.",
-        type_hint=typing.Union[float, int],
+        type_hint=float | int,
         read_only=True,
     )
 
@@ -63,7 +62,7 @@ class Amount(AttributeClass, abc.ABC):
         return self.identifier
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} {str(self)}>"
+        return f"<{self.__class__.__name__} {self!s}>"
 
     def __eq__(self, other):
         return type(self) is type(other) and numpy.isclose(self.value, other.value)
@@ -92,7 +91,7 @@ class MoleFraction(Amount):
         if numpy.isclose(fractional_number_of_molecules, 0.5):
             number_of_molecules = int(number_of_molecules)
         else:
-            number_of_molecules = int(round(number_of_molecules))
+            number_of_molecules = round(number_of_molecules)
 
         if number_of_molecules == 0:
             raise ValueError(
@@ -114,18 +113,14 @@ class MoleFraction(Amount):
         return number_of_molecules
 
     def validate(self, attribute_type=None):
-        super(MoleFraction, self).validate(attribute_type)
+        super().validate(attribute_type)
 
         if self.value <= 0.0 or self.value > 1.0:
-            raise ValueError(
-                "A mole fraction must be greater than zero, and less than or "
-                "equal to one."
-            )
+            raise ValueError("A mole fraction must be greater than zero, and less than or equal to one.")
 
         if math.floor(self.value * 1e6) < 1:
             raise ValueError(
-                "Mole fractions are only precise to the sixth "
-                "decimal place within this class representation."
+                "Mole fractions are only precise to the sixth decimal place within this class representation."
             )
 
 
@@ -141,7 +136,7 @@ class ExactAmount(Amount):
 
     @property
     def identifier(self):
-        return f"n={int(round(self.value)):d}"
+        return f"n={round(self.value):d}"
 
     def to_number_of_molecules(self, total_substance_molecules, tolerance=None):
         return self.value

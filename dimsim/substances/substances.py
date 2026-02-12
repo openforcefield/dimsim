@@ -83,12 +83,8 @@ class Substance(AttributeClass):
         identifier_split = []
 
         for component_identifier in component_identifiers:
-            component_amounts = sorted(
-                self.amounts[component_identifier], key=lambda x: type(x).__name__
-            )
-            amount_identifier = ",".join(
-                [component_amount.identifier for component_amount in component_amounts]
-            )
+            component_amounts = sorted(self.amounts[component_identifier], key=lambda x: type(x).__name__)
+            amount_identifier = ",".join([component_amount.identifier for component_amount in component_amounts])
 
             identifier = f"{component_identifier}{{{amount_identifier}}}"
             identifier_split.append(identifier)
@@ -153,20 +149,14 @@ class Substance(AttributeClass):
 
             for component_identifier in self.amounts:
                 total_mole_fraction += sum(
-                    [
-                        amount.value
-                        for amount in self.amounts[component_identifier]
-                        if isinstance(amount, MoleFraction)
-                    ]
+                    [amount.value for amount in self.amounts[component_identifier] if isinstance(amount, MoleFraction)]
                 )
 
             if numpy.isclose(total_mole_fraction, 1.0):
                 total_mole_fraction = 1.0
 
             if total_mole_fraction > 1.0:
-                raise ValueError(
-                    f"The total mole fraction of this substance {total_mole_fraction} exceeds 1.0"
-                )
+                raise ValueError(f"The total mole fraction of this substance {total_mole_fraction} exceeds 1.0")
 
         if component.identifier not in self.amounts:
             components = (*self.components, component)
@@ -174,17 +164,13 @@ class Substance(AttributeClass):
 
         existing_amount_of_type = None
 
-        all_amounts = (
-            []
-            if component.identifier not in self.amounts
-            else self.amounts[component.identifier]
-        )
+        all_amounts = [] if component.identifier not in self.amounts else self.amounts[component.identifier]
         remaining_amounts = []
 
         # Check to see if an amount of the same type already exists in
         # the substance, such that this amount should be appended to it.
         for existing_amount in all_amounts:
-            if not type(existing_amount) is type(amount):
+            if type(existing_amount) is not type(amount):
                 remaining_amounts.append(existing_amount)
                 continue
 
@@ -270,11 +256,7 @@ class Substance(AttributeClass):
 
         # Handle any exact amounts.
         for component in self.components:
-            exact_amounts = [
-                amount
-                for amount in self.get_amounts(component)
-                if isinstance(amount, ExactAmount)
-            ]
+            exact_amounts = [amount for amount in self.get_amounts(component) if isinstance(amount, ExactAmount)]
 
             if len(exact_amounts) == 0:
                 continue
@@ -287,11 +269,7 @@ class Substance(AttributeClass):
         number_of_new_mole_fractions = 0
 
         for component in self.components:
-            mole_fractions = [
-                amount
-                for amount in self.get_amounts(component)
-                if isinstance(amount, MoleFraction)
-            ]
+            mole_fractions = [amount for amount in self.get_amounts(component) if isinstance(amount, MoleFraction)]
 
             if len(mole_fractions) == 0:
                 continue
@@ -307,10 +285,7 @@ class Substance(AttributeClass):
             total_mole_fraction += new_mole_fraction
             number_of_new_mole_fractions += 1
 
-        if (
-            not numpy.isclose(total_mole_fraction, 1.0)
-            and number_of_new_mole_fractions > 0
-        ):
+        if not numpy.isclose(total_mole_fraction, 1.0) and number_of_new_mole_fractions > 0:
             raise ValueError("The new mole fraction does not equal 1.0")
 
         output_substance = Substance()
@@ -389,9 +364,7 @@ class Substance(AttributeClass):
 
         for component in self.components:
             for amount in self.amounts[component.identifier]:
-                n_amount_molecules = amount.to_number_of_molecules(
-                    remaining_molecule_slots, tolerance
-                )
+                n_amount_molecules = amount.to_number_of_molecules(remaining_molecule_slots, tolerance)
 
                 n_molecules[component.identifier] += n_amount_molecules
 
@@ -400,11 +373,7 @@ class Substance(AttributeClass):
 
         # Attempt to fix rounding issues which lead to more molecules being added than
         # the maximum.
-        total_molecules = (
-            sum(n_molecules.values())
-            if count_exact_amount
-            else sum(n_mole_fractions.values())
-        )
+        total_molecules = sum(n_molecules.values()) if count_exact_amount else sum(n_mole_fractions.values())
 
         max_truncation_attempts = len(self.components)
         n_truncation_attempts = 0
@@ -415,18 +384,12 @@ class Substance(AttributeClass):
             and sum(n_mole_fractions.values()) > 0
             and n_truncation_attempts < max_truncation_attempts
         ):
-            largest_component = max(
-                n_mole_fractions.items(), key=operator.itemgetter(1)
-            )[0]
+            largest_component = max(n_mole_fractions.items(), key=operator.itemgetter(1))[0]
 
             n_molecules[largest_component] -= 1
             n_mole_fractions[largest_component] -= 1
 
-            total_molecules = (
-                sum(n_molecules.values())
-                if count_exact_amount
-                else sum(n_mole_fractions.values())
-            )
+            total_molecules = sum(n_molecules.values()) if count_exact_amount else sum(n_mole_fractions.values())
 
             n_truncation_attempts += 1
 
@@ -446,11 +409,7 @@ class Substance(AttributeClass):
 
         # Taken from YANK:
         # https://github.com/choderalab/yank/blob/4dfcc8e127c51c20180fe6caeb49fcb1f21730c6/Yank/pipeline.py#L1869
-        water_molarity = Quantity(
-            "998.23 * gram / litre"
-        ) / Quantity(
-            "18.01528 * gram / mole"
-        )
+        water_molarity = Quantity("998.23 * gram / litre") / Quantity("18.01528 * gram / mole")
 
         ionic_mole_fraction = ionic_strength / (ionic_strength + water_molarity)
         return ionic_mole_fraction
@@ -459,7 +418,7 @@ class Substance(AttributeClass):
         return self.identifier
 
     def __repr__(self):
-        return f"<Substance {str(self)}>"
+        return f"<Substance {self!s}>"
 
     def __hash__(self):
         return hash(self.identifier)
@@ -479,7 +438,7 @@ class Substance(AttributeClass):
             assert isinstance(state["amounts"][key], (list, tuple))
             state["amounts"][key] = tuple(state["amounts"][key])
 
-        super(Substance, self).__setstate__(state)
+        super().__setstate__(state)
 
     def __len__(self):
         return len(self.components)
@@ -488,7 +447,7 @@ class Substance(AttributeClass):
         return iter(self.components)
 
     def validate(self, attribute_type=None):
-        super(Substance, self).validate(attribute_type)
+        super().validate(attribute_type)
 
         # Validate all of the components.
         assert all(isinstance(x, Component) for x in self.components)
@@ -508,24 +467,15 @@ class Substance(AttributeClass):
             for amount in amounts:
                 amount.validate(attribute_type)
 
-        contains_mole_fraction = any(
-            isinstance(x, MoleFraction) for y in self.amounts.values() for x in y
-        )
+        contains_mole_fraction = any(isinstance(x, MoleFraction) for y in self.amounts.values() for x in y)
 
         if contains_mole_fraction:
             total_mole_fraction = 0.0
 
             for component_identifier in self.amounts:
                 total_mole_fraction += sum(
-                    [
-                        amount.value
-                        for amount in self.amounts[component_identifier]
-                        if isinstance(amount, MoleFraction)
-                    ]
+                    [amount.value for amount in self.amounts[component_identifier] if isinstance(amount, MoleFraction)]
                 )
 
             if not numpy.isclose(total_mole_fraction, 1.0):
-                raise ValueError(
-                    f"The total mole fraction of this substance "
-                    f"({total_mole_fraction}) must equal 1.0"
-                )
+                raise ValueError(f"The total mole fraction of this substance ({total_mole_fraction}) must equal 1.0")

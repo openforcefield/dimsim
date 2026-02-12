@@ -120,7 +120,7 @@ class Component(AttributeClass):
         return self.identifier
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} {str(self)}>"
+        return f"<{self.__class__.__name__} {self!s}>"
 
     def __hash__(self):
         return hash(self.identifier)
@@ -134,4 +134,4 @@ class Component(AttributeClass):
     def __setstate__(self, state):
         # Make sure the smiles pattern is standardized.
         state["smiles"] = Component._standardize_smiles(state["smiles"])
-        super(Component, self).__setstate__(state)
+        super().__setstate__(state)

@@ -36,12 +36,8 @@ class ThermodynamicState(AttributeClass):
     Note that the pressure is only relevant for periodic systems.
     """
 
-    temperature = Attribute(
-        docstring="The external temperature.", type_hint=Quantity
-    )
-    pressure = Attribute(
-        docstring="The external pressure.", type_hint=Quantity, optional=True
-    )
+    temperature = Attribute(docstring="The external temperature.", type_hint=Quantity)
+    pressure = Attribute(docstring="The external pressure.", type_hint=Quantity, optional=True)
 
     @property
     def inverse_beta(self):
@@ -67,7 +63,7 @@ class ThermodynamicState(AttributeClass):
             self.pressure = pressure
 
     def validate(self, attribute_type=None):
-        super(ThermodynamicState, self).validate(attribute_type)
+        super().validate(attribute_type)
 
         if self.pressure != UNDEFINED:
             self.pressure.to("pascals")
@@ -77,7 +73,7 @@ class ThermodynamicState(AttributeClass):
         assert self.temperature > Quantity(0.0, "kelvin")
 
     def __repr__(self):
-        return f"<ThermodynamicState {str(self)}>"
+        return f"<ThermodynamicState {self!s}>"
 
     def __str__(self):
         return_value = f"T={self.temperature:~}"
@@ -89,15 +85,9 @@ class ThermodynamicState(AttributeClass):
 
     def __hash__(self):
         temperature = self.temperature.m_as("kelvin").magnitude
-        pressure = (
-            None
-            if self.pressure == UNDEFINED
-            else self.pressure.m_as("pascals")
-        )
+        pressure = None if self.pressure == UNDEFINED else self.pressure.m_as("pascals")
 
-        return hash(
-            (f"{temperature:.3f}", None if pressure is None else f"{pressure:.3f}")
-        )
+        return hash((f"{temperature:.3f}", None if pressure is None else f"{pressure:.3f}"))
 
     def __eq__(self, other):
         if not isinstance(other, ThermodynamicState):

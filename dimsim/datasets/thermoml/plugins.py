@@ -58,9 +58,7 @@ def _default_mapping(property_class, property_to_map):
     return mapped_property
 
 
-def register_thermoml_property(
-    thermoml_string, supported_phases, property_class=None, conversion_function=None
-):
+def register_thermoml_property(thermoml_string, supported_phases, property_class=None, conversion_function=None):
     """A function used to map a property from the ThermoML archive
     to an internal `PhysicalProperty` object of the correct type.
 
@@ -87,9 +85,7 @@ def register_thermoml_property(
     if (property_class is None and conversion_function is None) or (
         property_class is not None and conversion_function is not None
     ):
-        raise ValueError(
-            "Only one of the `property_class` and `conversion_function` must be set."
-        )
+        raise ValueError("Only one of the `property_class` and `conversion_function` must be set.")
 
     if conversion_function is None:
         conversion_function = functools.partial(_default_mapping, property_class)

@@ -39,10 +39,7 @@ def _is_supported_generic(type_object):
     bool
         True if `type_object` is a member of `typing`.
     """
-    return (
-        _is_typing_object(type_object)
-        and type_object.__origin__ in _supported_generic_types
-    )
+    return _is_typing_object(type_object) and type_object.__origin__ in _supported_generic_types
 
 
 def is_union_type(type_object):
@@ -99,13 +96,13 @@ def is_type_subclass_of_type(type_a, type_b):
     # Make sure these are types we support.
     if _is_typing_object(type_a) and not _is_supported_generic(type_a):
         raise ValueError(
-            f'Only the {" ".join(map(str, _supported_generic_types))} '
+            f"Only the {' '.join(map(str, _supported_generic_types))} "
             f"typing module types are supported, and not {type_a}."
         )
 
     if _is_typing_object(type_b) and not _is_supported_generic(type_b):
         raise ValueError(
-            f'Only the {" ".join(map(str, _supported_generic_types))} '
+            f"Only the {' '.join(map(str, _supported_generic_types))} "
             f"typing module types are supported, and not {type_b}."
         )
 
@@ -127,7 +124,7 @@ def is_type_subclass_of_type(type_a, type_b):
 
         return False
 
-    if type_a == int and type_b == float:
+    if type_a is int and type_b is float:
         # All ints can be converted to floats.
         return True
 

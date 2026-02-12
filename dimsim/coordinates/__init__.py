@@ -6,7 +6,7 @@ from .box import BoxCoordinates, MoleculeSpecies
 from .store import CoordinateStore
 
 __all__ = [
-    "CoordinateStore",
     "BoxCoordinates",
+    "CoordinateStore",
     "MoleculeSpecies",
 ]

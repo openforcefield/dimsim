@@ -89,17 +89,14 @@ class AttributeClass:
 
             elif isinstance(attribute_value, Mapping):
                 iterable_values = (
-                    attribute_value[x]
-                    for x in attribute_value
-                    if isinstance(attribute_value[x], AttributeClass)
+                    attribute_value[x] for x in attribute_value if isinstance(attribute_value[x], AttributeClass)
                 )
 
             elif isinstance(attribute_value, Iterable) and not isinstance(
-                attribute_value, Quantity  # need to add back Measurement
+                attribute_value,
+                Quantity,  # need to add back Measurement
             ):
-                iterable_values = (
-                    x for x in attribute_value if isinstance(x, AttributeClass)
-                )
+                iterable_values = (x for x in attribute_value if isinstance(x, AttributeClass))
 
             for value in iterable_values:
                 value.validate()
@@ -133,9 +130,7 @@ class AttributeClass:
 
             if attribute_type is not None:
                 found_attributes = [
-                    name
-                    for name in found_attributes
-                    if type(base_class.__dict__[name]) is attribute_type
+                    name for name in found_attributes if type(base_class.__dict__[name]) is attribute_type
                 ]
 
             attribute_names.extend(found_attributes)
@@ -163,7 +158,7 @@ class AttributeClass:
 
     @classmethod
     def parse_json(cls, string_contents):
-        return_object = super(AttributeClass, cls).parse_json(string_contents)
+        return_object = super().parse_json(string_contents)
         return_object.validate()
         return return_object
 
@@ -189,9 +184,7 @@ class AttributeClass:
             attribute = getattr(self.__class__, name)
 
             if not attribute.optional and name not in state:
-                raise IndexError(
-                    f"The {name} attribute was not present in " f"the state dictionary."
-                )
+                raise IndexError(f"The {name} attribute was not present in the state dictionary.")
 
             elif attribute.optional and name not in state:
                 state[name] = UNDEFINED
@@ -244,39 +237,27 @@ class Attribute:
         """
 
         if not is_supported_type(type_hint):
-            raise ValueError(
-                f"The {type_hint} type is not supported by the "
-                f"workflow type hinting system."
-            )
+            raise ValueError(f"The {type_hint} type is not supported by the workflow type hinting system.")
 
         if hasattr(type_hint, "__qualname__"):
             docstring = f"{type_hint.__qualname__}: {docstring}"
         elif hasattr(type_hint, "__name__"):
             docstring = f"{type_hint.__name__}: {docstring}"
         else:
-            docstring = f"{str(type_hint)}: {docstring}"
+            docstring = f"{type_hint!s}: {docstring}"
 
         # Handle the default value.
         self._default_value = default_value
 
-        if isinstance(
-            default_value, (int, float, str, Quantity, Enum)
-        ) or (
-            isinstance(default_value, (list, tuple, set, frozenset))
-            and len(default_value) <= 4
+        if isinstance(default_value, (int, float, str, Quantity, Enum)) or (
+            isinstance(default_value, (list, tuple, set, frozenset)) and len(default_value) <= 4
         ):
-            docstring = (
-                f"{docstring} The default value of this attribute "
-                f"is ``{str(default_value)}``."
-            )
+            docstring = f"{docstring} The default value of this attribute is ``{default_value!s}``."
 
         elif default_value == UNDEFINED:
             optional_string = "" if optional else " and must be set by the user."
 
-            docstring = (
-                f"{docstring} The default value of this attribute "
-                f"is not set{optional_string}."
-            )
+            docstring = f"{docstring} The default value of this attribute is not set{optional_string}."
 
         self.optional = optional
         self.read_only = read_only
@@ -303,11 +284,7 @@ class Attribute:
             # support custom serialization of IntFlag, IntEnum.
             value = self.type_hint(value)
 
-        if (
-            isinstance(value, list)
-            and isinstance(self.type_hint, type)
-            and issubclass(self.type_hint, tuple)
-        ):
+        if isinstance(value, list) and isinstance(self.type_hint, type) and issubclass(self.type_hint, tuple):
             # Automate the list -> tuple conversion to get
             # around serialization issues.
             value = self.type_hint(value)
@@ -318,8 +295,7 @@ class Attribute:
             and not value == UNDEFINED
         ):
             raise ValueError(
-                f"The {self._private_attribute_name[1:]} attribute can only accept "
-                f"values of type {self.type_hint}"
+                f"The {self._private_attribute_name[1:]} attribute can only accept values of type {self.type_hint}"
             )
 
         setattr(instance, self._private_attribute_name, value)

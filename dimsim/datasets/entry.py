@@ -11,7 +11,6 @@ EntryType = typing.Literal[
 
 
 class DataEntry(typing.TypedDict):
-
     tag: EntryType
 
     smiles: list[str]

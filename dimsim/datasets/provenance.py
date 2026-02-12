@@ -8,14 +8,12 @@ class Source(BaseModel):
 
 
 class MeasurementSource(Source):
-
     doi: str | None = None
 
     reference: str | None = None
 
 
 class CalculationSource(Source):
-
     fidelity: str | None = None
 
     provenance: dict[str, Any] | None = None

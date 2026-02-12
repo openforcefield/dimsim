@@ -69,9 +69,7 @@ from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
 )
 def test_load_property_types(filename: str, expected: dict):
     """Test loading a single data type from a ThermoML XML file"""
-    dataset = ThermoMLDataSet.from_xml(
-        open(get_test_data_path(f"thermoml/{filename}")).read()
-    )
+    dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
     assert len(dataset) == 1
 
     entry = dataset[0]
@@ -108,9 +106,7 @@ def test_load_single_osmotic():
     but is included here to ensure that ions are dealt with correctly.
 
     """
-    dataset = ThermoMLDataSet.from_xml(
-        open(get_test_data_path("thermoml/single_osmotic.xml")).read()
-    )
+    dataset = ThermoMLDataSet.from_xml(open(get_test_data_path("thermoml/single_osmotic.xml")).read())
     assert len(dataset) == 1
 
     entry = dataset[0]
