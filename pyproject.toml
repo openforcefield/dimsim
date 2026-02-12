@@ -58,6 +58,7 @@ fallback_version = "0.0.0"
 [tool.ruff]
 line-length = 119
 lint.select = [ "E", "F", "I", "NPY", "RUF", "UP", "W" ]
+lint.ignore = [ "RUF012" ]
 lint.isort.known-third-party = [ "openff.toolkit", "openff.utilities", "openff.units", "openff.interchange" ]
 
 [tool.pytest]
