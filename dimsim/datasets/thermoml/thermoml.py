@@ -6,6 +6,7 @@ import copy
 import logging
 import re
 import traceback
+import uuid
 from enum import Enum, unique
 from urllib.error import HTTPError
 from xml.etree import ElementTree
@@ -20,6 +21,22 @@ from dimsim.substances import Component, MoleFraction, Substance
 from dimsim.thermodynamics import ThermodynamicState
 
 logger = logging.getLogger(__name__)
+
+"""
+EntryType = typing.Literal[
+    "density",
+    "hvap",  # enthalpy_of_vaporization
+    "dhmix",  # enthalpy_of_mixing
+    "dielectric_constant",
+    "osmotic_coefficient",
+    "solvation_free_energy",
+]
+"""
+_TYPE_TAG_MAPPING = {
+    "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "dhmix",
+    "Relative permittivity at zero frequency": "dielectric_constant",
+    "Mass density, kg/m3": "density",
+}
 
 
 def _unit_from_thermoml_string(full_string):
@@ -1778,21 +1795,8 @@ class ThermoMLProperty:
 
 
 class ThermoMLDataSet(PhysicalPropertyDataSet):
-    """A dataset of physical property measurements created from a ThermoML dataset.
-
-    Examples
-    --------
-
-    For example, we can use the DOI `10.1016/j.jct.2005.03.012` as a key
-    for retrieving the dataset from the ThermoML Archive:
-
-    >>> dataset = ThermoMLDataSet.from_doi('10.1016/j.jct.2005.03.012')
-
-    You can also specify multiple ThermoML Archive keys to create a dataset from multiple ThermoML files:
-
-    >>> thermoml_keys = ['10.1021/acs.jced.5b00365', '10.1021/acs.jced.5b00474']
-    >>> dataset = ThermoMLDataSet.from_doi(*thermoml_keys)
-
+    """
+    A dataset of physical property measurements created from a ThermoML dataset.
     """
 
     from dimsim.configs.targets.thermo import (
@@ -2036,10 +2040,28 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
                 raise Exception("No properties parsed")
 
             for measured_property in properties:
-                registered_plugin = ThermoMLDataSet._registered_properties[measured_property.type_string]
+                # registered_plugin = ThermoMLDataSet._registered_properties[measured_property.type_string]
 
-                mapped_property = registered_plugin.conversion_function(measured_property)
-                mapped_property.source = source
-                return_value.add_properties(mapped_property)
+                from dimsim.datasets.entry import DataEntry
+
+                entry = DataEntry(
+                    tag=_TYPE_TAG_MAPPING[measured_property.type_string],
+                    smiles=[component.smiles for component in measured_property.substance.components],
+                    x=[value[0].value for value in measured_property.substance.amounts.values()],
+                    temperature=measured_property.thermodynamic_state.temperature.m_as("kelvin"),
+                    pressure=measured_property.thermodynamic_state.pressure.m_as("atmosphere"),
+                    value=measured_property.value.m_as(measured_property.default_unit),
+                    std=measured_property.uncertainty,
+                    units=str(measured_property.default_unit),
+                )
+
+                # mapped_property = registered_plugin.conversion_function(measured_property)
+
+                entry["source"] = str(source)
+
+                # https://github.com/openforcefield/openff-evaluator/blob/c9b55687be3381768d75afdea01e9e18b5a35fac/openff/evaluator/datasets/datasets.py#L105-L110
+                entry["id"] = str(uuid.uuid4()).replace("-", "")
+
+                return_value.add_properties(entry)
 
         return return_value

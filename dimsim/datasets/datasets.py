@@ -16,10 +16,21 @@ import pandas
 from openff.units import unit
 
 from dimsim.attributes import UNDEFINED, Attribute, AttributeClass
+from dimsim.datasets.entry import DataEntry
 from dimsim.datasets.provenance import CalculationSource, MeasurementSource, Source
 from dimsim.substances import Component, ExactAmount, MoleFraction, Substance
 from dimsim.thermodynamics import ThermodynamicState
 from dimsim.utils.serialization import TypedBaseModel, TypedJSONEncoder
+
+
+def validate_entry(entry: DataEntry):
+    """
+    In Evaluator, this is basically a check that the dimensionality of the units of the
+    entry / `PhysicalProperty` is compatible with the default units of the the entry /
+    `PhysicalProperty`. Right now, dimsim's `DataEntry` does not define default units
+    https://github.com/openforcefield/openff-evaluator/blob/c9b55687be3381768d75afdea01e9e18b5a35fac/openff/evaluator/datasets/datasets.py#L276-L286
+    """
+    pass
 
 
 @unique
@@ -296,28 +307,31 @@ class PhysicalPropertyDataSet(TypedBaseModel):
         self._properties = []
 
     @property
-    def properties(self):
+    def properties(self) -> tuple[DataEntry]:
         """tuple of PhysicalProperty: A list of all of the properties
         within this set.
         """
         return tuple(self._properties)
 
     @property
-    def property_types(self):
+    def property_types(self) -> set[str]:
         """set of str: The types of property within this data set."""
-        return set([x.__class__.__name__ for x in self._properties])
+        return set([x["tag"] for x in self._properties])
 
+    # TODO: Evaluator tracks the whole `Substance` for each `PhysicalProperty`, but
+    #       dimsim only tracks SMILES + mol fractions. Do we need all of this?
     @property
     def substances(self):
         """set of Substance: The substances for which the properties in this data set
         were collected for."""
-        return set([x.substance for x in self._properties])
+        # return set([x.substance for x in self._properties])
+        return set()
 
     @property
-    def sources(self):
+    def sources(self) -> set[str]:
         """set of Source: The sources from which the properties in this data set were
         gathered."""
-        return set([x.source for x in self._properties])
+        return set([x["source"] for x in self._properties])
 
     def merge(self, data_set, validate=True):
         """Merge another data set into the current one.
@@ -334,7 +348,7 @@ class PhysicalPropertyDataSet(TypedBaseModel):
 
         self.add_properties(*data_set, validate=validate)
 
-    def add_properties(self, *physical_properties, validate=True):
+    def add_properties(self, *entries, validate=True):
         """Adds a physical property to the data set.
 
         Parameters
@@ -349,16 +363,16 @@ class PhysicalPropertyDataSet(TypedBaseModel):
         all_ids = set(x.id for x in self)
 
         # TODO: Do we need to check for adding the same property twice?
-        for physical_property in physical_properties:
+        for entry in entries:
             if validate:
-                physical_property.validate()
+                validate_entry(entry)
 
-            if physical_property.id in all_ids:
-                raise KeyError(f"A property with the unique id {physical_property.id} already exists.")
+            if entry["id"] in all_ids:
+                raise KeyError(f"A property with the unique id {entry['id']} already exists.")
 
-            all_ids.add(physical_property.id)
+            all_ids.add(entry["id"])
 
-        self._properties.extend(physical_properties)
+        self._properties.extend(entries)
 
     def properties_by_substance(self, substance):
         """A generator which may be used to loop over all of the properties

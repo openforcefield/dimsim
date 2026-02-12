@@ -2,8 +2,8 @@ import typing
 
 EntryType = typing.Literal[
     "density",
-    "hvap",  # enthalpy_of_vaporization
-    "hmix",  # enthalpy_of_mixing
+    "dhvap",  # enthalpy_of_vaporization
+    "dhmix",  # enthalpy_of_mixing
     "dielectric_constant",
     "osmotic_coefficient",
     "solvation_free_energy",
@@ -28,3 +28,11 @@ class DataEntry(typing.TypedDict):
     units: str
 
     source: str
+
+    # could define a default unit, like Evaluator does
+    #
+    # >>> from openff.evaluator.properties import EnthalpyOfMixing
+    # >>> EnthalpyOfMixing.default_unit()
+    # <Unit('kilojoule / mole')>
+
+    id: str

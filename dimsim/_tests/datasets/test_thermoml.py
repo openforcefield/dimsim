@@ -12,9 +12,8 @@ from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
         (
             "single_density.xml",
             {
-                "type": "density",
-                "x_a": 1.0,
-                "x_b": None,
+                "tag": "density",
+                "x": [1.0],
                 "temperature": 293.15,
                 "pressure": 1.0,
                 "value": 0.96488,
@@ -26,9 +25,8 @@ from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
         (
             "single_dhmix.xml",
             {
-                "type": "dhmix",
-                "x_a": 0.219,
-                "x_b": 0.781,
+                "tag": "dhmix",
+                "x": [0.219, 0.781],
                 "temperature": 298.15,
                 "pressure": 0.997,
                 "value": 0.03021,
@@ -40,9 +38,8 @@ from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
         (
             "single_dhvap.xml",
             {
-                "type": "dhvap",
-                "x_a": 1.0,
-                "x_b": None,
+                "tag": "dhvap",
+                "x": [1.0],
                 "temperature": 298.15,
                 "pressure": None,
                 "value": 10.51625,
@@ -54,9 +51,8 @@ from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
         (
             "single_dielectric.xml",
             {
-                "type": "dielectric_constant",
-                "x_a": 1.0,
-                "x_b": None,
+                "tag": "dielectric_constant",
+                "x": [1.0],
                 "temperature": 298.15,
                 "pressure": 0.997,
                 "value": 11.76,
@@ -72,18 +68,25 @@ def test_load_property_types(filename: str, expected: dict):
     dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
     assert len(dataset) == 1
 
-    entry = dataset[0]
-    assert entry["type"] == expected["type"]
-    assert entry["x_a"] == expected["x_a"]
+    entry = next(iter(dataset))
+    assert entry["tag"] == expected["tag"]
+    assert entry["x"] == expected["x"]
 
-    # assert mapped smiles
-    Molecule.from_mapped_smiles(entry["smiles_a"])
-    if expected["x_b"] is not None:
-        assert entry["x_b"] == expected["x_b"]
-        Molecule.from_mapped_smiles(entry["smiles_b"])
-    else:
-        assert entry["smiles_b"] is None
-        assert entry["x_b"] is None
+    assert len(entry["x"]) == len(entry["smiles"])
+    assert len(entry["x"]) == len(expected["x"])
+
+    for found_x, expected_x, found_smiles in zip(
+        entry["x"],
+        expected["x"],
+        entry["smiles"],
+    ):
+        assert found_x == expected_x
+
+        # just make sure it's valid SMILES
+        Molecule.from_smiles(found_smiles)
+
+        # Evaluator uses non-mapped SMILES, pseudocode here used mapped
+        # Molecule.from_mapped_smiles(found_smiles)
 
     assert entry["temperature"] == expected["temperature"]
     if expected["pressure"] is not None:
@@ -109,15 +112,15 @@ def test_load_single_osmotic():
     dataset = ThermoMLDataSet.from_xml(open(get_test_data_path("thermoml/single_osmotic.xml")).read())
     assert len(dataset) == 1
 
-    entry = dataset[0]
-    assert entry["type"] == "osmotic_coefficient"
+    entry = next(iter(dataset))
+    assert entry["tag"] == "osmotic_coefficient"
 
-    assert "." in entry["smiles_a"]
-    Molecule.from_mapped_smiles(entry["smiles_a"])
-    assert entry["x_a"] == 0.00086
+    assert "." in entry["smiles"]
+    Molecule.from_mapped_smiles(entry["smiles"])
+    assert entry["x"] == 0.00086
 
-    Molecule.from_mapped_smiles(entry["smiles_b"])
-    assert entry["x_b"] == 0.99914
+    Molecule.from_mapped_smiles(entry["smiles"])
+    assert entry["x"] == 0.99914
 
     assert numpy.isclose(entry["temperature"], 298.15, atol=1e-3)
     assert entry["pressure"] is None
