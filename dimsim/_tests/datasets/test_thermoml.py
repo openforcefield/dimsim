@@ -54,7 +54,7 @@ from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
             {
                 "tag": "dielectric_constant",
                 "x": [1.0],
-                "temperature": 298.15,
+                "temperature": 293.15,
                 "pressure": 0.997,
                 "value": 11.76,
                 "std": 0.02,

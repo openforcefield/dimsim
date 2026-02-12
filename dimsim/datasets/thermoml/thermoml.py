@@ -43,6 +43,7 @@ _TYPE_TAG_MAPPING = {
 _TAG_UNIT_MAPPING = {
     "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "kcal/mol",
     "Mass density, kg/m3": "gram / milliliter",
+    "Relative permittivity at zero frequency": "dimensionless",
 }
 
 
