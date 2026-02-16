@@ -16,6 +16,7 @@ import requests
 from openff.toolkit import Molecule, Quantity
 from openff.units import Unit, unit
 
+from dimsim.attributes.attributes import UndefinedAttribute
 from dimsim.datasets.datasets import PhysicalPropertyDataSet, PropertyPhase
 from dimsim.datasets.provenance import MeasurementSource
 from dimsim.substances import Component, MoleFraction, Substance
@@ -37,6 +38,7 @@ _TYPE_TAG_MAPPING = {
     "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "dhmix",
     "Relative permittivity at zero frequency": "dielectric_constant",
     "Mass density, kg/m3": "density",
+    "Molar enthalpy of vaporization or sublimation, kJ/mol": "dhvap",
 }
 
 # tests like kcal/mol, g/cc, etc.
@@ -44,6 +46,7 @@ _TAG_UNIT_MAPPING = {
     "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "kcal/mol",
     "Mass density, kg/m3": "gram / milliliter",
     "Relative permittivity at zero frequency": "dimensionless",
+    "Molar enthalpy of vaporization or sublimation, kJ/mol": "kcal/mol",
 }
 
 
@@ -1716,7 +1719,7 @@ class ThermoMLProperty:
         if len(registered_plugin.phases) == 0:
             raise Exception("Add back support for multiple phases")
 
-        if (registered_plugin.phases[0] & phase) != phase:
+        if (registered_plugin.phases & phase) != phase:
             logging.debug(
                 f"The {property_name_node.text} property is currently only supported "
                 f"when measured in the {registered_plugin.phases!s} phase, "
@@ -1806,6 +1809,7 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
         DensityEntry,
         DielectricConstantEntry,
         EnthalpyOfMixingEntry,
+        EnthalpyOfVaporizationEntry,
         ExcessMolarVolumeEntry,
     )
 
@@ -1814,7 +1818,7 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
         "Excess molar volume, m3/mol": ExcessMolarVolumeEntry,
         "Relative permittivity at zero frequency": DielectricConstantEntry,
         "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": EnthalpyOfMixingEntry,
-        "Molar enthalpy of vaporization or sublimation, kJ/mol": EnthalpyOfMixingEntry,
+        "Molar enthalpy of vaporization or sublimation, kJ/mol": EnthalpyOfVaporizationEntry,
     }
 
     def __init__(self):
@@ -2055,8 +2059,8 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
                     tag=_TYPE_TAG_MAPPING[measured_property.type_string],
                     smiles=[component.smiles for component in measured_property.substance.components],
                     x=[value[0].value for value in measured_property.substance.amounts.values()],
-                    temperature=measured_property.thermodynamic_state.temperature.m_as("kelvin"),
-                    pressure=measured_property.thermodynamic_state.pressure.m_as("atmosphere"),
+                    temperature=_standardize_temperature(measured_property.thermodynamic_state.temperature),
+                    pressure=_standardize_pressure(measured_property.thermodynamic_state.pressure),
                     value=measured_property.value.m_as(unit_to_use),
                     std=measured_property.uncertainty.m_as(unit_to_use),
                     units=unit_to_use,
@@ -2081,3 +2085,21 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
                 return_value.add_properties(entry)
 
         return return_value
+
+
+def _standardize_pressure(pressure) -> float | None:
+    if isinstance(pressure, unit.Quantity):
+        return pressure.to("atmosphere").magnitude
+    elif isinstance(pressure, UndefinedAttribute):
+        return None
+    else:
+        raise ValueError(f"Pressure {pressure} is not a valid type.")
+
+
+def _standardize_temperature(temperature) -> float | None:
+    if isinstance(temperature, unit.Quantity):
+        return temperature.to("kelvin").magnitude
+    elif isinstance(temperature, UndefinedAttribute):
+        return None
+    else:
+        raise ValueError(f"Temperature {temperature} is not a valid type.")

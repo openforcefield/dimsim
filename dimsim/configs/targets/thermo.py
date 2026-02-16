@@ -14,7 +14,7 @@ EntryTag = typing.Literal["density"]
 
 
 class DataEntry(typing.TypedDict):
-    tag: EntryTag = "density"
+    tag: EntryTag = "density"  # should not be this
 
     phases: list[PropertyPhase]
 
@@ -38,22 +38,28 @@ class DataEntry(typing.TypedDict):
 class DensityEntry(DataEntry):
     tag: EntryTag = "density"
 
-    phases: list[PropertyPhase] = [PropertyPhase.Liquid]
+    phases: list[PropertyPhase] = PropertyPhase.Liquid
 
 
 class ExcessMolarVolumeEntry(DataEntry):
     tag: EntryTag = "excess_molar_volume"
 
-    phases: list[PropertyPhase] = [PropertyPhase.Liquid]
+    phases: list[PropertyPhase] = PropertyPhase.Liquid
 
 
 class DielectricConstantEntry(DataEntry):
     tag: EntryTag = "dielectric_constant"
 
-    phases: list[PropertyPhase] = [PropertyPhase.Liquid]
+    phases: list[PropertyPhase] = PropertyPhase.Liquid
 
 
 class EnthalpyOfMixingEntry(DataEntry):
     tag: EntryTag = "enthalpy_of_mixing"
 
-    phases: list[PropertyPhase] = [PropertyPhase.Liquid]
+    phases: list[PropertyPhase] = PropertyPhase.Liquid
+
+
+class EnthalpyOfVaporizationEntry(DataEntry):
+    tag: EntryTag = "enthalpy_of_vaporization"
+
+    phases: list[PropertyPhase] = PropertyPhase.Liquid | PropertyPhase.Gas
