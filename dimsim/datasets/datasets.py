@@ -360,7 +360,7 @@ class PhysicalPropertyDataSet(TypedBaseModel):
             to the set.
         """
 
-        all_ids = set(x.id for x in self)
+        all_ids = set(x["id"] for x in self)
 
         # TODO: Do we need to check for adding the same property twice?
         for entry in entries:

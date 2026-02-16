@@ -39,6 +39,7 @@ _TYPE_TAG_MAPPING = {
     "Relative permittivity at zero frequency": "dielectric_constant",
     "Mass density, kg/m3": "density",
     "Molar enthalpy of vaporization or sublimation, kJ/mol": "dhvap",
+    "Vapor or sublimation pressure, kPa": "pvap",
 }
 
 # tests like kcal/mol, g/cc, etc.
@@ -47,6 +48,7 @@ _TAG_UNIT_MAPPING = {
     "Mass density, kg/m3": "gram / milliliter",
     "Relative permittivity at zero frequency": "dimensionless",
     "Molar enthalpy of vaporization or sublimation, kJ/mol": "kcal/mol",
+    "Vapor or sublimation pressure, kPa": "kPa",
 }
 
 
@@ -1811,6 +1813,7 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
         EnthalpyOfMixingEntry,
         EnthalpyOfVaporizationEntry,
         ExcessMolarVolumeEntry,
+        VaporPressureEntry,
     )
 
     _registered_properties = {
@@ -1819,6 +1822,7 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
         "Relative permittivity at zero frequency": DielectricConstantEntry,
         "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": EnthalpyOfMixingEntry,
         "Molar enthalpy of vaporization or sublimation, kJ/mol": EnthalpyOfVaporizationEntry,
+        "Vapor or sublimation pressure, kPa": VaporPressureEntry,
     }
 
     def __init__(self):
@@ -2044,7 +2048,11 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
             properties = _PureOrMixtureData.from_xml_node(node, namespace, compounds)
 
             if properties is None or len(properties) == 0:
-                raise Exception("No properties parsed")
+                raise Exception(
+                    f"No properties parsed from {node=}, {namespace=}, {compounds=}. "
+                    "This likely means the entry was skipped due to an unsupported phase / property "
+                    "type, or a failure to parse the compound information."
+                )
 
             for measured_property in properties:
                 # registered_plugin = ThermoMLDataSet._registered_properties[measured_property.type_string]

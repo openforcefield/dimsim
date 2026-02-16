@@ -63,3 +63,20 @@ class EnthalpyOfVaporizationEntry(DataEntry):
     tag: EntryTag = "enthalpy_of_vaporization"
 
     phases: list[PropertyPhase] = PropertyPhase.Liquid | PropertyPhase.Gas
+
+
+"""
+@thermoml_property(
+    "Vapor or sublimation pressure, kPa",
+    supported_phases=PropertyPhase.Liquid | PropertyPhase.Gas,
+)
+class VaporPressure(PhysicalProperty):
+    def default_unit(cls):
+        return unit.kilopascal
+"""
+
+
+class VaporPressureEntry(DataEntry):
+    tag: EntryTag = "pvap"
+
+    phases: list[PropertyPhase] = PropertyPhase.Liquid | PropertyPhase.Gas
