@@ -7,8 +7,9 @@ on:
     branches:
       - main
   schedule:
-    # weekly tests, Sundays at midnight
-    - cron: "0 0 * * 0"
+    # nightly tests, between US and AUS working hours
+    - cron: "0 0 * * *"
+  workflow_dispatch:
 
 concurrency:
   # Specific group naming so CI is only cancelled
