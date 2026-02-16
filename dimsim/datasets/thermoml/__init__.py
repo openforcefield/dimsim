@@ -5,7 +5,7 @@ from dimsim.datasets.thermoml.plugins import (
 from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
 
 __all__ = (
-    ThermoMLDataSet,
-    register_thermoml_property,
-    thermoml_property,
+    "ThermoMLDataSet",
+    "register_thermoml_property",
+    "thermoml_property",
 )

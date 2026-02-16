@@ -6,8 +6,8 @@ from dimsim.attributes.attributes import (
 )
 
 __all__ = [
-    UNDEFINED,
-    Attribute,
-    AttributeClass,
-    PlaceholderValue,
+    "UNDEFINED",
+    "Attribute",
+    "AttributeClass",
+    "PlaceholderValue",
 ]

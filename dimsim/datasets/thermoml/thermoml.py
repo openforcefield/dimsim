@@ -1472,13 +1472,11 @@ class _PureOrMixtureData:
         compound_indices = _PureOrMixtureData.extract_compound_indices(node, namespace, compounds)
 
         if compound_indices is None:
-            raise Exception("Failed to parse compound indices")
             # Most likely this entry depended on a non-parsable compound
             # and will be skipped entirely
             return None
 
         if len(compound_indices) == 0:
-            raise Exception("No compounds?")
             logging.debug("A PureOrMixtureData entry with no compounds was ignored.")
             return None
 
