@@ -27,7 +27,7 @@ dependencies:
   - smee
   - descent
 
-  # Development and testing
+  # Testing
   - pytest
   - pytest-cov
   - pytest-xdist
