@@ -20,7 +20,6 @@ from dimsim.datasets.entry import DataEntry
 from dimsim.datasets.provenance import CalculationSource, MeasurementSource, Source
 from dimsim.substances import Component, ExactAmount, MoleFraction, Substance
 from dimsim.thermodynamics import ThermodynamicState
-from dimsim.utils.serialization import TypedBaseModel, TypedJSONEncoder
 
 
 def validate_entry(entry: DataEntry):
@@ -235,7 +234,7 @@ class PhysicalProperty(AttributeClass, abc.ABC):
             "source": self.source,
             "metadata": self.metadata,
         }
-        serialized = json.dumps(obj, sort_keys=True, cls=TypedJSONEncoder)
+        serialized = json.dumps(obj, sort_keys=True, cls=json.JSONEncoder)
         return int(hashlib.sha256(serialized.encode("utf-8")).hexdigest(), 16)
 
     def get_property_hash(self) -> int:
@@ -291,7 +290,7 @@ class PhysicalProperty(AttributeClass, abc.ABC):
             assert self.uncertainty.units.dimensionality == self.default_unit().dimensionality
 
 
-class PhysicalPropertyDataSet(TypedBaseModel):
+class PhysicalPropertyDataSet:
     """
     An object for storing and curating data sets of both physical property
     measurements and estimated. This class defines a number of convenience
