@@ -85,6 +85,10 @@ jobs:
       run: |
         python -m pytest -v --cov=dimsim --cov-config=pyproject.toml --cov-append --cov-report=xml --color=yes dimsim/_tests
 
+    - name: Run type-checker
+      run: |
+        python -m mypy dimsim/
+
     - name: codecov
       uses: codecov/codecov-action@v5
       with:

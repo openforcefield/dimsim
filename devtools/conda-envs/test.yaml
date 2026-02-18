@@ -43,3 +43,6 @@ dependencies:
   - dask-jobqueue
   - dask-kubernetes
   - distributed
+
+  # Typing
+  - mypy
