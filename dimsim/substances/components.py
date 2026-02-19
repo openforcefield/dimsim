@@ -4,10 +4,10 @@ An API for defining and creating substances.
 
 from enum import Enum
 
-from dimsim.attributes import Attribute, AttributeClass
+from pydantic import BaseModel, Field
 
 
-class Component(AttributeClass):
+class Component(BaseModel):
     """Defines a single component in a chemical system, as well
     as it's role within the system (if any).
     """
@@ -27,17 +27,9 @@ class Component(AttributeClass):
         Ligand = "lig"
         Receptor = "rec"
 
-    smiles = Attribute(
-        docstring="The SMILES pattern which describes this component.",
-        type_hint=str,
-        read_only=True,
-    )
-    role = Attribute(
-        docstring="The role of this component in the system.",
-        type_hint=Role,
-        default_value=Role.Solvent,
-        read_only=True,
-    )
+    # "read-only=True", can we do that here?
+    smiles: str
+    role: Role = Field(default_factory=lambda: Component.Role.Solvent)
 
     @property
     def identifier(self):
@@ -63,8 +55,8 @@ class Component(AttributeClass):
         if smiles is not None:
             smiles = self._standardize_smiles(smiles)
 
-        self._set_value("smiles", smiles)
-        self._set_value("role", role)
+        self.smiles = smiles
+        self.role = role
 
     @staticmethod
     def _standardize_smiles(smiles):

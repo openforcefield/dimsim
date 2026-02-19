@@ -6,20 +6,16 @@ import abc
 import math
 
 import numpy
+from pydantic import BaseModel
 
-from dimsim.attributes import Attribute, AttributeClass
 
-
-class Amount(AttributeClass, abc.ABC):
+class Amount(BaseModel, abc.ABC):
     """A representation of the amount of a given component
     in a `Substance`.
     """
 
-    value = Attribute(
-        docstring="The value of this amount.",
-        type_hint=float | int,
-        read_only=True,
-    )
+    # "read_only"
+    value: float
 
     def __init__(self, value=None):
         """
@@ -28,7 +24,7 @@ class Amount(AttributeClass, abc.ABC):
         value: float or int
             The value of this amount.
         """
-        self._set_value("value", value)
+        self.value = value
 
     @property
     def identifier(self):
@@ -77,7 +73,7 @@ class Amount(AttributeClass, abc.ABC):
 class MoleFraction(Amount):
     """The mole fraction of a `Component` in a `Substance`."""
 
-    value = Attribute(docstring="The value of this amount.", type_hint=float)
+    value: float
 
     @property
     def identifier(self):
@@ -132,7 +128,7 @@ class ExactAmount(Amount):
     do not contribute to the total mole fraction of a `Substance`.
     """
 
-    value = Attribute(docstring="The value of this amount.", type_hint=int)
+    value: int
 
     @property
     def identifier(self):

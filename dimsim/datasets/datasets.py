@@ -13,9 +13,9 @@ from enum import IntFlag, unique
 
 import numpy
 import pandas
-from openff.units import unit
+from openff.units import Quantity, Unit
+from pydantic import Field
 
-from dimsim.attributes import Attribute, AttributeClass
 from dimsim.datasets.entry import DataEntry
 from dimsim.datasets.provenance import CalculationSource, MeasurementSource, Source
 from dimsim.substances import Component, ExactAmount, MoleFraction, Substance
@@ -94,7 +94,7 @@ class PropertyPhase(IntFlag):
         return f"<PropertyPhase {self!s}>"
 
 
-class PhysicalProperty(AttributeClass, abc.ABC):
+class PhysicalProperty(abc.ABC):
     """Represents the value of any physical property and it's uncertainty
     if provided.
 
@@ -107,60 +107,18 @@ class PhysicalProperty(AttributeClass, abc.ABC):
     @classmethod
     @abc.abstractmethod
     def default_unit(cls):
-        """dimsim.unit.Unit: The default unit (e.g. g / mol) associated with this
-        class of property."""
         raise NotImplementedError()
 
-    id = Attribute(
-        docstring="A unique identifier string assigned to this property",
-        type_hint=str,
-        default_value=lambda: str(uuid.uuid4()).replace("-", ""),
-    )
-
-    substance = Attribute(
-        docstring="The substance that this property was measured estimated for.",
-        type_hint=Substance,
-    )
-    phase = Attribute(
-        docstring="The phase / phases that this property was measured in.",
-        type_hint=PropertyPhase,
-    )
-    temperature = Attribute(
-        docstring="The temperature that this property was measured / estimated at.",
-        type_hint=float,
-    )
-    pressure = Attribute(
-        docstring="The pressure that this property was measured / estimated at.",
-        type_hint=float,
-    )
-
-    value = Attribute(
-        docstring="The measured / estimated value of this property.",
-        type_hint=unit.Quantity,
-    )
-    uncertainty = Attribute(
-        docstring="The uncertainty in measured / estimated value of this property.",
-        type_hint=unit.Quantity,
-        optional=True,
-    )
-
-    source = Attribute(
-        docstring="The original source of this physical property.",
-        type_hint=Source,
-        optional=True,
-    )
-    metadata = Attribute(
-        docstring="Additional metadata associated with this property. All property "
-        "metadata will be made accessible to estimation workflows.",
-        type_hint=dict,
-        optional=True,
-    )
-
-    gradients = Attribute(
-        docstring="The gradients of this property with respect to different force field parameters.",
-        type_hint=list,
-        optional=True,
-    )
+    id = Field(default_factory=lambda: str(uuid.uuid4()).replace("-", ""))
+    substance: Substance
+    phase: str
+    temperature: float
+    pressure: float
+    value: Quantity
+    uncertainty: Quantity | None
+    source: Source | None
+    metadata: dict
+    gradients: list
 
     def __init__(
         self,
@@ -466,11 +424,11 @@ class PhysicalPropertyDataSet:
 
         for physical_property in self:
             # Extract the measured state.
-            temperature = physical_property.temperature.to(unit.kelvin).magnitude
+            temperature = physical_property.temperature.to("kelvin").magnitude
             pressure = None
 
             if physical_property.pressure is not None:
-                pressure = physical_property.pressure.to(unit.kilopascal).magnitude
+                pressure = physical_property.pressure.to("kilopascal").magnitude
 
             phase = str(physical_property.phase)
 
@@ -609,7 +567,7 @@ class PhysicalPropertyDataSet:
             assert hasattr(properties, property_type_string)
             property_type = getattr(properties, property_type_string)
 
-            property_unit = unit.Unit(property_unit_string)
+            property_unit = Unit(property_unit_string)
             assert property_unit is not None
 
             assert property_unit.dimensionality == property_type.default_unit().dimensionality
@@ -632,8 +590,8 @@ class PhysicalPropertyDataSet:
             data_row = data_row.dropna()
 
             # Extract the state at which the measurement was made.
-            temperature = data_row["Temperature (K)"] * unit.kelvin
-            pressure = data_row["Pressure (kPa)"] * unit.kilopascal
+            temperature = Quantity(data_row["Temperature (K)"], "kelvin")
+            pressure = Quantity(data_row["Pressure (kPa)"], "kilopascal")
             property_phase = PropertyPhase.from_string(data_row["Phase"])
 
             # Extract the substance the measurement was made for.

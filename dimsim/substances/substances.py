@@ -7,12 +7,12 @@ from collections import defaultdict
 
 import numpy
 from openff.toolkit import Quantity
+from pydantic import BaseModel, Field
 
-from dimsim.attributes import Attribute, AttributeClass
 from dimsim.substances import Amount, Component, ExactAmount, MoleFraction
 
 
-class Substance(AttributeClass):
+class Substance(BaseModel):
     """Defines the components, their amounts, and their roles in a system.
 
     Examples
@@ -44,18 +44,8 @@ class Substance(AttributeClass):
     be 'grown' into solution during solvation free energy calculations.
     """
 
-    components = Attribute(
-        docstring="A list of all of the components in this substance.",
-        type_hint=tuple,
-        default_value=tuple(),
-        read_only=True,
-    )
-    amounts = Attribute(
-        docstring="the amounts of the component in this substance",
-        type_hint=dict,
-        default_value=dict(),
-        read_only=True,
-    )
+    components: tuple[Component] = Field(default_factory=tuple)
+    amounts: dict = Field(default_factory=dict)
 
     @property
     def identifier(self):
@@ -159,8 +149,7 @@ class Substance(AttributeClass):
                 raise ValueError(f"The total mole fraction of this substance {total_mole_fraction} exceeds 1.0")
 
         if component.identifier not in self.amounts:
-            components = (*self.components, component)
-            self._set_value("components", components)
+            self.components.append(component)
 
         existing_amount_of_type = None
 
@@ -183,10 +172,7 @@ class Substance(AttributeClass):
 
         remaining_amounts.append(amount)
 
-        amounts = dict(self.amounts)
-        amounts[component.identifier] = tuple(remaining_amounts)
-
-        self._set_value("amounts", amounts)
+        self.amounts[component.identifier] = tuple(remaining_amounts)
 
     def get_amounts(self, component):
         """Returns the amounts of the component in this substance.
