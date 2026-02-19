@@ -15,11 +15,10 @@ import numpy
 import pandas
 from openff.units import unit
 
-from dimsim.attributes import UNDEFINED, Attribute, AttributeClass
+from dimsim.attributes import Attribute, AttributeClass
 from dimsim.datasets.entry import DataEntry
 from dimsim.datasets.provenance import CalculationSource, MeasurementSource, Source
 from dimsim.substances import Component, ExactAmount, MoleFraction, Substance
-from dimsim.thermodynamics import ThermodynamicState
 
 
 def validate_entry(entry: DataEntry):
@@ -126,9 +125,13 @@ class PhysicalProperty(AttributeClass, abc.ABC):
         docstring="The phase / phases that this property was measured in.",
         type_hint=PropertyPhase,
     )
-    thermodynamic_state = Attribute(
-        docstring="The thermodynamic state that this propertywas measured / estimated at.",
-        type_hint=ThermodynamicState,
+    temperature = Attribute(
+        docstring="The temperature that this property was measured / estimated at.",
+        type_hint=float,
+    )
+    pressure = Attribute(
+        docstring="The pressure that this property was measured / estimated at.",
+        type_hint=float,
     )
 
     value = Attribute(
@@ -161,32 +164,21 @@ class PhysicalProperty(AttributeClass, abc.ABC):
 
     def __init__(
         self,
-        thermodynamic_state=None,
+        temperature=None,
+        pressure=None,
         phase=PropertyPhase.Undefined,
         substance=None,
         value=None,
         uncertainty=None,
         source=None,
     ):
-        """Constructs a new PhysicalProperty object.
-
-        Parameters
-        ----------
-        thermodynamic_state : ThermodynamicState
-            The thermodynamic state that the property was measured in.
-        phase : PropertyPhase
-            The phase that the property was measured in.
-        substance : Substance
-            The composition of the substance that was measured.
-        value: dimsim.unit.Quantity
-            The value of the measured physical property.
-        uncertainty: dimsim.unit.Quantity
-            The uncertainty in the measured value.
-        source: Source
-            The source of this property.
         """
-        if thermodynamic_state is not None:
-            self.thermodynamic_state = thermodynamic_state
+        Constructs a new PhysicalProperty object.
+        """
+        if temperature is not None:
+            self.temperature = temperature
+        if pressure is not None:
+            self.pressure = pressure
         if phase is not None:
             self.phase = phase
 
@@ -228,7 +220,8 @@ class PhysicalProperty(AttributeClass, abc.ABC):
             "type": clsname,
             "substance": self.substance,
             "phase": self.phase,
-            "thermodynamic_state": self.thermodynamic_state,
+            "temperature": self.temperature,
+            "pressure": self.pressure,
             "value": self.value,
             "uncertainty": self.uncertainty,
             "source": self.source,
@@ -244,7 +237,8 @@ class PhysicalProperty(AttributeClass, abc.ABC):
 
         - the property type
         - the value and uncertainty of the property
-        - thermodynamic state
+        - temperature
+        - pressure
         - phase
         - substance
         - source
@@ -286,7 +280,7 @@ class PhysicalProperty(AttributeClass, abc.ABC):
 
         assert self.value.units.dimensionality == self.default_unit().dimensionality
 
-        if self.uncertainty != UNDEFINED:
+        if self.uncertainty is not None:
             assert self.uncertainty.units.dimensionality == self.default_unit().dimensionality
 
 
@@ -472,11 +466,11 @@ class PhysicalPropertyDataSet:
 
         for physical_property in self:
             # Extract the measured state.
-            temperature = physical_property.thermodynamic_state.temperature.to(unit.kelvin).magnitude
+            temperature = physical_property.temperature.to(unit.kelvin).magnitude
             pressure = None
 
-            if physical_property.thermodynamic_state.pressure != UNDEFINED:
-                pressure = physical_property.thermodynamic_state.pressure.to(unit.kilopascal).magnitude
+            if physical_property.pressure is not None:
+                pressure = physical_property.pressure.to(unit.kilopascal).magnitude
 
             phase = str(physical_property.phase)
 
@@ -500,12 +494,10 @@ class PhysicalPropertyDataSet:
             default_unit = physical_property.default_unit()
             default_units[physical_property.__class__.__name__] = default_unit
 
-            value = (
-                None if physical_property.value == UNDEFINED else physical_property.value.to(default_unit).magnitude
-            )
+            value = None if physical_property.value is None else physical_property.value.to(default_unit).magnitude
             uncertainty = (
                 None
-                if physical_property.uncertainty == UNDEFINED
+                if physical_property.uncertainty is None
                 else physical_property.uncertainty.to(default_unit).magnitude
             )
 
@@ -640,10 +632,8 @@ class PhysicalPropertyDataSet:
             data_row = data_row.dropna()
 
             # Extract the state at which the measurement was made.
-            thermodynamic_state = ThermodynamicState(
-                temperature=data_row["Temperature (K)"] * unit.kelvin,
-                pressure=data_row["Pressure (kPa)"] * unit.kilopascal,
-            )
+            temperature = data_row["Temperature (K)"] * unit.kelvin
+            pressure = data_row["Pressure (kPa)"] * unit.kilopascal
             property_phase = PropertyPhase.from_string(data_row["Phase"])
 
             # Extract the substance the measurement was made for.
@@ -691,7 +681,8 @@ class PhysicalPropertyDataSet:
                 )
 
                 physical_property = property_type(
-                    thermodynamic_state=thermodynamic_state,
+                    temperature=temperature,
+                    pressure=pressure,
                     phase=property_phase,
                     value=data_row[property_header] * property_unit,
                     uncertainty=(

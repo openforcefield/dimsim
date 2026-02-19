@@ -7,7 +7,7 @@ import math
 
 import numpy
 
-from dimsim.attributes import UNDEFINED, Attribute, AttributeClass
+from dimsim.attributes import Attribute, AttributeClass
 
 
 class Amount(AttributeClass, abc.ABC):
@@ -21,7 +21,7 @@ class Amount(AttributeClass, abc.ABC):
         read_only=True,
     )
 
-    def __init__(self, value=UNDEFINED):
+    def __init__(self, value=None):
         """
         Parameters
         ----------

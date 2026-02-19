@@ -4,7 +4,7 @@ An API for defining and creating substances.
 
 from enum import Enum
 
-from dimsim.attributes import UNDEFINED, Attribute, AttributeClass
+from dimsim.attributes import Attribute, AttributeClass
 
 
 class Component(AttributeClass):
@@ -44,7 +44,7 @@ class Component(AttributeClass):
         """str: A unique identifier for this component."""
         return f"{self.smiles}{{{self.role.value}}}"
 
-    def __init__(self, smiles=UNDEFINED, role=Role.Solvent):
+    def __init__(self, smiles=None, role=Role.Solvent):
         """Constructs a new Component object with either a label or
         a smiles string, but not both.
 
@@ -60,7 +60,7 @@ class Component(AttributeClass):
         role: Component.Role
             The role of this component in the system.
         """
-        if smiles != UNDEFINED:
+        if smiles is not None:
             smiles = self._standardize_smiles(smiles)
 
         self._set_value("smiles", smiles)

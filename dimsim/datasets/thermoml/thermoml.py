@@ -16,11 +16,9 @@ import requests
 from openff.toolkit import Molecule, Quantity
 from openff.units import Unit, unit
 
-from dimsim.attributes.attributes import UndefinedAttribute
 from dimsim.datasets.datasets import PhysicalPropertyDataSet, PropertyPhase
 from dimsim.datasets.provenance import MeasurementSource
 from dimsim.substances import Component, MoleFraction, Substance
-from dimsim.thermodynamics import ThermodynamicState
 
 logger = logging.getLogger(__name__)
 
@@ -1408,8 +1406,6 @@ class _PureOrMixtureData:
             temperature = temperature_constraint.value
             pressure = None if pressure_constraint is None else pressure_constraint.value
 
-            thermodynamic_state = ThermodynamicState(temperature=temperature, pressure=pressure)
-
             # Now extract the actual values of the measured properties, and their
             # uncertainties
             property_nodes = value_node.findall("ThermoML:PropertyValue", namespace)
@@ -1427,7 +1423,8 @@ class _PureOrMixtureData:
 
                 measured_property = copy.deepcopy(property_definition)
 
-                measured_property.thermodynamic_state = thermodynamic_state
+                measured_property.temperature = temperature
+                measured_property.pressure = pressure
 
                 property_value_node = property_node.find(".//ThermoML:nPropValue", namespace)
 
@@ -1580,14 +1577,16 @@ class ThermoMLProperty:
     def __repr__(self):
         return (
             f"<ThermoMLProperty {self.type_string}, substance={self.substance}, "
-            "thermodynamic_state={self.thermodynamic_state}, "
+            f"temperature={self.temperature}, pressure={self.pressure}, "
             f"value={self.value}, uncertainty={self.uncertainty} >"
         )
 
     def __init__(self, type_string):
         self.type_string = type_string
 
-        self.thermodynamic_state = None
+        self.temperature = None
+        self.pressure = None
+
         self.phase = PropertyPhase.Undefined
 
         self.substance = None
@@ -2065,8 +2064,8 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
                     tag=_TYPE_TAG_MAPPING[measured_property.type_string],
                     smiles=[component.smiles for component in measured_property.substance.components],
                     x=[value[0].value for value in measured_property.substance.amounts.values()],
-                    temperature=_standardize_temperature(measured_property.thermodynamic_state.temperature),
-                    pressure=_standardize_pressure(measured_property.thermodynamic_state.pressure),
+                    temperature=_standardize_temperature(measured_property.temperature),
+                    pressure=_standardize_pressure(measured_property.pressure),
                     value=measured_property.value.m_as(unit_to_use),
                     std=measured_property.uncertainty.m_as(unit_to_use),
                     units=unit_to_use,
@@ -2094,18 +2093,19 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
 
 
 def _standardize_pressure(pressure) -> float | None:
+    if pressure is None:
+        return None
     if isinstance(pressure, unit.Quantity):
         return pressure.to("atmosphere").magnitude
-    elif isinstance(pressure, UndefinedAttribute):
-        return None
     else:
         raise ValueError(f"Pressure {pressure} is not a valid type.")
 
 
 def _standardize_temperature(temperature) -> float | None:
+    if temperature is None:
+        # can this ever be hit
+        return None
     if isinstance(temperature, unit.Quantity):
         return temperature.to("kelvin").magnitude
-    elif isinstance(temperature, UndefinedAttribute):
-        return None
     else:
         raise ValueError(f"Temperature {temperature} is not a valid type.")

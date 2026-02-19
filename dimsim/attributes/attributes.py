@@ -12,23 +12,6 @@ from openff.toolkit import Quantity
 from dimsim.attributes.typing import is_instance_of_type, is_supported_type
 
 
-class UndefinedAttribute:
-    """A custom type used to differentiate between ``None`` values,
-    and an undeclared optional value."""
-
-    def __eq__(self, other):
-        return type(other) is UndefinedAttribute
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __getstate__(self):
-        return {}
-
-    def __setstate__(self, state):
-        return
-
-
 class PlaceholderValue:
     """A class to act as a place holder for an attribute whose value is
     not known a priori, but will be set later by some specialised code.
@@ -41,9 +24,6 @@ class PlaceholderValue:
 
     def __setstate__(self, state):
         pass
-
-
-UNDEFINED = UndefinedAttribute()
 
 
 class AttributeClass:
@@ -79,7 +59,7 @@ class AttributeClass:
             if attribute_type is not None and type(attribute) is not attribute_type:
                 continue
 
-            if not attribute.optional and attribute_value == UNDEFINED:
+            if not attribute.optional and attribute_value is None:
                 raise ValueError(f"The required {name} attribute has not been set.")
 
             iterable_values = []
@@ -170,7 +150,7 @@ class AttributeClass:
             attribute = getattr(self.__class__, attribute_name)
             attribute_value = getattr(self, attribute_name)
 
-            if attribute.optional and attribute_value == UNDEFINED:
+            if attribute.optional and attribute_value is None:
                 continue
 
             attributes[attribute_name] = attribute_value
@@ -187,7 +167,7 @@ class AttributeClass:
                 raise IndexError(f"The {name} attribute was not present in the state dictionary.")
 
             elif attribute.optional and name not in state:
-                state[name] = UNDEFINED
+                state[name] = None
 
             self._set_value(name, state[name])
 
@@ -211,7 +191,7 @@ class Attribute:
         self,
         docstring,
         type_hint,
-        default_value=UNDEFINED,
+        default_value=None,
         optional=False,
         read_only=False,
     ):
@@ -231,7 +211,7 @@ class Attribute:
             The default value for this attribute.
         optional: bool
             Defines whether this is an optional input of a class. If true,
-            the `default_value` should be set to `UNDEFINED`.
+            the `default_value` should be set to `None`.
         read_only: bool
             Defines whether this attribute is read-only.
         """
@@ -254,7 +234,7 @@ class Attribute:
         ):
             docstring = f"{docstring} The default value of this attribute is ``{default_value!s}``."
 
-        elif default_value == UNDEFINED:
+        elif default_value is None:
             optional_string = "" if optional else " and must be set by the user."
 
             docstring = f"{docstring} The default value of this attribute is not set{optional_string}."
@@ -292,7 +272,7 @@ class Attribute:
         if (
             not is_instance_of_type(value, self.type_hint)
             and not isinstance(value, PlaceholderValue)
-            and not value == UNDEFINED
+            and value is not None
         ):
             raise ValueError(
                 f"The {self._private_attribute_name[1:]} attribute can only accept values of type {self.type_hint}"
