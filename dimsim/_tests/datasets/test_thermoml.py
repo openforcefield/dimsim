@@ -13,7 +13,6 @@ from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
         (
             "single_density.xml",
             {
-                "tag": "density",
                 "x": [1.0],
                 "temperature": 293.15,
                 "pressure": 1.0,
@@ -26,7 +25,6 @@ from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
         (
             "single_dhmix.xml",
             {
-                "tag": "dhmix",
                 "x": [0.219, 0.781],
                 "temperature": 298.15,
                 "pressure": 0.997,
@@ -39,7 +37,6 @@ from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
         (
             "single_dhvap.xml",
             {
-                "tag": "dhvap",
                 "x": [1.0],
                 "temperature": 298.15,
                 "pressure": None,
@@ -52,7 +49,6 @@ from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
         (
             "single_dielectric.xml",
             {
-                "tag": "dielectric_constant",
                 "x": [1.0],
                 "temperature": 293.15,
                 "pressure": 0.997,
@@ -70,7 +66,6 @@ def test_load_property_types(filename: str, expected: dict):
     assert len(dataset) == 1
 
     entry = next(iter(dataset))
-    assert entry["tag"] == expected["tag"]
     assert entry["x"] == expected["x"]
 
     assert len(entry["x"]) == len(entry["smiles"])
@@ -115,7 +110,6 @@ def test_load_single_osmotic():
     assert len(dataset) == 1
 
     entry = next(iter(dataset))
-    assert entry["tag"] == "osmotic_coefficient"
 
     assert "." in entry["smiles"]
     Molecule.from_mapped_smiles(entry["smiles"])

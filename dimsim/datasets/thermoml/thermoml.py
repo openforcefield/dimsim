@@ -16,19 +16,17 @@ import requests
 from openff.toolkit import Molecule, Quantity
 from openff.units import Unit, unit
 
-from dimsim.datasets.datasets import PhysicalPropertyDataSet, PropertyPhase
-from dimsim.datasets.provenance import MeasurementSource
-from dimsim.substances import Component, MoleFraction, Substance
-
 from dimsim.configs.targets.thermo import (
-    DataEntry,
     DensityEntry,
-    ExcessMolarVolumeEntry,
     DielectricConstantEntry,
     EnthalpyOfMixingEntry,
     EnthalpyOfVaporizationEntry,
+    ExcessMolarVolumeEntry,
     VaporPressureEntry,
 )
+from dimsim.datasets.datasets import PhysicalPropertyDataSet, PropertyPhase
+from dimsim.datasets.provenance import MeasurementSource
+from dimsim.substances import Component, MoleFraction, Substance
 
 _CLASS_MAPPING = {
     "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": EnthalpyOfMixingEntry,
@@ -41,7 +39,7 @@ _CLASS_MAPPING = {
 }
 
 # tests like kcal/mol, g/cc, etc.
-_TAG_UNIT_MAPPING = {
+_UNIT_MAPPING = {
     "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "kcal/mol",
     "Mass density, kg/m3": "gram / milliliter",
     "Relative permittivity at zero frequency": "dimensionless",
@@ -1809,7 +1807,6 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
         DielectricConstantEntry,
         EnthalpyOfMixingEntry,
         EnthalpyOfVaporizationEntry,
-        ExcessMolarVolumeEntry,
         VaporPressureEntry,
     )
 
@@ -1921,7 +1918,7 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
             return_value = cls.from_xml(request.text, source)
 
         except (HTTPError, requests.exceptions.HTTPError):
-            logger.warning(f"No ThermoML file could not be found at {url}")
+            logging.warning(f"No ThermoML file could not be found at {url}")
 
         return return_value
 
@@ -1979,7 +1976,7 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
                 return_value = ThermoMLDataSet.from_xml(file.read(), source)
 
         except FileNotFoundError:
-            logger.warning(f"No ThermoML file could not be found at {path}")
+            logging.warning(f"No ThermoML file could not be found at {path}")
 
         return return_value
 
@@ -2002,11 +1999,11 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
         root_node = ElementTree.fromstring(xml)
 
         if root_node is None:
-            logger.warning("The ThermoML XML document could not be parsed.")
+            logging.warning("The ThermoML XML document could not be parsed.")
             return None
 
         if root_node.tag.find("DataReport") < 0:
-            logger.warning("The ThermoML XML document does not contain the expected root node.")
+            logging.warning("The ThermoML XML document does not contain the expected root node.")
             return None
 
         # Extract the namespace that will prefix all type names
@@ -2029,7 +2026,7 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
             try:
                 compound = _Compound.from_xml_node(node, namespace)
             except Exception as e:
-                logger.warning(f"An error occurred while parsing a compound: {e}")
+                logging.warning(f"An error occurred while parsing a compound: {e}")
                 continue
 
             if compound is None:
@@ -2054,9 +2051,7 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
             for measured_property in properties:
                 # registered_plugin = ThermoMLDataSet._registered_properties[measured_property.type_string]
 
-                from dimsim.datasets.entry import DataEntry
-
-                unit_to_use = _TAG_UNIT_MAPPING[measured_property.type_string]
+                unit_to_use = _UNIT_MAPPING[measured_property.type_string]
 
                 assert Unit(measured_property.default_unit).is_compatible_with(unit_to_use)
 

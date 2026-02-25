@@ -24,7 +24,7 @@ class Amount(BaseModel, abc.ABC):
         value: float or int
             The value of this amount.
         """
-        self.value = value
+        super().__init__(value=value)
 
     @property
     def identifier(self):
@@ -74,6 +74,9 @@ class MoleFraction(Amount):
     """The mole fraction of a `Component` in a `Substance`."""
 
     value: float
+
+    def __init__(self, value=None):
+        super().__init__(value)
 
     @property
     def identifier(self):

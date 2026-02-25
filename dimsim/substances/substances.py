@@ -131,8 +131,8 @@ class Substance(BaseModel):
         assert isinstance(component, Component)
         assert isinstance(amount, Amount)
 
-        component.validate()
-        amount.validate()
+        # component.validate()
+        # amount.validate()
 
         if isinstance(amount, MoleFraction):
             total_mole_fraction = amount.value
@@ -149,7 +149,7 @@ class Substance(BaseModel):
                 raise ValueError(f"The total mole fraction of this substance {total_mole_fraction} exceeds 1.0")
 
         if component.identifier not in self.amounts:
-            self.components.append(component)
+            self.components = tuple([*self.components, component])
 
         existing_amount_of_type = None
 

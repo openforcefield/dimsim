@@ -55,8 +55,7 @@ class Component(BaseModel):
         if smiles is not None:
             smiles = self._standardize_smiles(smiles)
 
-        self.smiles = smiles
-        self.role = role
+        super().__init__(smiles=smiles, role=role)
 
     @staticmethod
     def _standardize_smiles(smiles):

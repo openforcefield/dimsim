@@ -19,7 +19,6 @@ from pydantic import Field
 from dimsim.datasets.entry import DataEntry
 from dimsim.datasets.provenance import CalculationSource, MeasurementSource, Source
 from dimsim.substances import Component, ExactAmount, MoleFraction, Substance
-from dimsim.thermodynamics import ThermodynamicState
 from dimsim.utils.serialization import TypedBaseModel, TypedJSONEncoder
 
 

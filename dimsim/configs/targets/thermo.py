@@ -14,8 +14,6 @@ EntryTag = typing.Literal["density"]
 
 
 class DataEntry(typing.TypedDict):
-    tag: EntryTag = "density"  # should not be this
-
     phases: list[PropertyPhase]
 
     smiles: list[str]
@@ -36,47 +34,24 @@ class DataEntry(typing.TypedDict):
 
 
 class DensityEntry(DataEntry):
-    tag: EntryTag = "density"
-
     phases: list[PropertyPhase] = PropertyPhase.Liquid
 
 
 class ExcessMolarVolumeEntry(DataEntry):
-    tag: EntryTag = "excess_molar_volume"
-
     phases: list[PropertyPhase] = PropertyPhase.Liquid
 
 
 class DielectricConstantEntry(DataEntry):
-    tag: EntryTag = "dielectric_constant"
-
     phases: list[PropertyPhase] = PropertyPhase.Liquid
 
 
 class EnthalpyOfMixingEntry(DataEntry):
-    tag: EntryTag = "enthalpy_of_mixing"
-
     phases: list[PropertyPhase] = PropertyPhase.Liquid
 
 
 class EnthalpyOfVaporizationEntry(DataEntry):
-    tag: EntryTag = "enthalpy_of_vaporization"
-
     phases: list[PropertyPhase] = PropertyPhase.Liquid | PropertyPhase.Gas
 
 
-"""
-@thermoml_property(
-    "Vapor or sublimation pressure, kPa",
-    supported_phases=PropertyPhase.Liquid | PropertyPhase.Gas,
-)
-class VaporPressure(PhysicalProperty):
-    def default_unit(cls):
-        return unit.kilopascal
-"""
-
-
 class VaporPressureEntry(DataEntry):
-    tag: EntryTag = "pvap"
-
     phases: list[PropertyPhase] = PropertyPhase.Liquid | PropertyPhase.Gas
