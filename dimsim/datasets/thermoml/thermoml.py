@@ -20,24 +20,23 @@ from dimsim.datasets.datasets import PhysicalPropertyDataSet, PropertyPhase
 from dimsim.datasets.provenance import MeasurementSource
 from dimsim.substances import Component, MoleFraction, Substance
 
-logger = logging.getLogger(__name__)
+from dimsim.configs.targets.thermo import (
+    DataEntry,
+    DensityEntry,
+    ExcessMolarVolumeEntry,
+    DielectricConstantEntry,
+    EnthalpyOfMixingEntry,
+    EnthalpyOfVaporizationEntry,
+    VaporPressureEntry,
+)
 
-"""
-EntryType = typing.Literal[
-    "density",
-    "hvap",  # enthalpy_of_vaporization
-    "dhmix",  # enthalpy_of_mixing
-    "dielectric_constant",
-    "osmotic_coefficient",
-    "solvation_free_energy",
-]
-"""
-_TYPE_TAG_MAPPING = {
-    "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "enthalpy_of_mixing",
-    "Relative permittivity at zero frequency": "dielectric_constant",
-    "Mass density, kg/m3": "density",
-    "Molar enthalpy of vaporization or sublimation, kJ/mol": "enthalpy_of_vaporization",
-    "Vapor or sublimation pressure, kPa": "vapor_pressure",
+_CLASS_MAPPING = {
+    "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": EnthalpyOfMixingEntry,
+    "Relative permittivity at zero frequency": DielectricConstantEntry,
+    "Mass density, kg/m3": DensityEntry,
+    "Molar enthalpy of vaporization or sublimation, kJ/mol": EnthalpyOfVaporizationEntry,
+    "Vapor or sublimation pressure, kPa": VaporPressureEntry,
+    # TODO: Excess molar volume?
     # TODO: Osmotic coefficient
 }
 
@@ -2061,8 +2060,9 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
 
                 assert Unit(measured_property.default_unit).is_compatible_with(unit_to_use)
 
-                entry = DataEntry(
-                    tag=_TYPE_TAG_MAPPING[measured_property.type_string],
+                class_to_use = _CLASS_MAPPING[measured_property.type_string]
+
+                entry = class_to_use(
                     smiles=[component.smiles for component in measured_property.substance.components],
                     x=[value[0].value for value in measured_property.substance.amounts.values()],
                     temperature=_standardize_temperature(measured_property.temperature),
