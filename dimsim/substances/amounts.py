@@ -54,21 +54,6 @@ class Amount(BaseModel, abc.ABC):
         """
         raise NotImplementedError()
 
-    def __str__(self):
-        return self.identifier
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__} {self!s}>"
-
-    def __eq__(self, other):
-        return type(self) is type(other) and numpy.isclose(self.value, other.value)
-
-    def __ne__(self, other):
-        return not (self == other)
-
-    def __hash__(self):
-        return hash(self.identifier)
-
 
 class MoleFraction(Amount):
     """The mole fraction of a `Component` in a `Substance`."""

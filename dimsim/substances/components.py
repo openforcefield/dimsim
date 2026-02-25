@@ -106,23 +106,3 @@ class Component(BaseModel):
             )
 
         return smiles
-
-    def __str__(self):
-        return self.identifier
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__} {self!s}>"
-
-    def __hash__(self):
-        return hash(self.identifier)
-
-    def __eq__(self, other):
-        return type(self) is type(other) and self.identifier == other.identifier
-
-    def __ne__(self, other):
-        return not (self == other)
-
-    def __setstate__(self, state):
-        # Make sure the smiles pattern is standardized.
-        state["smiles"] = Component._standardize_smiles(state["smiles"])
-        super().__setstate__(state)
