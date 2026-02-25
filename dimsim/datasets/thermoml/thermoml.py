@@ -33,11 +33,12 @@ EntryType = typing.Literal[
 ]
 """
 _TYPE_TAG_MAPPING = {
-    "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "dhmix",
+    "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "enthalpy_of_mixing",
     "Relative permittivity at zero frequency": "dielectric_constant",
     "Mass density, kg/m3": "density",
-    "Molar enthalpy of vaporization or sublimation, kJ/mol": "dhvap",
-    "Vapor or sublimation pressure, kPa": "pvap",
+    "Molar enthalpy of vaporization or sublimation, kJ/mol": "enthalpy_of_vaporization",
+    "Vapor or sublimation pressure, kPa": "vapor_pressure",
+    # TODO: Osmotic coefficient
 }
 
 # tests like kcal/mol, g/cc, etc.
