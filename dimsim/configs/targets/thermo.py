@@ -1,9 +1,10 @@
 import typing
 
-from dimsim.datasets.datasets import PropertyPhase
-from dimsim.molecule import map_smiles
-import pyarrow
 import datasets
+import pyarrow
+from dimsim.molecule import map_smiles
+
+from dimsim.datasets.datasets import PropertyPhase
 
 EntryTag = typing.Literal["density"]
 
@@ -38,6 +39,7 @@ DATA_SCHEMA = pyarrow.schema(
         ("source", pyarrow.string()),
     ]
 )
+
 
 class DataEntry(typing.TypedDict):
     phases: list[PropertyPhase]
