@@ -16,7 +16,7 @@ import pandas
 from openff.units import Quantity, Unit
 from pydantic import Field
 
-from dimsim.datasets.entry import DataEntry
+from dimsim.configs.targets.thermo import DataEntry
 from dimsim.datasets.provenance import CalculationSource, MeasurementSource, Source
 from dimsim.substances import Component, ExactAmount, MoleFraction, Substance
 from dimsim.utils.serialization import TypedBaseModel, TypedJSONEncoder
