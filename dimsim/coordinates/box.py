@@ -493,7 +493,14 @@ class BoxCoordinates(BaseModel):
         # Decompress coordinates
         coords = np.frombuffer(gzip.decompress(db_model.coordinates), dtype=np.float64).reshape(-1, 3)
 
-        box_vectors = np.frombuffer(gzip.decompress(db_model.box_vectors), dtype=np.float64).reshape(3, 3)  # type: ignore[arg-type]
+        if db_model.box_vectors is None:
+            raise ValueError(
+                "Database entry has NULL box_vectors; cannot reconstruct BoxCoordinates."
+            )
+        box_vectors = np.frombuffer(
+            gzip.decompress(db_model.box_vectors),
+            dtype=np.float64,
+        ).reshape(3, 3)
 
         obj = cls(
             id=db_model.id,
