@@ -94,7 +94,7 @@ class CoordinateStore:
 
             session.commit()
 
-        return coord_id
+        return coord_id  # type: ignore[return-value]
 
     def get(self, box_id: int) -> BoxCoordinates | None:
         """
@@ -161,7 +161,7 @@ class CoordinateStore:
 
             if temperature is not None and temperature_tolerance is not None:
                 query = query.where(
-                    CoordinatesDB.temperature.between(
+                    CoordinatesDB.temperature.between(  # type: ignore[union-attr]
                         temperature - temperature_tolerance,
                         temperature + temperature_tolerance,
                     )
@@ -171,7 +171,7 @@ class CoordinateStore:
 
             if pressure is not None and pressure_tolerance is not None:
                 query = query.where(
-                    CoordinatesDB.pressure.between(pressure - pressure_tolerance, pressure + pressure_tolerance)
+                    CoordinatesDB.pressure.between(pressure - pressure_tolerance, pressure + pressure_tolerance)  # type: ignore[union-attr]
                 )
             elif pressure_tolerance is not None:
                 query = query.where(CoordinatesDB.pressure == pressure)
@@ -206,7 +206,7 @@ class CoordinateStore:
             List of matching BoxCoordinates objects
         """
 
-        return self.find_box_matches_by_substance(
+        return self.find_box_matches_by_substance(  # type: ignore[call-arg]
             substance=box.substance,
             temperature=box.temperature,
             temperature_tolerance=temperature_tolerance,
@@ -323,7 +323,7 @@ class CoordinateStore:
             ffs = session.exec(
                 select(CoordinatesDB.force_field_id).distinct().order_by(CoordinatesDB.force_field_id)
             ).all()
-        return list(ffs)
+        return list(ffs)  # type: ignore[arg-type]
 
     def get_compositions(self) -> list[str]:
         """
@@ -350,7 +350,7 @@ class CoordinateStore:
             Total number of boxes
         """
         with Session(self.engine) as session:
-            count = session.exec(select(func.count(CoordinatesDB.id))).one()
+            count = session.exec(select(func.count(CoordinatesDB.id))).one()  # type: ignore[union-attr]
         return count
 
     def delete(self, box_id: int):
@@ -383,7 +383,7 @@ class CoordinateStore:
 
         if ids is None:
             with Session(self.engine) as session:
-                ids = list(session.exec(select(CoordinatesDB.id)).all())
+                ids = list(session.exec(select(CoordinatesDB.id)).all())  # type: ignore[arg-type]
 
         for box_id in ids:
             box = self.get(box_id)
@@ -407,7 +407,7 @@ class CoordinateStore:
             source_ids = list(session.exec(select(CoordinatesDB.id)).all())
 
         for box_id in source_ids:
-            box = source_store.get(box_id)
+            box = source_store.get(box_id)  # type: ignore[arg-type]
             if not box:
                 continue
 

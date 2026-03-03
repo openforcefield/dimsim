@@ -10,6 +10,7 @@ import datetime
 import gzip
 import json
 import typing
+from typing import Self
 
 import numpy as np
 import openff.toolkit
@@ -134,7 +135,7 @@ class Substance(BaseModel):
         Substance
             Substance object
         """
-        return cls(molecule_species=MoleculeSpecies.from_string(s, flatten=False))
+        return cls(molecule_species=MoleculeSpecies.from_string(s, flatten=False))  # type: ignore[arg-type]
 
     @property
     def n_molecules(self) -> int:
@@ -166,7 +167,7 @@ class Substance(BaseModel):
         return top
 
     @classmethod
-    def from_openff_topology(cls, topology: "openff.toolkit.Topology") -> "BoxCoordinates":
+    def from_openff_topology(cls, topology: "openff.toolkit.Topology") -> Self:
         """
         Create BoxCoordinates from an OpenFF Toolkit Topology object.
 
@@ -191,7 +192,7 @@ class Substance(BaseModel):
 
         return cls(molecule_species=molecule_species)
 
-    def is_equivalent_to(self, other: "Substance") -> bool:
+    def is_equivalent_to(self, other: "Substance") -> bool:  # type: ignore[return]
         """
         Check if this substance is equivalent to another substance.
         This is done by comparing the composition keys.
@@ -369,10 +370,10 @@ class BoxCoordinates(BaseModel):
         if box_vectors is not None:
             box_vectors = box_vectors.m_as(unit.angstrom)
 
-        return cls(substance=substance, coordinates=coordinates, box_vectors=box_vectors)
+        return cls(substance=substance, coordinates=coordinates, box_vectors=box_vectors)  # type: ignore[call-arg]
 
     @requires_package("openmm")
-    def get_energy_for_system(self, system: "openmm.System") -> float:
+    def get_energy_for_system(self, system: "openmm.System") -> float:  # type: ignore[empty-body]
         """
         Get the potential energy of the box.
 
@@ -492,7 +493,7 @@ class BoxCoordinates(BaseModel):
         # Decompress coordinates
         coords = np.frombuffer(gzip.decompress(db_model.coordinates), dtype=np.float64).reshape(-1, 3)
 
-        box_vectors = np.frombuffer(gzip.decompress(db_model.box_vectors), dtype=np.float64).reshape(3, 3)
+        box_vectors = np.frombuffer(gzip.decompress(db_model.box_vectors), dtype=np.float64).reshape(3, 3)  # type: ignore[arg-type]
 
         obj = cls(
             id=db_model.id,
