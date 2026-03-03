@@ -6,6 +6,14 @@ import pyarrow
 from dimsim.datasets.phase import PropertyPhase
 from dimsim.molecule import map_smiles
 
+EntryTag = typing.Literal[
+    "density",
+    "excess_molar_volume",
+    "dielectric_constant",
+    "enthalpy_of_mixing",
+    "enthalpy_of_vaporization",
+    "vapor_pressure",
+]
 """
 
 DATA_SCHEMA = pyarrow.schema(
@@ -40,6 +48,8 @@ DATA_SCHEMA = pyarrow.schema(
 
 
 class DataEntry(typing.TypedDict):
+    tag: typing.Literal[EntryTag]
+
     phases: PropertyPhase
 
     smiles: list[str]
@@ -60,26 +70,38 @@ class DataEntry(typing.TypedDict):
 
 
 class DensityEntry(DataEntry):
+    tag = "density"
+
     phases: PropertyPhase = PropertyPhase.Liquid
 
 
 class ExcessMolarVolumeEntry(DataEntry):
+    tag = "excess_molar_volume"
+
     phases: PropertyPhase = PropertyPhase.Liquid
 
 
 class DielectricConstantEntry(DataEntry):
+    tag = "dielectric_constant"
+
     phases: PropertyPhase = PropertyPhase.Liquid
 
 
 class EnthalpyOfMixingEntry(DataEntry):
+    tag = "enthalpy_of_mixing"
+
     phases: PropertyPhase = PropertyPhase.Liquid
 
 
 class EnthalpyOfVaporizationEntry(DataEntry):
+    tag = "enthalpy_of_vaporization"
+
     phases: PropertyPhase = PropertyPhase.Liquid | PropertyPhase.Gas
 
 
 class VaporPressureEntry(DataEntry):
+    tag = "vapor_pressure"
+
     phases: PropertyPhase = PropertyPhase.Liquid | PropertyPhase.Gas
 
 
