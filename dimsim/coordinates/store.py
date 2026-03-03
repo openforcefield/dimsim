@@ -206,7 +206,7 @@ class CoordinateStore:
             List of matching BoxCoordinates objects
         """
 
-        return self.find_box_matches_by_substance(  # type: ignore[call-arg]
+        return self.find_box_matches_by_substance(  # type: ignore
             substance=box.substance,
             temperature=box.temperature,
             temperature_tolerance=temperature_tolerance,
@@ -350,7 +350,7 @@ class CoordinateStore:
             Total number of boxes
         """
         with Session(self.engine) as session:
-            count = session.exec(select(func.count(CoordinatesDB.id))).one()  # type: ignore[union-attr]
+            count = session.exec(select(func.count(CoordinatesDB.id))).one()  # type: ignore
         return count
 
     def delete(self, box_id: int):

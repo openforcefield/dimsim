@@ -46,3 +46,4 @@ dependencies:
 
   # Typing
   - mypy
+  - types-PyYAML
