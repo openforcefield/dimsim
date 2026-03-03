@@ -91,30 +91,6 @@ class VaporPressureEntry(DataEntry):
 """
 
 
-class DensityEntry(DataEntry):
-    pass
-
-
-class ExcessMolarVolumeEntry(DataEntry):
-    pass
-
-
-class DielectricConstantEntry(DataEntry):
-    pass
-
-
-class EnthalpyOfMixingEntry(DataEntry):
-    pass
-
-
-class EnthalpyOfVaporizationEntry(DataEntry):
-    pass
-
-
-class VaporPressureEntry(DataEntry):
-    pass
-
-
 def create_dataset(*rows: DataEntry) -> datasets.Dataset:
     for row in rows:
         row["smiles"] = [map_smiles(value) for value in row["smiles"]]

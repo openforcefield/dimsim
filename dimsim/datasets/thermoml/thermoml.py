@@ -16,15 +16,7 @@ import requests
 from openff.toolkit import Molecule, Quantity
 from openff.units import Unit, unit
 
-from dimsim.configs.targets.thermo import (
-    DataEntry,
-    DensityEntry,
-    DielectricConstantEntry,
-    EnthalpyOfMixingEntry,
-    EnthalpyOfVaporizationEntry,
-    ExcessMolarVolumeEntry,
-    VaporPressureEntry,
-)
+from dimsim.configs.targets.thermo import DataEntry
 from dimsim.datasets.datasets import PhysicalPropertyDataSet, PropertyPhase
 from dimsim.datasets.provenance import MeasurementSource
 from dimsim.substances import Component, MoleFraction, Substance
@@ -1690,7 +1682,7 @@ class ThermoMLProperty:
         if method_name_node is None or property_name_node is None:
             raise RuntimeError("A property does not have a name / method entry.")
 
-        if property_name_node.text not in ThermoMLDataSet._property_entry_map:
+        if property_name_node.text not in ThermoMLDataSet._property_tag_map:
             logging.debug(f"An unsupported property was found ({property_name_node.text}) and will be skipped.")
 
             return None
@@ -1784,17 +1776,6 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
         "Molar enthalpy of vaporization or sublimation, kJ/mol": "enthalpy_of_vaporization",
         "Vapor or sublimation pressure, kPa": "vapor_pressure",
         "Excess molar volume, m3/mol": "excess_molar_volume",
-    }
-
-    _property_entry_map = {
-        "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": EnthalpyOfMixingEntry,
-        "Relative permittivity at zero frequency": DielectricConstantEntry,
-        "Mass density, kg/m3": DensityEntry,
-        "Molar enthalpy of vaporization or sublimation, kJ/mol": EnthalpyOfVaporizationEntry,
-        "Vapor or sublimation pressure, kPa": VaporPressureEntry,
-        "Excess molar volume, m3/mol": ExcessMolarVolumeEntry,
-        # TODO: Excess molar volume?
-        # TODO: Osmotic coefficient
     }
 
     _property_unit_map = {
