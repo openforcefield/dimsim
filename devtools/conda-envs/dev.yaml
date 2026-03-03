@@ -44,5 +44,9 @@ dependencies:
   - dask-kubernetes
   - distributed
 
+  # Typing
+  - mypy
+  - types-PyYAML
+
   - pip:
     - git+https://github.com/openforcefield/openff-sphinx-theme.git@main
