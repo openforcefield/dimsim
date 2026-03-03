@@ -81,13 +81,13 @@ jobs:
         assert str(OPENEYE_AVAILABLE).lower() == '${{ matrix.include-openeye }}'
         assert str(RDKIT_AVAILABLE).lower() == '${{ matrix.include-rdkit }}'
 
-    - name: Run tests
-      run: |
-        python -m pytest -v --cov=dimsim --cov-config=pyproject.toml --cov-append --cov-report=xml --color=yes dimsim/_tests
-
     - name: Run type-checker
       run: |
         python -m mypy dimsim/
+
+    - name: Run tests
+      run: |
+        python -m pytest -v --cov=dimsim --cov-config=pyproject.toml --cov-append --cov-report=xml --color=yes dimsim/_tests
 
     - name: codecov
       uses: codecov/codecov-action@v5
