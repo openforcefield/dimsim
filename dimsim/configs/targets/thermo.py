@@ -3,7 +3,7 @@ import typing
 import datasets
 import pyarrow
 
-from dimsim.datasets.datasets import PropertyPhase
+from dimsim.datasets.phase import PropertyPhase
 from dimsim.molecule import map_smiles
 
 """
