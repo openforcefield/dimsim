@@ -40,7 +40,7 @@ DATA_SCHEMA = pyarrow.schema(
 
 
 class DataEntry(typing.TypedDict):
-    phases: list[PropertyPhase]
+    phases: PropertyPhase
 
     smiles: list[str]
 
@@ -60,27 +60,27 @@ class DataEntry(typing.TypedDict):
 
 
 class DensityEntry(DataEntry):
-    phases: list[PropertyPhase] = PropertyPhase.Liquid
+    phases: PropertyPhase = PropertyPhase.Liquid
 
 
 class ExcessMolarVolumeEntry(DataEntry):
-    phases: list[PropertyPhase] = PropertyPhase.Liquid
+    phases: PropertyPhase = PropertyPhase.Liquid
 
 
 class DielectricConstantEntry(DataEntry):
-    phases: list[PropertyPhase] = PropertyPhase.Liquid
+    phases: PropertyPhase = PropertyPhase.Liquid
 
 
 class EnthalpyOfMixingEntry(DataEntry):
-    phases: list[PropertyPhase] = PropertyPhase.Liquid
+    phases: PropertyPhase = PropertyPhase.Liquid
 
 
 class EnthalpyOfVaporizationEntry(DataEntry):
-    phases: list[PropertyPhase] = PropertyPhase.Liquid | PropertyPhase.Gas
+    phases: PropertyPhase = PropertyPhase.Liquid | PropertyPhase.Gas
 
 
 class VaporPressureEntry(DataEntry):
-    phases: list[PropertyPhase] = PropertyPhase.Liquid | PropertyPhase.Gas
+    phases: PropertyPhase = PropertyPhase.Liquid | PropertyPhase.Gas
 
 
 def create_dataset(*rows: DataEntry) -> datasets.Dataset:
