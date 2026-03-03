@@ -2013,10 +2013,12 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
         # Attempt to find a DOI for this archive
         doi_node = root_node.find("ThermoML:Citation/ThermoML:sDOI", namespace)
 
-        if doi_node is not None:
-            source = MeasurementSource(doi=doi_node.text)
-        else:
-            source = MeasurementSource()
+        # If a source is passed in as an argument, use that. Otherwise attempt to pull a DOI out of the text
+        if source is None:
+            if doi_node is not None:
+                source = MeasurementSource(doi=doi_node.text)
+            else:
+                source = MeasurementSource()
 
         return_value = ThermoMLDataSet()
         compounds = {}
