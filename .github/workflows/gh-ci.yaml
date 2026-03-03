@@ -11,12 +11,6 @@ on:
     - cron: "0 0 * * *"
   workflow_dispatch:
 
-concurrency:
-  # Specific group naming so CI is only cancelled
-  # within same PR or on merge to main
-  group: ${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
-  cancel-in-progress: true
-
 defaults:
   run:
     shell: bash -l {0}
@@ -29,7 +23,7 @@ jobs:
     name: CI (${{ matrix.os }}, py-${{ matrix.python-version }}, rdkit=${{ matrix.include-rdkit }}, openeye=${{ matrix.include-openeye }}
     runs-on: ${{ matrix.os }}
     strategy:
-        fail-fast: false
+        fail-fast: true
         matrix:
           os: [macOS-latest, ubuntu-latest]
           python-version: ["3.11", "3.12"]
