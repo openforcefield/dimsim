@@ -28,24 +28,7 @@ from dimsim.datasets.datasets import PhysicalPropertyDataSet, PropertyPhase
 from dimsim.datasets.provenance import MeasurementSource
 from dimsim.substances import Component, MoleFraction, Substance
 
-_CLASS_MAPPING = {
-    "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": EnthalpyOfMixingEntry,
-    "Relative permittivity at zero frequency": DielectricConstantEntry,
-    "Mass density, kg/m3": DensityEntry,
-    "Molar enthalpy of vaporization or sublimation, kJ/mol": EnthalpyOfVaporizationEntry,
-    "Vapor or sublimation pressure, kPa": VaporPressureEntry,
-    # TODO: Excess molar volume?
-    # TODO: Osmotic coefficient
-}
-
 # tests like kcal/mol, g/cc, etc.
-_UNIT_MAPPING = {
-    "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "kcal/mol",
-    "Mass density, kg/m3": "gram / milliliter",
-    "Relative permittivity at zero frequency": "dimensionless",
-    "Molar enthalpy of vaporization or sublimation, kJ/mol": "kcal/mol",
-    "Vapor or sublimation pressure, kPa": "kPa",
-}
 
 
 def _unit_from_thermoml_string(full_string):
@@ -1706,20 +1689,20 @@ class ThermoMLProperty:
         if method_name_node is None or property_name_node is None:
             raise RuntimeError("A property does not have a name / method entry.")
 
-        if property_name_node.text not in ThermoMLDataSet._registered_properties:
+        if property_name_node.text not in ThermoMLDataSet._property_entry_map:
             logging.debug(f"An unsupported property was found ({property_name_node.text}) and will be skipped.")
 
             return None
 
-        registered_plugin = ThermoMLDataSet._registered_properties[property_name_node.text]
+        entry = ThermoMLDataSet._property_entry_map[property_name_node.text]
 
-        if len(registered_plugin.phases) == 0:
+        if len(entry.phases) == 0:
             raise Exception("Add back support for multiple phases")
 
-        if (registered_plugin.phases & phase) != phase:
+        if (entry.phases & phase) != phase:
             logging.debug(
                 f"The {property_name_node.text} property is currently only supported "
-                f"when measured in the {registered_plugin.phases!s} phase, "
+                f"when measured in the {entry.phases!s} phase, "
                 f"and not the {phase!s} phase."
             )
 
@@ -1802,21 +1785,24 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
     A dataset of physical property measurements created from a ThermoML dataset.
     """
 
-    from dimsim.configs.targets.thermo import (
-        DensityEntry,
-        DielectricConstantEntry,
-        EnthalpyOfMixingEntry,
-        EnthalpyOfVaporizationEntry,
-        VaporPressureEntry,
-    )
-
-    _registered_properties = {
-        "Mass density, kg/m3": DensityEntry,
-        "Excess molar volume, m3/mol": ExcessMolarVolumeEntry,
-        "Relative permittivity at zero frequency": DielectricConstantEntry,
+    _property_entry_map = {
         "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": EnthalpyOfMixingEntry,
+        "Relative permittivity at zero frequency": DielectricConstantEntry,
+        "Mass density, kg/m3": DensityEntry,
         "Molar enthalpy of vaporization or sublimation, kJ/mol": EnthalpyOfVaporizationEntry,
         "Vapor or sublimation pressure, kPa": VaporPressureEntry,
+        "Excess molar volume, m3/mol": ExcessMolarVolumeEntry,
+        # TODO: Excess molar volume?
+        # TODO: Osmotic coefficient
+    }
+
+    _property_unit_map = {
+        "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "kcal/mol",
+        "Mass density, kg/m3": "gram / milliliter",
+        "Relative permittivity at zero frequency": "dimensionless",
+        "Molar enthalpy of vaporization or sublimation, kJ/mol": "kcal/mol",
+        "Vapor or sublimation pressure, kPa": "kPa",
+        "Excess molar volume, m3/mol": "m**3 / mole",  # ? https://github.com/openforcefield/openff-evaluator/blob/9f25eb3bcbfa9534662024c94bdef3a2411746cb/docs/datasets/thermomldatasets.rst#L31
     }
 
     def __init__(self):
@@ -2051,13 +2037,11 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
                 )
 
             for measured_property in properties:
-                # registered_plugin = ThermoMLDataSet._registered_properties[measured_property.type_string]
-
-                unit_to_use = _UNIT_MAPPING[measured_property.type_string]
+                unit_to_use = cls._property_unit_map[measured_property.type_string]
 
                 assert Unit(measured_property.default_unit).is_compatible_with(unit_to_use)
 
-                class_to_use = _CLASS_MAPPING[measured_property.type_string]
+                class_to_use = cls._property_entry_map[measured_property.type_string]
 
                 entry = class_to_use(
                     smiles=[component.smiles for component in measured_property.substance.components],
@@ -2068,8 +2052,6 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
                     std=measured_property.uncertainty.m_as(unit_to_use),
                     units=unit_to_use,
                 )
-
-                # mapped_property = registered_plugin.conversion_function(measured_property)
 
                 # Could wrap this into a Source.__repr__()? Kinda ugly ...
                 if source.doi is not None:
