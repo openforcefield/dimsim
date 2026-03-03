@@ -17,6 +17,7 @@ from openff.toolkit import Molecule, Quantity
 from openff.units import Unit, unit
 
 from dimsim.configs.targets.thermo import (
+    DataEntry,
     DensityEntry,
     DielectricConstantEntry,
     EnthalpyOfMixingEntry,
@@ -1694,19 +1695,10 @@ class ThermoMLProperty:
 
             return None
 
-        entry = ThermoMLDataSet._property_entry_map[property_name_node.text]
-
-        if len(entry.phases) == 0:
-            raise Exception("Add back support for multiple phases")
-
-        if (entry.phases & phase) != phase:
-            logging.debug(
-                f"The {property_name_node.text} property is currently only supported "
-                f"when measured in the {entry.phases!s} phase, "
-                f"and not the {phase!s} phase."
-            )
-
-            return None
+        # TODO: Here is where Evaluator checked that the pahse reported from ThermoML matched the supported phase(s)
+        # of the property, it might be useful to add this back in if such cases are found in data used for training
+        #
+        # https://github.com/openforcefield/openff-evaluator/blob/9f25eb3bcbfa9534662024c94bdef3a2411746cb/openff/evaluator/datasets/thermoml/thermoml.py#L1874-L1880
 
         return_value = cls(property_name_node.text)
 
@@ -1784,6 +1776,15 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
     """
     A dataset of physical property measurements created from a ThermoML dataset.
     """
+
+    _property_tag_map = {
+        "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "ethalpy_of_mixing",
+        "Relative permittivity at zero frequency": "dielectric_constant",
+        "Mass density, kg/m3": "density",
+        "Molar enthalpy of vaporization or sublimation, kJ/mol": "enthalpy_of_vaporization",
+        "Vapor or sublimation pressure, kPa": "vapor_pressure",
+        "Excess molar volume, m3/mol": "excess_molar_volume",
+    }
 
     _property_entry_map = {
         "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": EnthalpyOfMixingEntry,
@@ -2041,9 +2042,8 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
 
                 assert Unit(measured_property.default_unit).is_compatible_with(unit_to_use)
 
-                class_to_use = cls._property_entry_map[measured_property.type_string]
-
-                entry = class_to_use(
+                entry = DataEntry(
+                    tag=cls._property_tag_map[measured_property.type_string],
                     smiles=[component.smiles for component in measured_property.substance.components],
                     x=[value[0].value for value in measured_property.substance.amounts.values()],
                     temperature=_standardize_temperature(measured_property.temperature),

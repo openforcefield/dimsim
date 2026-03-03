@@ -14,26 +14,10 @@ EntryTag = typing.Literal[
     "enthalpy_of_vaporization",
     "vapor_pressure",
 ]
-"""
 
 DATA_SCHEMA = pyarrow.schema(
     [
-        ("type", pyarrow.string()),
-        ("smiles_a", pyarrow.string()),
-        ("x_a", pyarrow.float64()),
-        ("smiles_b", pyarrow.string()),
-        ("x_b", pyarrow.float64()),
-        ("temperature", pyarrow.float64()),
-        ("pressure", pyarrow.float64()),
-        ("value", pyarrow.float64()),
-        ("std", pyarrow.float64()),
-        ("units", pyarrow.string()),
-        ("source", pyarrow.string()),
-    ]
-)
-"""
-DATA_SCHEMA = pyarrow.schema(
-    [
+        ("tag", pyarrow.string()),
         ("phases", pyarrow.list_(pyarrow.string())),
         ("smiles", pyarrow.list_(pyarrow.string())),
         ("x", pyarrow.list_(pyarrow.float64())),
@@ -48,7 +32,7 @@ DATA_SCHEMA = pyarrow.schema(
 
 
 class DataEntry(typing.TypedDict):
-    tag: typing.Literal[EntryTag]
+    tag: str  # EntryTag
 
     phases: PropertyPhase
 
@@ -69,20 +53,21 @@ class DataEntry(typing.TypedDict):
     source: str
 
 
+"""
 class DensityEntry(DataEntry):
-    tag = "density"
+    tag: EntryTag = "density"
 
     phases: PropertyPhase = PropertyPhase.Liquid
 
 
 class ExcessMolarVolumeEntry(DataEntry):
-    tag = "excess_molar_volume"
+    tag: typing.Literal["excess_molar_volume"] = "excess_molar_volume"
 
     phases: PropertyPhase = PropertyPhase.Liquid
 
 
 class DielectricConstantEntry(DataEntry):
-    tag = "dielectric_constant"
+    tag: typing.Literal["dielectric_constant"] = "dielectric_constant"
 
     phases: PropertyPhase = PropertyPhase.Liquid
 
@@ -103,6 +88,31 @@ class VaporPressureEntry(DataEntry):
     tag = "vapor_pressure"
 
     phases: PropertyPhase = PropertyPhase.Liquid | PropertyPhase.Gas
+"""
+
+
+class DensityEntry(DataEntry):
+    pass
+
+
+class ExcessMolarVolumeEntry(DataEntry):
+    pass
+
+
+class DielectricConstantEntry(DataEntry):
+    pass
+
+
+class EnthalpyOfMixingEntry(DataEntry):
+    pass
+
+
+class EnthalpyOfVaporizationEntry(DataEntry):
+    pass
+
+
+class VaporPressureEntry(DataEntry):
+    pass
 
 
 def create_dataset(*rows: DataEntry) -> datasets.Dataset:
