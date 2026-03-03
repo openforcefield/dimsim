@@ -6,8 +6,6 @@ import pyarrow
 from dimsim.datasets.datasets import PropertyPhase
 from dimsim.molecule import map_smiles
 
-EntryTag = typing.Literal["density"]
-
 """
 
 DATA_SCHEMA = pyarrow.schema(
