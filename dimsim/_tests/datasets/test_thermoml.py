@@ -62,41 +62,51 @@ from dimsim.datasets.thermoml.thermoml import ThermoMLDataSet
         ),
     ],
 )
-def test_load_property_types(filename: str, expected: dict):
-    """Test loading a single data type from a ThermoML XML file"""
-    dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
-    assert len(dataset) == 1
+class TestThermoMLDataset:
+    """Class set up only to make convenient re-use of parametrized test cases."""
 
-    entry = next(iter(dataset))
-    assert entry["x"] == expected["x"]
+    def test_load_property_types(self, filename: str, expected: dict):
+        """Test loading a single data type from a ThermoML XML file"""
+        dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
+        assert len(dataset) == 1
 
-    assert len(entry["x"]) == len(entry["smiles"])
-    assert len(entry["x"]) == len(expected["x"])
+        entry = next(iter(dataset))
+        assert entry["x"] == expected["x"]
 
-    for found_x, expected_x, found_smiles in zip(
-        entry["x"],
-        expected["x"],
-        entry["smiles"],
-    ):
-        assert found_x == expected_x
+        assert len(entry["x"]) == len(entry["smiles"])
+        assert len(entry["x"]) == len(expected["x"])
 
-        # just make sure it's valid SMILES
-        Molecule.from_smiles(found_smiles)
+        for found_x, expected_x, found_smiles in zip(
+            entry["x"],
+            expected["x"],
+            entry["smiles"],
+        ):
+            assert found_x == expected_x
 
-        # Evaluator uses non-mapped SMILES, pseudocode here used mapped
-        # Molecule.from_mapped_smiles(found_smiles)
+            # just make sure it's valid SMILES
+            Molecule.from_smiles(found_smiles)
 
-    assert entry["temperature"] == expected["temperature"]
-    if expected["pressure"] is not None:
-        assert numpy.isclose(entry["pressure"], expected["pressure"], atol=1e-3)
-    else:
-        assert entry["pressure"] is None
+            # Evaluator uses non-mapped SMILES, pseudocode here used mapped
+            # Molecule.from_mapped_smiles(found_smiles)
 
-    assert numpy.isclose(entry["value"], expected["value"], atol=1e-5)
-    assert numpy.isclose(entry["std"], expected["std"], atol=1e-5)
-    assert Unit(entry["units"]) == Unit(expected["units"])
+        assert entry["temperature"] == expected["temperature"]
+        if expected["pressure"] is not None:
+            assert numpy.isclose(entry["pressure"], expected["pressure"], atol=1e-3)
+        else:
+            assert entry["pressure"] is None
 
-    assert entry["source"] == expected["source"]
+        assert numpy.isclose(entry["value"], expected["value"], atol=1e-5)
+        assert numpy.isclose(entry["std"], expected["std"], atol=1e-5)
+        assert Unit(entry["units"]) == Unit(expected["units"])
+
+        assert entry["source"] == expected["source"]
+
+    def test_pandas_roundtrip(self, filename, expected):
+        dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
+
+        roundtripped = ThermoMLDataSet.from_pandas(dataset.to_pandas())
+
+        assert len(dataset) == len(roundtripped)
 
 
 @pytest.mark.skip(reason="Implement next")

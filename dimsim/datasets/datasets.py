@@ -6,19 +6,17 @@ property data.
 import abc
 import hashlib
 import json
-import re
 import sys
 import uuid
 
-import numpy
 import pandas
-from openff.units import Quantity, Unit
+from openff.units import Quantity
 from pydantic import Field
 
 from dimsim.configs.targets.thermo import DataEntry
 from dimsim.datasets.phase import PropertyPhase
-from dimsim.datasets.provenance import MeasurementSource, Source
-from dimsim.substances import Component, ExactAmount, MoleFraction, Substance
+from dimsim.datasets.provenance import Source
+from dimsim.substances import Substance
 from dimsim.utils.serialization import TypedBaseModel, TypedJSONEncoder
 
 
@@ -425,124 +423,34 @@ class PhysicalPropertyDataSet(TypedBaseModel):
         -------
             The constructed data set.
         """
+        dataset = cls()
 
-        from dimsim import properties
+        for _, row in data_frame.iterrows():
+            tag = row["tag"]
+            n_components = row["N Components"]
 
-        property_header_matches = {
-            re.match(r"^([a-zA-Z]+) Value \(([a-zA-Z0-9+-/\s*^]*)\)$", header)
-            for header in data_frame
-            if header.find(" Value ") >= 0
-        }
-        property_headers = {}
+            x = list()
+            smiles = list()
 
-        # Validate that the headers have the correct format, specify a
-        # built-in property type, and specify correctly the properties
-        # units.
-        for match in property_header_matches:
-            assert match
+            for index in range(n_components):
+                x.append(row[f"Mole Fraction {index + 1}"])
+                smiles.append(row[f"Component {index + 1}"])
 
-            property_type_string, property_unit_string = match.groups()
-
-            assert hasattr(properties, property_type_string)
-            property_type = getattr(properties, property_type_string)
-
-            property_unit = Unit(property_unit_string)
-            assert property_unit is not None
-
-            assert property_unit.dimensionality == property_type.default_unit().dimensionality  # type: ignore[attr-defined]
-
-            property_headers[match.group(0)] = (property_type, property_unit)
-
-        # Convert the data rows to property objects.
-        physical_properties = []
-
-        # Drop data point if thermophysical data is not included (see #578)
-        data_frame = data_frame.dropna(
-            subset=[
-                "Pressure (kPa)",
-                "Temperature (K)",
-                "Phase",
-            ]
-        )
-
-        for _, data_row in data_frame.iterrows():
-            data_row = data_row.dropna()
-
-            # Extract the state at which the measurement was made.
-            temperature = Quantity(data_row["Temperature (K)"], "kelvin")
-            pressure = Quantity(data_row["Pressure (kPa)"], "kilopascal")
-            property_phase = PropertyPhase.from_string(data_row["Phase"])
-
-            # Extract the substance the measurement was made for.
-            substance = Substance()
-
-            for i in range(data_row["N Components"]):
-                component = Component(
-                    smiles=data_row[f"Component {i + 1}"],
-                    role=Component.Role[data_row.get(f"Role {i + 1}", "Solvent")],
+            dataset.add_properties(
+                DataEntry(
+                    id=row["Id"],
+                    tag=tag,
+                    smiles=smiles,
+                    x=x,
+                    temperature=row["Temperature (K)"],
+                    pressure=row["Pressure (kPa)"],
+                    value=row[f"{tag} Value"],
+                    std=row[f"{tag} Uncertainty"],
+                    source=row["Source"],
                 )
+            )
 
-                mole_fraction = data_row.get(f"Mole Fraction {i + 1}", 0.0)
-                exact_amount = data_row.get(f"Exact Amount {i + 1}", 0)
-
-                if not numpy.isclose(mole_fraction, 0.0):
-                    substance.add_component(component, MoleFraction(mole_fraction))
-                if not numpy.isclose(exact_amount, 0.0):
-                    substance.add_component(component, ExactAmount(exact_amount))  # type: ignore[misc]
-
-            for (
-                property_header,
-                (property_type, property_unit),
-            ) in property_headers.items():
-                # Check to see whether the row contains a value for this
-                # type of property.
-                if property_header not in data_row:
-                    continue
-
-                uncertainty_header = property_header.replace("Value", "Uncertainty")
-
-                source_string = data_row["Source"]
-
-                is_doi = all(
-                    any(
-                        re.match(pattern, split_string, re.I)
-                        for pattern in [
-                            r"^10.\d{4,9}/[-._;()/:A-Z0-9]+$",
-                            r"^10.1002/[^\s]+$",
-                            r"^10.\d{4}/\d+-\d+X?(\d+)\d+<[\d\w]+:[\d\w]*>\d+.\d+.\w+;\d$",
-                            r"^10.1021/\w\w\d+$",
-                            r"^10.1207/[\w\d]+\&\d+_\d+$",
-                        ]
-                    )
-                    for split_string in source_string.split(" + ")
-                )
-
-                physical_property = property_type(
-                    temperature=temperature,
-                    pressure=pressure,
-                    phase=property_phase,
-                    value=data_row[property_header] * property_unit,
-                    uncertainty=(
-                        None if uncertainty_header not in data_row else data_row[uncertainty_header] * property_unit
-                    ),
-                    substance=substance,
-                    source=MeasurementSource(
-                        doi="" if not is_doi else source_string,
-                        reference=source_string if not is_doi else "",
-                    ),
-                )
-
-                identifier = data_row.get("Id", None)
-
-                if identifier:
-                    physical_property.id = identifier
-
-                physical_properties.append(physical_property)
-
-        data_set = PhysicalPropertyDataSet()
-        data_set.add_properties(*physical_properties)
-
-        return data_set
+        return dataset
 
     def __len__(self):
         return len(self._properties)
