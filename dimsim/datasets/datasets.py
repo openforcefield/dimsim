@@ -357,81 +357,26 @@ class PhysicalPropertyDataSet(TypedBaseModel):
 
         data_rows = []
 
-        # Extract the data from the data set.
-        default_units = {}
-
-        for physical_property in self:
-            # Extract the measured state.
-            temperature = physical_property.temperature.to("kelvin").magnitude
-            pressure = None
-
-            if physical_property.pressure is not None:
-                pressure = physical_property.pressure.to("kilopascal").magnitude
-
-            phase = str(physical_property.phase)
-
-            # Extract the component data.
-            components = []
-            amounts = []
-            roles = []
-
-            for index, component in enumerate(physical_property.substance):
-                component_amounts = {MoleFraction: None, ExactAmount: None}
-
-                for x in physical_property.substance.get_amounts(component):
-                    assert isinstance(x, (MoleFraction, ExactAmount))
-                    component_amounts[type(x)] = x.value
-
-                components.append(component.smiles)
-                amounts.append(component_amounts)
-                roles.append(component.role.name)
-
-            # Extract the value data as a string.
-            default_unit = physical_property.default_unit()
-            default_units[physical_property.__class__.__name__] = default_unit
-
-            value = None if physical_property.value is None else physical_property.value.to(default_unit).magnitude
-            uncertainty = (
-                None
-                if physical_property.uncertainty is None
-                else physical_property.uncertainty.to(default_unit).magnitude
-            )
-
-            # Extract the data source.
-            source = None
-
-            if isinstance(physical_property.source, MeasurementSource):
-                source = physical_property.source.doi
-
-                if source is None or len(source) == 0:
-                    source = physical_property.source.reference
-
-            elif isinstance(physical_property.source, CalculationSource):
-                source = physical_property.source.fidelity
-
-            # Create the data row.
+        for entry in self:
             data_row = {
-                "Id": physical_property.id,
-                "Temperature (K)": temperature,
-                "Pressure (kPa)": pressure,
-                "Phase": phase,
-                "N Components": len(physical_property.substance),
+                "Id": entry["id"],
+                "tag": entry["tag"],
+                "Temperature (K)": entry["temperature"],
+                "Pressure (kPa)": entry["pressure"],
+                "N Components": len(entry["x"]),
+                "source": entry["source"],
             }
 
-            for index in range(len(components)):
-                data_row[f"Component {index + 1}"] = components[index]
-                data_row[f"Role {index + 1}"] = roles[index]
-                data_row[f"Mole Fraction {index + 1}"] = amounts[index][MoleFraction]
-                data_row[f"Exact Amount {index + 1}"] = amounts[index][ExactAmount]
+            for index in range(len(entry["x"])):
+                data_row[f"Component {index + 1}"] = entry["smiles"][index]
+                data_row[f"Mole Fraction {index + 1}"] = entry["x"][index]
 
-            data_row[f"{type(physical_property).__name__} Value ({default_unit:~})"] = value
-            data_row[f"{type(physical_property).__name__} Uncertainty ({default_unit:~})"] = uncertainty
-
-            data_row["Source"] = source
+            data_row[f"{entry['tag']} Value"] = entry["value"]
+            data_row[f"{entry['tag']} Uncertainty"] = entry["std"]
 
             data_rows.append(data_row)
 
-            maximum_number_of_components = max(maximum_number_of_components, len(physical_property.substance))
+            maximum_number_of_components = max(maximum_number_of_components, len(entry["x"]))
 
         # Set up the column headers.
         if len(data_rows) == 0:
@@ -439,23 +384,19 @@ class PhysicalPropertyDataSet(TypedBaseModel):
 
         data_columns = [
             "Id",
+            "tag",
             "Temperature (K)",
             "Pressure (kPa)",
-            "Phase",
             "N Components",
         ]
 
         for index in range(maximum_number_of_components):
             data_columns.append(f"Component {index + 1}")
-            data_columns.append(f"Role {index + 1}")
             data_columns.append(f"Mole Fraction {index + 1}")
-            data_columns.append(f"Exact Amount {index + 1}")
 
         for property_type in self.property_types:
-            default_unit = default_units[property_type]
-
-            data_columns.append(f"{property_type} Value ({default_unit:~})")
-            data_columns.append(f"{property_type} Uncertainty ({default_unit:~})")
+            data_columns.append(f"{property_type} Value")
+            data_columns.append(f"{property_type} Uncertainty")
 
         data_columns.append("Source")
 

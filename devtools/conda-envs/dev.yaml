@@ -8,6 +8,7 @@ dependencies:
   # Base dependencies
   - pydantic >=2.0
   - pyyaml
+  - pandas =2
 
   # Core dependencies
   - openff-toolkit >=0.18

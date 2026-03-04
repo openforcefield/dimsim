@@ -1,3 +1,5 @@
+import uuid
+
 import numpy
 import pytest
 from openff.toolkit import Molecule
@@ -132,3 +134,47 @@ def test_load_from_doi():
     assert len(dataset) == 186
     for entry in dataset:
         assert entry["source"] == "10.1016/j.fluid.2014.12.023"
+
+
+def test_to_pandas():
+    """A test to ensure that data sets are convertable to pandas objects."""
+
+    thermoml_dataset = ThermoMLDataSet()
+
+    density_entry = {
+        "id": str(uuid.uuid4()).replace("-", ""),
+        "tag": "density",
+        "x": [1.0],
+        "smiles": ["[C:1]([O:5][C:3]([C:2]([O:4][H:13])([H:9])[H:10])([H:11])[H:12])([H:6])([H:7])[H:8]"],
+        "temperature": 293.15,
+        "pressure": 1.0,
+        "value": 0.96488,
+        "std": 0.00005,
+        "units": "g/mL",
+        "source": "",
+    }
+
+    thermoml_dataset.add_properties(density_entry)
+
+    dataframe = thermoml_dataset.to_pandas()
+
+    required_columns = [
+        "Id",
+        "tag",
+        "Temperature (K)",
+        "Pressure (kPa)",
+        "N Components",
+        "Component 1",
+        "Mole Fraction 1",
+        "density Value",
+        "density Uncertainty",
+        "Source",
+    ]
+
+    assert all(x in dataframe for x in required_columns)
+
+    assert dataframe is not None
+    assert dataframe.shape == (1, 10)
+
+    data_set_without_na = dataframe.dropna(axis=1, how="all")
+    assert data_set_without_na.shape == (1, 9)
