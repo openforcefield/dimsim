@@ -47,3 +47,5 @@ dependencies:
   # Typing
   - mypy
   - types-PyYAML
+  - types-requests
+  - types-python-dateutil

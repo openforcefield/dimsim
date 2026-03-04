@@ -44,7 +44,7 @@ class Substance(BaseModel):
     be 'grown' into solution during solvation free energy calculations.
     """
 
-    components: tuple[Component] = Field(default_factory=tuple)
+    components: tuple[Component] = Field(default_factory=tuple)  # type: ignore[assignment]
     amounts: dict = Field(default_factory=dict)
 
     @property
@@ -266,7 +266,7 @@ class Substance(BaseModel):
                 molecule_count -= new_amounts[component][0].value
 
             new_mole_fraction = molecule_count / total_number_of_molecules
-            new_amounts[component].append(MoleFraction(new_mole_fraction))
+            new_amounts[component].append(MoleFraction(new_mole_fraction))  # type: ignore[arg-type]
 
             total_mole_fraction += new_mole_fraction
             number_of_new_mole_fractions += 1

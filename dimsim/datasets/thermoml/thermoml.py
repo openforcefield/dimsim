@@ -1975,7 +1975,7 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
             return None
 
         # Extract the namespace that will prefix all type names
-        namespace_string = re.search(r"{.*\}", root_node.tag).group(0)[1:-1]
+        namespace_string = re.search(r"{.*\}", root_node.tag).group(0)[1:-1]  # type: ignore[union-attr]
         namespace = {"ThermoML": namespace_string}
 
         # Attempt to find a DOI for this archive
@@ -2021,7 +2021,15 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
             for measured_property in properties:
                 unit_to_use = cls._property_unit_map[measured_property.type_string]
 
-                assert Unit(measured_property.default_unit).is_compatible_with(unit_to_use)
+                assert Unit(measured_property.default_unit).is_compatible_with(unit_to_use)  # type: ignore[attr-defined]
+
+                # Could wrap this into a Source.__repr__()? Kinda ugly ...
+                if source.doi is not None:
+                    stringified_source = source.doi
+                elif source.reference is not None:
+                    stringified_source = source.reference
+                else:
+                    stringified_source = ""
 
                 entry = DataEntry(
                     tag=cls._property_tag_map[measured_property.type_string],
@@ -2032,18 +2040,8 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
                     value=measured_property.value.m_as(unit_to_use),
                     std=measured_property.uncertainty.m_as(unit_to_use),
                     units=unit_to_use,
+                    source=stringified_source,  # This is fragile, but really preferable for pyarrow compatiblity
                 )
-
-                # Could wrap this into a Source.__repr__()? Kinda ugly ...
-                if source.doi is not None:
-                    stringified_source = source.doi
-                elif source.reference is not None:
-                    stringified_source = source.reference
-                else:
-                    stringified_source = ""
-
-                # This is fragile, but the pyarrow-compatible type really prefers it being a simple string
-                entry["source"] = stringified_source
 
                 # https://github.com/openforcefield/openff-evaluator/blob/c9b55687be3381768d75afdea01e9e18b5a35fac/openff/evaluator/datasets/datasets.py#L105-L110
                 entry["id"] = str(uuid.uuid4()).replace("-", "")
@@ -2057,7 +2055,7 @@ def _standardize_pressure(pressure) -> float | None:
     if pressure is None:
         return None
     if isinstance(pressure, unit.Quantity):
-        return pressure.to("atmosphere").magnitude
+        return pressure.to("atmosphere").magnitude  # type: ignore[no-any-return]
     else:
         raise ValueError(f"Pressure {pressure} is not a valid type.")
 
@@ -2067,6 +2065,6 @@ def _standardize_temperature(temperature) -> float | None:
         # can this ever be hit
         return None
     if isinstance(temperature, unit.Quantity):
-        return temperature.to("kelvin").magnitude
+        return temperature.to("kelvin").magnitude  # type: ignore[no-any-return]
     else:
         raise ValueError(f"Temperature {temperature} is not a valid type.")

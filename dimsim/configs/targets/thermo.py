@@ -3,7 +3,6 @@ import typing
 import datasets
 import pyarrow
 
-from dimsim.datasets.phase import PropertyPhase
 from dimsim.molecule import map_smiles
 
 EntryTag = typing.Literal[
@@ -18,7 +17,6 @@ EntryTag = typing.Literal[
 DATA_SCHEMA = pyarrow.schema(
     [
         ("tag", pyarrow.string()),
-        ("phases", pyarrow.list_(pyarrow.string())),
         ("smiles", pyarrow.list_(pyarrow.string())),
         ("x", pyarrow.list_(pyarrow.float64())),
         ("temperature", pyarrow.float64()),
@@ -33,8 +31,6 @@ DATA_SCHEMA = pyarrow.schema(
 
 class DataEntry(typing.TypedDict):
     tag: str  # EntryTag
-
-    phases: PropertyPhase
 
     smiles: list[str]
 

@@ -17,7 +17,7 @@ from pydantic import Field
 
 from dimsim.configs.targets.thermo import DataEntry
 from dimsim.datasets.phase import PropertyPhase
-from dimsim.datasets.provenance import CalculationSource, MeasurementSource, Source
+from dimsim.datasets.provenance import MeasurementSource, Source
 from dimsim.substances import Component, ExactAmount, MoleFraction, Substance
 from dimsim.utils.serialization import TypedBaseModel, TypedJSONEncoder
 
@@ -193,7 +193,7 @@ class PhysicalPropertyDataSet(TypedBaseModel):
         """
         Constructs a new PhysicalPropertyDataSet object.
         """
-        self._properties = []
+        self._properties: list[DataEntry] = []
 
     @property
     def properties(self) -> tuple[DataEntry]:
@@ -508,7 +508,7 @@ class PhysicalPropertyDataSet(TypedBaseModel):
             property_unit = Unit(property_unit_string)
             assert property_unit is not None
 
-            assert property_unit.dimensionality == property_type.default_unit().dimensionality
+            assert property_unit.dimensionality == property_type.default_unit().dimensionality  # type: ignore[attr-defined]
 
             property_headers[match.group(0)] = (property_type, property_unit)
 
@@ -547,7 +547,7 @@ class PhysicalPropertyDataSet(TypedBaseModel):
                 if not numpy.isclose(mole_fraction, 0.0):
                     substance.add_component(component, MoleFraction(mole_fraction))
                 if not numpy.isclose(exact_amount, 0.0):
-                    substance.add_component(component, ExactAmount(exact_amount))
+                    substance.add_component(component, ExactAmount(exact_amount))  # type: ignore[misc]
 
             for (
                 property_header,
