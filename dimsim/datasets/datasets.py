@@ -312,39 +312,7 @@ class PhysicalPropertyDataSet(TypedBaseModel):
         for physical_property in self._properties:
             physical_property.validate()
 
-    def to_pandas(self):
-        """Converts a `PhysicalPropertyDataSet` to a `pandas.DataFrame` object
-        with columns of
-
-            - 'Id'
-            - 'Temperature (K)'
-            - 'Pressure (kPa)'
-            - 'Phase'
-            - 'N Components'
-            - 'Component 1'
-            - 'Role 1'
-            - 'Mole Fraction 1'
-            - 'Exact Amount 1'
-            - ...
-            - 'Component N'
-            - 'Role N'
-            - 'Mole Fraction N'
-            - 'Exact Amount N'
-            - '<Property 1> Value (<default unit>)'
-            - '<Property 1> Uncertainty / (<default unit>)'
-            - ...
-            - '<Property N> Value / (<default unit>)'
-            - '<Property N> Uncertainty / (<default unit>)'
-            - `'Source'`
-
-        where 'Component X' is a column containing the smiles representation of
-        component X.
-
-        Returns
-        -------
-        pandas.DataFrame
-            The create data frame.
-        """
+    def to_pandas(self) -> pandas.DataFrame:
 
         if len(self) == 0:
             return pandas.DataFrame()
@@ -369,8 +337,8 @@ class PhysicalPropertyDataSet(TypedBaseModel):
                 data_row[f"Component {index + 1}"] = entry["smiles"][index]
                 data_row[f"Mole Fraction {index + 1}"] = entry["x"][index]
 
-            data_row[f"{entry['tag']} Value"] = entry["value"]
-            data_row[f"{entry['tag']} Uncertainty"] = entry["std"]
+            data_row["Value"] = entry["value"]
+            data_row["Uncertainty"] = entry["std"]
 
             data_rows.append(data_row)
 
@@ -393,8 +361,8 @@ class PhysicalPropertyDataSet(TypedBaseModel):
             data_columns.append(f"Mole Fraction {index + 1}")
 
         for property_type in self.property_types:
-            data_columns.append(f"{property_type} Value")
-            data_columns.append(f"{property_type} Uncertainty")
+            data_columns.append("Value")
+            data_columns.append("Uncertainty")
 
         data_columns.append("Source")
 
@@ -425,6 +393,21 @@ class PhysicalPropertyDataSet(TypedBaseModel):
         """
         dataset = cls()
 
+        # Grabbing from a child class is bad - need to do one of
+        #  1. Drop this class in favor of ThermoMLDataSet just being the entire layer
+        #  2. Move this mapping from ThermoMLDataSet to this class
+        #  3. Make the mapping (property name-like things to units) more general
+
+        from dimsim.datasets.thermoml import ThermoMLDataSet
+
+        assert set(ThermoMLDataSet._property_tag_map.keys()) == set(ThermoMLDataSet._property_unit_map.keys())
+
+        # map tags to properties, using the property:tag and property:unit maps defined in ThermoMLDataSet
+        tag_unit_map = {
+            ThermoMLDataSet._property_tag_map[property_]: ThermoMLDataSet._property_unit_map[property_]
+            for property_ in ThermoMLDataSet._property_tag_map
+        }
+
         for _, row in data_frame.iterrows():
             tag = row["tag"]
             n_components = row["N Components"]
@@ -444,8 +427,9 @@ class PhysicalPropertyDataSet(TypedBaseModel):
                     x=x,
                     temperature=row["Temperature (K)"],
                     pressure=row["Pressure (kPa)"],
-                    value=row[f"{tag} Value"],
-                    std=row[f"{tag} Uncertainty"],
+                    value=row["Value"],
+                    std=row["Uncertainty"],
+                    units=tag_unit_map[tag],
                     source=row["Source"],
                 )
             )

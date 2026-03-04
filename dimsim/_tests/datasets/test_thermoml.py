@@ -176,8 +176,8 @@ def test_to_pandas():
         "N Components",
         "Component 1",
         "Mole Fraction 1",
-        "density Value",
-        "density Uncertainty",
+        "Value",
+        "Uncertainty",
         "Source",
     ]
 
