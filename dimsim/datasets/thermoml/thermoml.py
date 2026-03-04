@@ -2031,20 +2031,19 @@ class ThermoMLDataSet(PhysicalPropertyDataSet):
                 else:
                     stringified_source = ""
 
+                # https://github.com/openforcefield/openff-evaluator/blob/c9b55687be3381768d75afdea01e9e18b5a35fac/openff/evaluator/datasets/datasets.py#L105-L110
                 entry = DataEntry(
+                    id=str(uuid.uuid4()).replace("-", ""),
                     tag=cls._property_tag_map[measured_property.type_string],
                     smiles=[component.smiles for component in measured_property.substance.components],
                     x=[value[0].value for value in measured_property.substance.amounts.values()],
-                    temperature=_standardize_temperature(measured_property.temperature),
-                    pressure=_standardize_pressure(measured_property.pressure),
+                    temperature=_standardize_temperature(measured_property.temperature),  # type: ignore[typeddict-item]
+                    pressure=_standardize_pressure(measured_property.pressure),  # type: ignore[typeddict-item]
                     value=measured_property.value.m_as(unit_to_use),
                     std=measured_property.uncertainty.m_as(unit_to_use),
                     units=unit_to_use,
                     source=stringified_source,  # This is fragile, but really preferable for pyarrow compatiblity
                 )
-
-                # https://github.com/openforcefield/openff-evaluator/blob/c9b55687be3381768d75afdea01e9e18b5a35fac/openff/evaluator/datasets/datasets.py#L105-L110
-                entry["id"] = str(uuid.uuid4()).replace("-", "")
 
                 return_value.add_properties(entry)
 

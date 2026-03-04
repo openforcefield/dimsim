@@ -196,7 +196,7 @@ class PhysicalPropertyDataSet(TypedBaseModel):
         self._properties: list[DataEntry] = []
 
     @property
-    def properties(self) -> tuple[DataEntry]:
+    def properties(self) -> tuple[DataEntry, ...]:
         """tuple of PhysicalProperty: A list of all of the properties
         within this set.
         """
