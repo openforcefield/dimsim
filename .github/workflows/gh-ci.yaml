@@ -1,14 +1,10 @@
 name: GH Actions CI
 on:
   push:
-    branches:
-      - main
   pull_request:
-    branches:
-      - main
   schedule:
     # nightly tests, between US and AUS working hours
-    - cron: "0 0 * * *"
+    - cron: "0 9 * * *"
   workflow_dispatch:
 
 concurrency:
