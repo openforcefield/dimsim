@@ -33,7 +33,7 @@ jobs:
         matrix:
           os: [macOS-latest, ubuntu-latest]
           python-version: ["3.11", "3.12"]
-          include-rdkit: [false, true]
+          include-rdkit: [true]
           include-openeye: [false, true]
           exclude:
             - include-rdkit: false
