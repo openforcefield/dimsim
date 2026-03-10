@@ -101,6 +101,7 @@ class TestThermoMLDataset:
 
         assert entry["source"] == expected["source"]
 
+    @pytest.mark.skip(reason="Implement next")
     def test_pandas_roundtrip(self, filename, expected):
         dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
 

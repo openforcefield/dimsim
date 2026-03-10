@@ -1,8 +1,7 @@
 """
 An API for importing a ThermoML archive.
 """
-import pandas
-import pydantic
+
 import copy
 import logging
 import re
@@ -13,32 +12,34 @@ from urllib.error import HTTPError
 from xml.etree import ElementTree
 
 import numpy as np
+import pandas
+import pydantic
 import requests
 from openff.toolkit import Molecule, Quantity
 from openff.units import Unit, unit
 
 from dimsim.configs.targets.thermo import DataEntry
+from dimsim.datasets.phase import PropertyPhase
 from dimsim.datasets.provenance import MeasurementSource
 
-from dimsim.datasets.phase import PropertyPhase
-    
 _property_tag_map = {
-        "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "ethalpy_of_mixing",
-        "Relative permittivity at zero frequency": "dielectric_constant",
-        "Mass density, kg/m3": "density",
-        "Molar enthalpy of vaporization or sublimation, kJ/mol": "enthalpy_of_vaporization",
-        "Vapor or sublimation pressure, kPa": "vapor_pressure",
-        "Excess molar volume, m3/mol": "excess_molar_volume",
+    "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "ethalpy_of_mixing",
+    "Relative permittivity at zero frequency": "dielectric_constant",
+    "Mass density, kg/m3": "density",
+    "Molar enthalpy of vaporization or sublimation, kJ/mol": "enthalpy_of_vaporization",
+    "Vapor or sublimation pressure, kPa": "vapor_pressure",
+    "Excess molar volume, m3/mol": "excess_molar_volume",
 }
 
 _property_unit_map = {
-        "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "kcal/mol",
-        "Mass density, kg/m3": "gram / milliliter",
-        "Relative permittivity at zero frequency": "dimensionless",
-        "Molar enthalpy of vaporization or sublimation, kJ/mol": "kcal/mol",
-        "Vapor or sublimation pressure, kPa": "kPa",
-        "Excess molar volume, m3/mol": "m**3 / mole",  # ? https://github.com/openforcefield/openff-evaluator/blob/9f25eb3bcbfa9534662024c94bdef3a2411746cb/docs/datasets/thermomldatasets.rst#L31
+    "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "kcal/mol",
+    "Mass density, kg/m3": "gram / milliliter",
+    "Relative permittivity at zero frequency": "dimensionless",
+    "Molar enthalpy of vaporization or sublimation, kJ/mol": "kcal/mol",
+    "Vapor or sublimation pressure, kPa": "kPa",
+    "Excess molar volume, m3/mol": "m**3 / mole",  # ? https://github.com/openforcefield/openff-evaluator/blob/9f25eb3bcbfa9534662024c94bdef3a2411746cb/docs/datasets/thermomldatasets.rst#L31
 }
+
 
 def validate_entry(entry: DataEntry):
     """
@@ -48,6 +49,7 @@ def validate_entry(entry: DataEntry):
     https://github.com/openforcefield/openff-evaluator/blob/c9b55687be3381768d75afdea01e9e18b5a35fac/openff/evaluator/datasets/datasets.py#L276-L286
     """
     pass
+
 
 def _unit_from_thermoml_string(full_string):
     """Extract the unit from a ThermoML property name.
@@ -90,6 +92,7 @@ def _phase_from_thermoml_string(string) -> PropertyPhase:
         phase = PropertyPhase.Gas
 
     return phase
+
 
 @unique
 class _ConstraintType(Enum):
@@ -1289,8 +1292,8 @@ class _PureOrMixtureData:
         if not np.isclose(total_mol_fraction, 1.0):
             raise ValueError(f"The total mole fraction {total_mol_fraction} is not equal to 1.0")
 
-        from dimsim.substances import Substance
-        from dimsim.substances import Component
+        from dimsim.substances import Component, Substance
+
         substance = Substance()
 
         for compound_index in compounds:
@@ -1476,7 +1479,7 @@ class _PureOrMixtureData:
         for phase_node in phase_nodes:
             phase = _phase_from_thermoml_string(phase_node.text)
 
-            if phase  == PropertyPhase.Undefined:
+            if phase == PropertyPhase.Undefined:
                 logging.debug(
                     f"A property was measured in an unsupported phase ({phase_node.text}) and will be skipped."
                 )
@@ -1782,17 +1785,14 @@ class ThermoMLProperty:
             self.uncertainty = uncertainty_quantity
 
 
-
 class ThermoMLDataSet(pydantic.BaseModel):
     """
     A dataset of physical property measurements created from a ThermoML dataset.
     """
 
-
     def __init__(self):
         """Constructs a new ThermoMLDataSet object."""
         self._properties: list[DataEntry] = list()
-
 
     def __len__(self):
         return len(self._properties)
@@ -2057,7 +2057,7 @@ class ThermoMLDataSet(pydantic.BaseModel):
                     id=str(uuid.uuid4()).replace("-", ""),
                     tag=_property_tag_map[measured_property.type_string],
                     smiles=[component.smiles for component in measured_property.substance.components],
-                    x=[value[0].value for value in measured_property.substance.amounts.values()],
+                    x=[value for value in measured_property.substance.amounts.values()],
                     temperature=_standardize_temperature(measured_property.temperature),  # type: ignore[typeddict-item]
                     pressure=_standardize_pressure(measured_property.pressure),  # type: ignore[typeddict-item]
                     value=measured_property.value.m_as(unit_to_use),
@@ -2152,6 +2152,7 @@ class ThermoMLDataSet(pydantic.BaseModel):
 
         data_frame = pandas.DataFrame(data_rows, columns=data_columns)
         return data_frame
+
 
 def _standardize_pressure(pressure) -> float | None:
     if pressure is None:
