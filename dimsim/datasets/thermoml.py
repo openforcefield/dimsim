@@ -3,10 +3,11 @@ An API for importing a ThermoML archive.
 """
 
 import copy
+import hashlib
+import json
 import logging
 import re
 import traceback
-import uuid
 from enum import Enum, unique
 from urllib.error import HTTPError
 from xml.etree import ElementTree
@@ -1784,6 +1785,38 @@ class ThermoMLProperty:
 
             self.uncertainty = uncertainty_quantity
 
+    def _get_raw_property_hash(self) -> int:
+        """
+        Get the raw hash of a property based on its attributes.
+
+        This method serializes the property attributes into a JSON string,
+        sorts the keys, and computes a SHA-256 hash of the resulting string.
+        The hash is then converted to an integer.
+
+        Note: unlike `_get_property_hash`, this method does not truncate the hash value,
+        so the number can be quite large.
+
+        Adapted from OpenFF Evaluator, see below and LICENSE-3RD-PARTY for details
+
+        https://github.com/openforcefield/openff-evaluator/blob/v0.5.2/openff/evaluator/datasets/datasets.py#L204-L231
+        """
+        unit_to_use = _property_unit_map[self.type_string]
+
+        # Evaluator had a .metadata attribute which we don't have here
+        obj = {
+            "type": self.type_string,
+            "substance": str(self.substance),
+            "phase": str(self.phase),
+            "temperature": _standardize_temperature(self.temperature),
+            "pressure": _standardize_pressure(self.pressure),
+            "value": self.value.m_as(unit_to_use),
+            "std": self.uncertainty.m_as(unit_to_use) if self.uncertainty is not None else None,
+            "source": self.source,
+        }
+
+        serialized = json.dumps(obj, sort_keys=True)
+        return int(hashlib.sha256(serialized.encode("utf-8")).hexdigest(), 16)
+
 
 class ThermoMLDataSet(pydantic.BaseModel):
     """
@@ -2054,7 +2087,7 @@ class ThermoMLDataSet(pydantic.BaseModel):
 
                 # https://github.com/openforcefield/openff-evaluator/blob/c9b55687be3381768d75afdea01e9e18b5a35fac/openff/evaluator/datasets/datasets.py#L105-L110
                 entry = DataEntry(
-                    id=str(uuid.uuid4()).replace("-", ""),
+                    id=measured_property._get_raw_property_hash(),
                     tag=_property_tag_map[measured_property.type_string],
                     smiles=[component.smiles for component in measured_property.substance.components],
                     x=[value for value in measured_property.substance.amounts.values()],
@@ -2154,6 +2187,7 @@ class ThermoMLDataSet(pydantic.BaseModel):
         return data_frame
 
 
+# TODO: This could be a hot code path - lru_cache for speed?
 def _standardize_pressure(pressure) -> float | None:
     if pressure is None:
         return None
@@ -2163,6 +2197,7 @@ def _standardize_pressure(pressure) -> float | None:
         raise ValueError(f"Pressure {pressure} is not a valid type.")
 
 
+# TODO: This could be a hot code path - lru_cache for speed?
 def _standardize_temperature(temperature) -> float | None:
     if temperature is None:
         # can this ever be hit

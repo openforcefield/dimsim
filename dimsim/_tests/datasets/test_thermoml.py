@@ -101,6 +101,32 @@ class TestThermoMLDataset:
 
         assert entry["source"] == expected["source"]
 
+    def test_same_property_same_hash(self, filename, expected):
+        dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
+        this_property = next(iter(dataset))
+
+        reloaded = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
+        reloaded_property = next(iter(reloaded))
+
+        assert reloaded_property["id"] == this_property["id"]
+
+    def test_different_property_different_hash(self, filename, expected):
+        dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
+        this_property = next(iter(dataset))
+
+        # Grab a different property from a different file, doesn't really matter which one it is
+        other_filename = {
+            "single_density.xml": "single_dhmix.xml",
+            "single_dhmix.xml": "single_dhvap.xml",
+            "single_dhvap.xml": "single_dielectric.xml",
+            "single_dielectric.xml": "single_density.xml",
+        }[filename]
+
+        different_dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{other_filename}")).read())
+        different_property = next(iter(different_dataset))
+
+        assert different_property["id"] != this_property["id"]
+
     @pytest.mark.skip(reason="Implement next")
     def test_pandas_roundtrip(self, filename, expected):
         dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
