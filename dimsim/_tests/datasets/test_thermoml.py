@@ -127,13 +127,17 @@ class TestThermoMLDataset:
 
         assert different_property["id"] != this_property["id"]
 
-    @pytest.mark.skip(reason="Implement next")
     def test_pandas_roundtrip(self, filename, expected):
         dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
 
         roundtripped = ThermoMLDataSet.from_pandas(dataset.to_pandas())
 
         assert len(dataset) == len(roundtripped)
+
+        for property1, property2 in zip(dataset, roundtripped):
+            assert property1.keys() == property2.keys()
+            for key in property1.keys():
+                assert property1[key] == property2[key]
 
 
 @pytest.mark.skip(reason="Implement next")
@@ -214,5 +218,6 @@ def test_to_pandas():
     assert dataframe is not None
     assert dataframe.shape == (1, 10)
 
+    # Source may be an empty string but is not NaN - is this behavior okay?
     data_set_without_na = dataframe.dropna(axis=1, how="all")
-    assert data_set_without_na.shape == (1, 9)
+    assert data_set_without_na.shape == (1, 10)

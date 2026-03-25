@@ -32,6 +32,8 @@ _property_tag_map = {
     "Excess molar volume, m3/mol": "excess_molar_volume",
 }
 
+_tag_property_map = {value: key for key, value in _property_tag_map.items()}
+
 _property_unit_map = {
     "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "kcal/mol",
     "Mass density, kg/m3": "gram / milliliter",
@@ -1823,6 +1825,9 @@ class ThermoMLDataSet(pydantic.BaseModel):
     A dataset of physical property measurements created from a ThermoML dataset.
     """
 
+    def __repr__(self):
+        return f"<ThermoMLDataset with {len(self._properties)} properties>"
+
     def __init__(self):
         """Constructs a new ThermoMLDataSet object."""
         self._properties: list[DataEntry] = list()
@@ -2147,7 +2152,7 @@ class ThermoMLDataSet(pydantic.BaseModel):
                 "Temperature (K)": entry["temperature"],
                 "Pressure (kPa)": entry["pressure"],
                 "N Components": len(entry["x"]),
-                "source": entry["source"],
+                "Source": entry["source"],
             }
 
             for index in range(len(entry["x"])):
@@ -2165,11 +2170,10 @@ class ThermoMLDataSet(pydantic.BaseModel):
         if len(data_rows) == 0:
             return None
 
+        # Add in a specific order, roughly placing more valuable information towards the left
         data_columns = [
             "Id",
             "tag",
-            "Temperature (K)",
-            "Pressure (kPa)",
             "N Components",
         ]
 
@@ -2177,14 +2181,48 @@ class ThermoMLDataSet(pydantic.BaseModel):
             data_columns.append(f"Component {index + 1}")
             data_columns.append(f"Mole Fraction {index + 1}")
 
-        for property_type in self.property_types:
-            data_columns.append("Value")
-            data_columns.append("Uncertainty")
-
-        data_columns.append("Source")
+        data_columns += [
+            "Temperature (K)",
+            "Pressure (kPa)",
+            "Value",
+            "Uncertainty",
+            "Source",
+        ]
 
         data_frame = pandas.DataFrame(data_rows, columns=data_columns)
+
         return data_frame
+
+    @classmethod
+    def from_pandas(cls, data_frame: pandas.DataFrame):
+        return_value = ThermoMLDataSet()
+
+        # I'm told iterrows is really slow, but don't know if we need this to be performant
+        for _, row in data_frame.iterrows():
+            unit_to_use = _property_unit_map[_tag_property_map[row["tag"]]]
+
+            entry = DataEntry(
+                id=row["Id"],
+                tag=row["tag"],
+                smiles=list(),
+                x=list(),
+                temperature=row["Temperature (K)"],
+                pressure=row["Pressure (kPa)"],
+                value=row["Value"],
+                std=row["Uncertainty"],
+                units=unit_to_use,
+                source=row["Source"],
+            )
+
+            n_components = row["N Components"]
+
+            for index in range(n_components):
+                entry["smiles"].append(row[f"Component {index + 1}"])
+                entry["x"].append(row[f"Mole Fraction {index + 1}"])
+
+            return_value.add_properties(entry)
+
+        return return_value
 
 
 # TODO: This could be a hot code path - lru_cache for speed?
