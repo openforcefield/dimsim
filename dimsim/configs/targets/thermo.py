@@ -43,11 +43,10 @@ class DataEntry(typing.TypedDict):
     source: str
 
 
-def create_dataset(rows: typing.Iterable[DataEntry]) -> datasets.Dataset:
+def create_pyarrow_dataset(rows: typing.Iterable[DataEntry]) -> datasets.Dataset:
     for row in rows:
         row["smiles"] = [map_smiles(value) for value in row["smiles"]]
 
-    # TODO: validate rows
     table = pyarrow.Table.from_pylist([*rows], schema=DATA_SCHEMA)
 
     return datasets.Dataset(datasets.table.InMemoryTable(table))
