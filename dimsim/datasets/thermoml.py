@@ -2152,7 +2152,7 @@ class ThermoMLDataSet(pydantic.BaseModel):
                 "Temperature (K)": entry["temperature"],
                 "Pressure (kPa)": entry["pressure"],
                 "N Components": len(entry["x"]),
-                "source": entry["source"],
+                "Source": entry["source"],
             }
 
             for index in range(len(entry["x"])):
@@ -2211,7 +2211,7 @@ class ThermoMLDataSet(pydantic.BaseModel):
                 value=row["Value"],
                 std=row["Uncertainty"],
                 units=unit_to_use,
-                source=row["Source"],  # TODO: de-stringify source
+                source=row["Source"],
             )
 
             n_components = row["N Components"]
