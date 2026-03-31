@@ -2061,7 +2061,9 @@ class ThermoMLDataSet(pydantic.BaseModel):
                     temperature=_standardize_temperature(measured_property.temperature),  # type: ignore[typeddict-item]
                     pressure=_standardize_pressure(measured_property.pressure),  # type: ignore[typeddict-item]
                     value=measured_property.value.m_as(unit_to_use),
-                    std=measured_property.uncertainty.m_as(unit_to_use),
+                    std=measured_property.uncertainty.m_as(unit_to_use)
+                    if measured_property.uncertainty is not None
+                    else None,
                     units=unit_to_use,
                     source=stringified_source,  # This is fragile, but really preferable for pyarrow compatiblity
                 )
