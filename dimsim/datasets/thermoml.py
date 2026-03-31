@@ -7,6 +7,7 @@ import logging
 import re
 import traceback
 import uuid
+import warnings
 from enum import Enum, unique
 from urllib.error import HTTPError
 from xml.etree import ElementTree
@@ -375,33 +376,80 @@ class _Compound:
         self.index = -1
 
     @staticmethod
-    def smiles_from_inchi_string(inchi_string):
-        """Attempts to create a SMILES pattern from an inchi string.
+    def smiles_from_inchi_string(inchi_string: str, common_name: str | None) -> str | None:
+        """Attempts to create a SMILES pattern from an InChI string.
+
+        When a common name is provided and the InChI encodes tautomeric
+        name is selected via OpenEye.  If that resolution fails (no licence,
+        unrecognised name, single tautomer, etc.) the raw InChI-derived
 
         Parameters
         ----------
         inchi_string: str
             The InChI string to convert.
+        common_name: str, optional
+            An IUPAC or common name used to disambiguate tautomers.
 
         Returns
         ----------
         str, optional
             None if the identifier cannot be converted, otherwise the converted SMILES pattern.
         """
+        from openff.toolkit.utils.toolkits import OPENEYE_AVAILABLE
 
         try:
-            import rdkit.Chem
+            from rdkit import Chem
+            from rdkit.Chem.MolStandardize import rdMolStandardize
         except ImportError:
             return None
 
         if inchi_string is None:
             raise ValueError("The InChI string cannot be `None`.")
 
-        molecule = rdkit.Chem.MolFromInchi(inchi_string, removeHs=False)
+        molecule = Chem.MolFromInchi(inchi_string, removeHs=False)
 
         if not molecule:
-            raise ValueError(f"The InchI string ({inchi_string}) could not be parsed")
+            raise ValueError(f"The InChI string ({inchi_string}) could not be parsed")
 
+        enumerator = rdMolStandardize.TautomerEnumerator()
+        tautomers = enumerator.Enumerate(molecule)
+
+        if len(tautomers) > 1:
+            if not OPENEYE_AVAILABLE:
+                warnings.warn(
+                    f"Multiple tautomers were generated from the InChI string {inchi_string}. "
+                    "However, we cannot disambiguate between them using the common name as "
+                    "OpenEye is not available. The first tautomer will be returned, but this may "
+                    "not be the correct one."
+                )
+            elif common_name is None:
+                warnings.warn(
+                    f"Multiple tautomers were generated from the InChI string {inchi_string}. "
+                    "However, we cannot disambiguate between them as no common name was provided. "
+                    "The first tautomer will be returned, but this may not be the correct one."
+                )
+            else:
+                # Attempt tautomer resolution using common name (requires OpenEye).
+                try:
+                    from openff.toolkit.utils import InvalidIUPACNameError, LicenseError
+
+                    iupac_mol = Molecule.from_iupac(common_name, allow_undefined_stereo=True)
+                    smiles_from_common_name = Chem.MolToSmiles(Chem.RemoveHs(iupac_mol.to_rdkit()))
+
+                    for tautomer in tautomers:
+                        if Chem.MolToSmiles(tautomer) == smiles_from_common_name:
+                            try:
+                                return Molecule.from_rdkit(tautomer).to_smiles(
+                                    isomeric=True,
+                                    explicit_hydrogens=False,
+                                    mapped=False,
+                                )
+                            except ValueError:
+                                pass
+                except (LicenseError, InvalidIUPACNameError, Exception):
+                    pass  # Fall through to original behaviour below
+
+        # Original behaviour: convert InChI-derived molecule directly.
         try:
             return Molecule.from_rdkit(molecule).to_smiles(
                 isomeric=True,
@@ -491,19 +539,33 @@ class _Compound:
         smiles_identifier_nodes = node.findall("ThermoML:sSmiles", namespace)
         common_identifier_nodes = node.findall("ThermoML:sCommonName", namespace)
 
+        inchi = inchi_identifier_nodes[0].text if inchi_identifier_nodes and inchi_identifier_nodes[0].text else None
+        thermoml_smiles = (
+            smiles_identifier_nodes[0].text if smiles_identifier_nodes and smiles_identifier_nodes[0].text else None
+        )
+        common_name = (
+            common_identifier_nodes[0].text if common_identifier_nodes and common_identifier_nodes[0].text else None
+        )
+
         smiles = None
 
-        if len(inchi_identifier_nodes) > 0 and inchi_identifier_nodes[0].text is not None:
-            # Convert InChI key to a smiles pattern.
-            smiles = cls.smiles_from_inchi_string(inchi_identifier_nodes[0].text)
+        # Step 1: SMILES first — preserves the tautomeric form as written.
+        if thermoml_smiles is not None:
+            try:
+                smiles = cls.smiles_from_thermoml_smiles_string(thermoml_smiles)
+            except Exception as e:
+                logging.warning(f"An error occurred while parsing a compound: {e}")
 
-        if smiles is None and len(smiles_identifier_nodes) > 0 and smiles_identifier_nodes[0].text is not None:
-            # Standardise the smiles pattern using OE.
-            smiles = cls.smiles_from_thermoml_smiles_string(smiles_identifier_nodes[0].text)
+        # Step 2: InChI with optional tautomer resolution via common name.
+        if smiles is None and inchi is not None:
+            try:
+                smiles = cls.smiles_from_inchi_string(inchi, common_name=common_name)
+            except Exception:
+                pass
 
-        if smiles is None and len(common_identifier_nodes) > 0 and common_identifier_nodes[0].text is not None:
-            # Convert the common name to a smiles pattern.
-            smiles = cls.smiles_from_common_name(common_identifier_nodes[0].text)
+        # Step 3: Common name alone as last resort.
+        if smiles is None and common_name is not None:
+            smiles = cls.smiles_from_common_name(common_name)
 
         if smiles is None:
             logging.debug(

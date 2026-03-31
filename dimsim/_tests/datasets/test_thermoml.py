@@ -240,11 +240,11 @@ def test_thermoml_pyrrolidinone_tautomer_resolution_without_openeye():
     lactim_smiles = "OC1=NCCC1"
 
     found_lactam = False
-    for prop in data_set:
-        for component in prop.substance.components:
-            if component.smiles == lactam_smiles:
+    for property in data_set:
+        for smiles in property["smiles"]:
+            if smiles == lactam_smiles:
                 found_lactam = True
-            if component.smiles == lactim_smiles:
+            if smiles == lactim_smiles:
                 found_lactim = True
     assert not found_lactam, "Lactam SMILES should not be found in any parsed substance"
     assert found_lactim, "Lactim SMILES not found in any parsed substance"
