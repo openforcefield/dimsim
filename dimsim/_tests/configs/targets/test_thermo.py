@@ -1,5 +1,7 @@
 import random
+import string
 
+import pyarrow
 import pytest
 from openff.toolkit import Molecule
 
@@ -34,6 +36,17 @@ def create_test_entry() -> DataEntry:
     )
 
 
+def replace_with_bad_data_type(value: str | float | list[float]) -> float | str | list[str]:
+    if isinstance(value, str):
+        return random.uniform(0.1, 2.0)
+    elif isinstance(value, float):
+        return "".join(random.choices(string.ascii_letters, k=10))
+    elif isinstance(value, list):
+        return [replace_with_bad_data_type(element) for element in value]
+    else:
+        raise ValueError(f"Unexepected data type {type(value)}.")
+
+
 def test_create_dataset():
     entries = [create_test_entry() for _ in range(5)]
 
@@ -65,3 +78,21 @@ def test_create_dataset():
         assert row["std"] == entry["std"]
         assert row["units"] == entry["units"]
         assert row["source"] == entry["source"]
+
+
+@pytest.mark.parametrize("i", range(5))
+def test_bad_data_type(i):
+    entry = create_test_entry()
+
+    key = random.choice([*entry.keys()])
+
+    entry[key] = replace_with_bad_data_type(entry[key])
+
+    with pytest.raises(
+        (
+            pyarrow.ArrowTypeError,
+            pyarrow.ArrowInvalid,
+            TypeError,  # for when RDKit is given floats as SMILES
+        ),
+    ):
+        create_dataset([entry])
