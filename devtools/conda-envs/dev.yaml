@@ -23,10 +23,6 @@ dependencies:
   - smee
   - descent
 
-  - pytorch
-  - smee
-  - descent
-
   # Development and testing
   - pytest
   - pytest-cov
