@@ -102,13 +102,43 @@ class TestThermoMLDataset:
 
         assert entry["source"] == expected["source"]
 
-    @pytest.mark.skip(reason="Implement next")
+    def test_same_property_same_hash(self, filename, expected):
+        dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
+        this_property = next(iter(dataset))
+
+        reloaded = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
+        reloaded_property = next(iter(reloaded))
+
+        assert reloaded_property["id"] == this_property["id"]
+
+    def test_different_property_different_hash(self, filename, expected):
+        dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
+        this_property = next(iter(dataset))
+
+        # Grab a different property from a different file, doesn't really matter which one it is
+        other_filename = {
+            "single_density.xml": "single_dhmix.xml",
+            "single_dhmix.xml": "single_dhvap.xml",
+            "single_dhvap.xml": "single_dielectric.xml",
+            "single_dielectric.xml": "single_density.xml",
+        }[filename]
+
+        different_dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{other_filename}")).read())
+        different_property = next(iter(different_dataset))
+
+        assert different_property["id"] != this_property["id"]
+
     def test_pandas_roundtrip(self, filename, expected):
         dataset = ThermoMLDataSet.from_xml(open(get_test_data_path(f"thermoml/{filename}")).read())
 
         roundtripped = ThermoMLDataSet.from_pandas(dataset.to_pandas())
 
         assert len(dataset) == len(roundtripped)
+
+        for property1, property2 in zip(dataset, roundtripped):
+            assert property1.keys() == property2.keys()
+            for key in property1.keys():
+                assert property1[key] == property2[key]
 
 
 @pytest.mark.skip(reason="Implement next")
@@ -189,8 +219,9 @@ def test_to_pandas():
     assert dataframe is not None
     assert dataframe.shape == (1, 10)
 
+    # Source may be an empty string but is not NaN - is this behavior okay?
     data_set_without_na = dataframe.dropna(axis=1, how="all")
-    assert data_set_without_na.shape == (1, 9)
+    assert data_set_without_na.shape == (1, 10)
 
 
 @pytest.mark.skipif(not OPENEYE_AVAILABLE, reason="Requires OpenEye toolkit for tautomer resolution.")

@@ -3,10 +3,11 @@ An API for importing a ThermoML archive.
 """
 
 import copy
+import hashlib
+import json
 import logging
 import re
 import traceback
-import uuid
 import warnings
 from enum import Enum, unique
 from urllib.error import HTTPError
@@ -31,6 +32,8 @@ _property_tag_map = {
     "Vapor or sublimation pressure, kPa": "vapor_pressure",
     "Excess molar volume, m3/mol": "excess_molar_volume",
 }
+
+_tag_property_map = {value: key for key, value in _property_tag_map.items()}
 
 _property_unit_map = {
     "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "kcal/mol",
@@ -1846,11 +1849,46 @@ class ThermoMLProperty:
 
             self.uncertainty = uncertainty_quantity
 
+    def _get_raw_property_hash(self) -> int:
+        """
+        Get the raw hash of a property based on its attributes.
+
+        This method serializes the property attributes into a JSON string,
+        sorts the keys, and computes a SHA-256 hash of the resulting string.
+        The hash is then converted to an integer.
+
+        Note: unlike `_get_property_hash`, this method does not truncate the hash value,
+        so the number can be quite large.
+
+        Adapted from OpenFF Evaluator, see below and LICENSE-3RD-PARTY for details
+
+        https://github.com/openforcefield/openff-evaluator/blob/v0.5.2/openff/evaluator/datasets/datasets.py#L204-L231
+        """
+        unit_to_use = _property_unit_map[self.type_string]
+
+        # Evaluator had a .metadata attribute which we don't have here
+        obj = {
+            "type": self.type_string,
+            "substance": str(self.substance),
+            "phase": str(self.phase),
+            "temperature": _standardize_temperature(self.temperature),
+            "pressure": _standardize_pressure(self.pressure),
+            "value": self.value.m_as(unit_to_use),
+            "std": self.uncertainty.m_as(unit_to_use) if self.uncertainty is not None else None,
+            "source": self.source,
+        }
+
+        serialized = json.dumps(obj, sort_keys=True)
+        return int(hashlib.sha256(serialized.encode("utf-8")).hexdigest(), 16)
+
 
 class ThermoMLDataSet(pydantic.BaseModel):
     """
     A dataset of physical property measurements created from a ThermoML dataset.
     """
+
+    def __repr__(self):
+        return f"<ThermoMLDataset with {len(self._properties)} properties>"
 
     def __init__(self):
         """Constructs a new ThermoMLDataSet object."""
@@ -2116,7 +2154,7 @@ class ThermoMLDataSet(pydantic.BaseModel):
 
                 # https://github.com/openforcefield/openff-evaluator/blob/c9b55687be3381768d75afdea01e9e18b5a35fac/openff/evaluator/datasets/datasets.py#L105-L110
                 entry = DataEntry(
-                    id=str(uuid.uuid4()).replace("-", ""),
+                    id=measured_property._get_raw_property_hash(),
                     tag=_property_tag_map[measured_property.type_string],
                     smiles=[component.smiles for component in measured_property.substance.components],
                     x=[value for value in measured_property.substance.amounts.values()],
@@ -2178,7 +2216,7 @@ class ThermoMLDataSet(pydantic.BaseModel):
                 "Temperature (K)": entry["temperature"],
                 "Pressure (kPa)": entry["pressure"],
                 "N Components": len(entry["x"]),
-                "source": entry["source"],
+                "Source": entry["source"],
             }
 
             for index in range(len(entry["x"])):
@@ -2196,11 +2234,10 @@ class ThermoMLDataSet(pydantic.BaseModel):
         if len(data_rows) == 0:
             return None
 
+        # Add in a specific order, roughly placing more valuable information towards the left
         data_columns = [
             "Id",
             "tag",
-            "Temperature (K)",
-            "Pressure (kPa)",
             "N Components",
         ]
 
@@ -2208,16 +2245,51 @@ class ThermoMLDataSet(pydantic.BaseModel):
             data_columns.append(f"Component {index + 1}")
             data_columns.append(f"Mole Fraction {index + 1}")
 
-        for property_type in self.property_types:
-            data_columns.append("Value")
-            data_columns.append("Uncertainty")
-
-        data_columns.append("Source")
+        data_columns += [
+            "Temperature (K)",
+            "Pressure (kPa)",
+            "Value",
+            "Uncertainty",
+            "Source",
+        ]
 
         data_frame = pandas.DataFrame(data_rows, columns=data_columns)
+
         return data_frame
 
+    @classmethod
+    def from_pandas(cls, data_frame: pandas.DataFrame):
+        return_value = ThermoMLDataSet()
 
+        # I'm told iterrows is really slow, but don't know if we need this to be performant
+        for _, row in data_frame.iterrows():
+            unit_to_use = _property_unit_map[_tag_property_map[row["tag"]]]
+
+            entry = DataEntry(
+                id=row["Id"],
+                tag=row["tag"],
+                smiles=list(),
+                x=list(),
+                temperature=row["Temperature (K)"],
+                pressure=row["Pressure (kPa)"],
+                value=row["Value"],
+                std=row["Uncertainty"],
+                units=unit_to_use,
+                source=row["Source"],
+            )
+
+            n_components = row["N Components"]
+
+            for index in range(n_components):
+                entry["smiles"].append(row[f"Component {index + 1}"])
+                entry["x"].append(row[f"Mole Fraction {index + 1}"])
+
+            return_value.add_properties(entry)
+
+        return return_value
+
+
+# TODO: This could be a hot code path - lru_cache for speed?
 def _standardize_pressure(pressure) -> float | None:
     if pressure is None:
         return None
@@ -2227,6 +2299,7 @@ def _standardize_pressure(pressure) -> float | None:
         raise ValueError(f"Pressure {pressure} is not a valid type.")
 
 
+# TODO: This could be a hot code path - lru_cache for speed?
 def _standardize_temperature(temperature) -> float | None:
     if temperature is None:
         # can this ever be hit
