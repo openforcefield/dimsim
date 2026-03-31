@@ -49,11 +49,14 @@ jobs:
         cache: true
         environments: ${{ matrix.environment }}
 
-    - uses: ./.github/actions/include-openeye
-      if: contains(matrix.environment, 'openeye')
-      with:
-        openeye-license-text: ${{ secrets.OE_LICENSE }}
-        openeye-license-file: ${{ env.OE_LICENSE }}
+    - name: Install and license OpenEye Toolkits
+      if: ${{ contains(matrix.environment, 'openeye') }}
+      run: |
+        echo "${SECRET_OE_LICENSE}" > ${OE_LICENSE}
+        pixi run -e ${{ matrix.environment }} python -c "from openeye import oechem; assert oechem.OEChemIsLicensed()"
+      env:
+        SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
+
 
     - name: Run type-checker
       run: pixi run -e ${{ matrix.environment }} run_mypy
