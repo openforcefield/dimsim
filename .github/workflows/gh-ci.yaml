@@ -49,7 +49,7 @@ jobs:
         cache: true
         environments: ${{ matrix.environment }}
 
-    - name: Install and license OpenEye Toolkits
+    - name: License OpenEye Toolkits
       if: ${{ contains(matrix.environment, 'openeye') }}
       run: |
         echo "${SECRET_OE_LICENSE}" > ${OE_LICENSE}
