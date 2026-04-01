@@ -170,13 +170,24 @@ def test_load_single_osmotic():
     assert entry["source"] == "10.1016/j.fluid.2006.09.025"
 
 
-@pytest.mark.skip(reason="implement next")
 def test_load_from_doi():
     """Test loading a ThermoML dataset from a DOI"""
     dataset = ThermoMLDataSet.from_doi("10.1016/j.fluid.2014.12.023")
     assert len(dataset) == 186
     for entry in dataset:
         assert entry["source"] == "10.1016/j.fluid.2014.12.023"
+
+
+def test_load_from_url():
+    """A test to ensure that ThermoML archive files can be loaded from a url."""
+
+    data_set = ThermoMLDataSet.from_url("https://trc.nist.gov/ThermoML/10.1021/acs.jced.6b00916.xml")
+    assert data_set is not None
+
+    assert len(data_set) > 0
+
+    data_set = ThermoMLDataSet.from_url("https://trc.nist.gov/ThermoML/10.1021/acs.jced.6b00916.xmld")
+    assert data_set is None
 
 
 def test_to_pandas():
