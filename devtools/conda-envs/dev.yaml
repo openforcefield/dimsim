@@ -2,7 +2,7 @@ name: dimsim-dev
 channels:
   - conda-forge
 dependencies:
-  - python =3.11
+  - python =3.12
   - pip
 
   # Base dependencies
@@ -10,17 +10,17 @@ dependencies:
   - pyyaml
 
   # Core dependencies
-  - openff-toolkit >=0.18
+  - openff-toolkit-base >=0.18
   - openff-interchange >=0.5
   - openff-nagl-models
   - openff-nagl-base
   - openmm
   - openmmtools
   - sqlmodel
-  - rdkit =2023
+  - rdkit >=2025
 
   - pytorch
-  - smee
+  - smee-base
   - descent
 
   - pytorch
