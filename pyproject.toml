@@ -60,6 +60,13 @@ line-length = 119
 lint.select = [ "E", "F", "I", "NPY", "RUF", "UP", "W" ]
 lint.isort.known-third-party = [ "openff.toolkit", "openff.utilities", "openff.units", "openff.interchange" ]
 
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
 [tool.pytest]
 ini_options.minversion = "6.0"
 ini_options.testpaths = [ "dimsim/_tests" ]
@@ -76,10 +83,3 @@ report.exclude_lines = [
   "pragma: no cover",
   "raise NotImplementedError",
 ]
-
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = false
-ignore_missing_imports = true

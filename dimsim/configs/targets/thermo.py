@@ -1,3 +1,4 @@
+import copy
 import typing
 
 import datasets
@@ -43,11 +44,18 @@ class DataEntry(typing.TypedDict):
     source: str
 
 
-def create_dataset(rows: typing.Iterable[DataEntry]) -> datasets.Dataset:
-    for row in rows:
-        row["smiles"] = [map_smiles(value) for value in row["smiles"]]
+def create_dataset(entries: typing.Iterable[DataEntry]) -> datasets.Dataset:
 
-    # TODO: validate rows
-    table = pyarrow.Table.from_pylist([*rows], schema=DATA_SCHEMA)
+    copied_entries = entries.__class__()
+
+    for entry in entries:
+        # Copy input data to avoid side effects
+        copied_entry = copy.deepcopy(entry)
+
+        copied_entry["smiles"] = [map_smiles(value) for value in copied_entry["smiles"]]
+
+        copied_entries.append(copied_entry)
+
+    table = pyarrow.Table.from_pylist([*copied_entries], schema=DATA_SCHEMA)
 
     return datasets.Dataset(datasets.table.InMemoryTable(table))
