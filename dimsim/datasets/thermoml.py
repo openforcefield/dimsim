@@ -383,8 +383,10 @@ class _Compound:
         """Attempts to create a SMILES pattern from an InChI string.
 
         When a common name is provided and the InChI encodes tautomeric
+        ambiguity (mobile-H layer), the tautomeric form matching the IUPAC
         name is selected via OpenEye.  If that resolution fails (no licence,
         unrecognised name, single tautomer, etc.) the raw InChI-derived
+        molecule is returned unchanged.
 
         Parameters
         ----------
@@ -399,12 +401,8 @@ class _Compound:
             None if the identifier cannot be converted, otherwise the converted SMILES pattern.
         """
         from openff.toolkit.utils.toolkits import OPENEYE_AVAILABLE
-
-        try:
-            from rdkit import Chem
-            from rdkit.Chem.MolStandardize import rdMolStandardize
-        except ImportError:
-            return None
+        from rdkit import Chem
+        from rdkit.Chem.MolStandardize import rdMolStandardize
 
         if inchi_string is None:
             raise ValueError("The InChI string cannot be `None`.")
