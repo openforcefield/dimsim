@@ -18,10 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 
-defaults:
-  run:
-    shell: pixi run bash -e {0}
-
 env:
   OE_LICENSE: ${{ github.workspace }}/oe_license.txt
 
