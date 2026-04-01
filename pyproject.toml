@@ -10,7 +10,7 @@ name = "dimsim"
 description = "Distributed simulation package"
 readme = "README.md"
 license = "MIT"
-license-files = [ "LICENSE" ]
+license-files = [ "LICENSE", "LICENSE-3RD-PARTY" ]
 maintainers = [
   { name = "Lily Wang", email = "lily.wang@openforcefield.org" },
 ]

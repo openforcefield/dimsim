@@ -1,5 +1,6 @@
 include README.md
 include LICENSE
+include LICENSE-3RD-PARTY
 include CODE_OF_CONDUCT.md
 include CONTRIBUTING.md
 include pyproject.toml
