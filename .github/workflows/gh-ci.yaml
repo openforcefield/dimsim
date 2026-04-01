@@ -11,13 +11,6 @@ on:
     - cron: "0 3 * * *"
   workflow_dispatch:
 
-concurrency:
-  # Specific group naming so CI is only cancelled
-  # within same PR or on merge to main
-  group: ${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
-  cancel-in-progress: true
-
-
 env:
   OE_LICENSE: ${{ github.workspace }}/oe_license.txt
 
