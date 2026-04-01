@@ -3,6 +3,7 @@ import uuid
 import numpy
 import pytest
 from openff.toolkit import Molecule
+from openff.toolkit.utils.toolkits import OPENEYE_AVAILABLE
 from openff.units import Unit
 
 from dimsim._tests.utils import get_test_data_path
@@ -221,3 +222,60 @@ def test_to_pandas():
     # Source may be an empty string but is not NaN - is this behavior okay?
     data_set_without_na = dataframe.dropna(axis=1, how="all")
     assert data_set_without_na.shape == (1, 10)
+
+
+@pytest.mark.skipif(not OPENEYE_AVAILABLE, reason="Requires OpenEye toolkit for tautomer resolution.")
+def test_thermoml_pyrrolidinone_tautomer_resolution_with_openeye():
+    """2-pyrrolidinone (InChI-only entry with mobile-H layer)
+    must parse as the lactam O=C1CCCN1, not the lactim OC1=NCCC1.
+
+    The InChI ``InChI=1S/C4H7NO/c6-4-2-1-3-5-4/h1-3H2,(H,5,6)`` round-trips
+    to the same string for both tautomers; the common name disambiguates.
+    Requires an OpenEye licence for ``Molecule.from_iupac``.
+    """
+    data_set = ThermoMLDataSet.from_xml(open(get_test_data_path("thermoml/pyrrolidinone.xml")).read())
+    assert data_set is not None
+    assert len(data_set) > 0
+
+    lactam_smiles = "O=C1CCCN1"
+    lactim_smiles = "OC1=NCCC1"
+
+    found_lactam = False
+    for property in data_set:
+        for smiles in property["smiles"]:
+            if smiles == lactam_smiles:
+                found_lactam = True
+            assert smiles != lactim_smiles, f"Got lactim {lactim_smiles!r} for 2-pyrrolidinone; expected lactam"
+
+    assert found_lactam, "Lactam SMILES not found in any parsed substance"
+
+
+@pytest.mark.skipif(
+    OPENEYE_AVAILABLE,
+    reason="Requires OpenEye toolkit for tautomer resolution, but this test checks behavior without it.",
+)
+def test_thermoml_pyrrolidinone_tautomer_resolution_without_openeye():
+    """Without OpenEye, 2-pyrrolidinone (InChI-only entry with mobile-H layer)
+    parses as the lactim OC1=NCCC1, not lactam O=C1CCCN1
+    """
+    with pytest.warns(
+        UserWarning,
+        match="Multiple tautomers were generated from the InChI string",
+    ):
+        data_set = ThermoMLDataSet.from_xml(open(get_test_data_path("thermoml/pyrrolidinone.xml")).read())
+
+    assert data_set is not None
+    assert len(data_set) > 0
+
+    lactam_smiles = "O=C1CCCN1"
+    lactim_smiles = "OC1=NCCC1"
+
+    found_lactam = False
+    for property in data_set:
+        for smiles in property["smiles"]:
+            if smiles == lactam_smiles:
+                found_lactam = True
+            if smiles == lactim_smiles:
+                found_lactim = True
+    assert not found_lactam, "Lactam SMILES should not be found in any parsed substance"
+    assert found_lactim, "Lactim SMILES not found in any parsed substance"
