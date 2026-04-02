@@ -4,7 +4,7 @@ from dimsim.substances.component import Component
 
 
 class Substance(pydantic.BaseModel):
-    components: tuple[Component] = pydantic.Field(default_factory=tuple)
+    components: tuple[Component, ...] = pydantic.Field(default_factory=tuple)
     amounts: dict[Component, float] = pydantic.Field(default_factory=dict)
 
     def add_component(self, component: Component, amount: float):
