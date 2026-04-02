@@ -29,6 +29,7 @@ dask-kubernetes = "*"
 distributed = "*"
 
 [pypi-dependencies]
+rdkit-stubs = "*"
 dimsim = { path = ".", editable = true }
 
 [environments]
