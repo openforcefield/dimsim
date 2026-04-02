@@ -60,3 +60,4 @@ pytest-randomly = "*"
 [feature.typing.dependencies]
 mypy = "*"
 types-PyYAML = "*"
+types-requests = "*"

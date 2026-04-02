@@ -36,7 +36,7 @@ class Component(pydantic.BaseModel):
         -------
         The standardized SMILES pattern.
         """
-        from openff.toolkit.topology import Molecule
+        from openff.toolkit import Molecule
         from openff.toolkit.utils.rdkit_wrapper import RDKitToolkitWrapper
         from openff.toolkit.utils.toolkit_registry import ToolkitRegistry
 

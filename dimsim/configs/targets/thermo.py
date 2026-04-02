@@ -44,7 +44,7 @@ class DataEntry(typing.TypedDict):
     source: str
 
 
-def create_dataset(entries: typing.Iterable[DataEntry]) -> datasets.Dataset:
+def create_dataset(entries: list[DataEntry]) -> datasets.Dataset:
 
     copied_entries = entries.__class__()
 
