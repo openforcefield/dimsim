@@ -31,8 +31,8 @@ jobs:
       uses: prefix-dev/setup-pixi@v0.9.5
       with:
         pixi-version: v0.66.0
-        cache: true
         environments: ${{ matrix.environment }}
+        frozen: true
 
     - name: License OpenEye Toolkits
       if: ${{ contains(matrix.environment, 'openeye') }}
