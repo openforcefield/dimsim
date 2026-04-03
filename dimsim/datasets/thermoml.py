@@ -440,7 +440,7 @@ class _Compound:
                     for tautomer in tautomers:
                         if Chem.MolToSmiles(tautomer) == smiles_from_common_name:
                             try:
-                                return Molecule.from_rdkit(tautomer).to_smiles(
+                                return Molecule.from_rdkit(tautomer).to_smiles(  # type: ignore[no-any-return]
                                     isomeric=True,
                                     explicit_hydrogens=False,
                                     mapped=False,
@@ -452,7 +452,7 @@ class _Compound:
 
         # Original behaviour: convert InChI-derived molecule directly.
         try:
-            return Molecule.from_rdkit(molecule).to_smiles(
+            return Molecule.from_rdkit(molecule).to_smiles(  # type: ignore[no-any-return]
                 isomeric=True,
                 explicit_hydrogens=False,
                 mapped=False,
