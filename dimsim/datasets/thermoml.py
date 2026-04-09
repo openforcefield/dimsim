@@ -2292,7 +2292,7 @@ def _standardize_pressure(pressure) -> float | None:
     if pressure is None:
         return None
     if isinstance(pressure, unit.Quantity):
-        return pressure.to("atmosphere").magnitude  # type: ignore[no-any-return]
+        return pressure.to("kPa").magnitude  # type: ignore[no-any-return]
     else:
         raise ValueError(f"Pressure {pressure} is not a valid type.")
 
