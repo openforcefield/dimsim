@@ -18,7 +18,7 @@ from dimsim.datasets.thermoml import ThermoMLDataSet
             {
                 "x": [1.0],
                 "temperature": 293.15,
-                "pressure": 1.0,
+                "pressure": 101.325,
                 "value": 0.96488,
                 "std": 0.00005,
                 "units": "g/mL",
@@ -30,7 +30,7 @@ from dimsim.datasets.thermoml import ThermoMLDataSet
             {
                 "x": [0.219, 0.781],
                 "temperature": 298.15,
-                "pressure": 0.997,
+                "pressure": 101.0,
                 "value": 0.03021,
                 "std": 0.000151,
                 "units": "kcal/mol",
@@ -54,7 +54,7 @@ from dimsim.datasets.thermoml import ThermoMLDataSet
             {
                 "x": [1.0],
                 "temperature": 293.15,
-                "pressure": 0.997,
+                "pressure": 101.0,
                 "value": 11.76,
                 "std": 0.02,
                 "units": "dimensionless",
@@ -92,7 +92,7 @@ class TestThermoMLDataset:
 
         assert entry["temperature"] == expected["temperature"]
         if expected["pressure"] is not None:
-            assert numpy.isclose(entry["pressure"], expected["pressure"], atol=1e-3)
+            assert numpy.isclose(entry["pressure"], expected["pressure"], rtol=0.00025)
         else:
             assert entry["pressure"] is None
 
