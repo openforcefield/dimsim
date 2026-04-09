@@ -140,6 +140,9 @@ class TestThermoMLDataset:
             for key in property1.keys():
                 assert property1[key] == property2[key]
 
+            # likely redundant
+            assert property1["pressure"] == property2["pressure"]
+
 
 @pytest.mark.skip(reason="Implement next")
 def test_load_single_osmotic():
