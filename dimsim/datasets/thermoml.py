@@ -24,6 +24,11 @@ from dimsim.configs.targets.thermo import DataEntry
 from dimsim.datasets.phase import PropertyPhase
 from dimsim.datasets.provenance import MeasurementSource
 
+
+class DuplicateThermoMLEntryWarning(UserWarning):
+    """A warning raised when a ThermoML entry is found which appears to be a duplicate of another entry."""
+
+
 _property_tag_map = {
     "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "ethalpy_of_mixing",
     "Relative permittivity at zero frequency": "dielectric_constant",
@@ -2190,7 +2195,19 @@ class ThermoMLDataSet(pydantic.BaseModel):
                 validate_entry(entry)
 
             if entry["id"] in all_ids:
-                raise KeyError(f"A property with the unique id {entry['id']} already exists.")
+                # See Issue #68, there is probably nothing wrong with duplicated entries, and probably
+                # no reason to store duplicates
+                #   * if properties are truly duplicate from the same source, just warn and move on (but
+                #         maybe deal with later in filterin)
+                #   * if otherwise-identical properties come from different sources, they will hash to
+                #         different ids and we shouldn't end up in this clause
+                #
+                # this is *not true* if important criteria are not included in the hash function that
+                # the id is set from
+                warnings.warn(
+                    f"A property with the unique id {entry['id']} already exists, so not adding it now.",
+                    DuplicateThermoMLEntryWarning,
+                )
 
             all_ids.add(entry["id"])
 
