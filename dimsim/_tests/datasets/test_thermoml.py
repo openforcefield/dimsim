@@ -7,7 +7,7 @@ from openff.toolkit.utils.toolkits import OPENEYE_AVAILABLE
 from openff.units import Unit
 
 from dimsim._tests.utils import get_test_data_path
-from dimsim.datasets.thermoml import ThermoMLDataSet
+from dimsim.datasets.thermoml import DuplicateThermoMLEntryWarning, ThermoMLDataSet
 
 
 @pytest.mark.parametrize(
@@ -293,3 +293,72 @@ def test_thermoml_pyrrolidinone_tautomer_resolution_without_openeye():
                 found_lactim = True
     assert not found_lactam, "Lactam SMILES should not be found in any parsed substance"
     assert found_lactim, "Lactim SMILES not found in any parsed substance"
+
+
+def test_thermoml_warn_duplicate_properties():
+    dataset = ThermoMLDataSet()
+
+    property_ = {
+        "id": 35598034897404032129990573617925713559702236029053845170364984208600110431820,
+        "tag": "density",
+        "smiles": ["COCCO"],
+        "x": [1.0],
+        "temperature": 293.15,
+        "pressure": 101.3,
+        "value": 0.9648800000000002,
+        "std": 5.0000000000000016e-05,
+        "units": "gram / milliliter",
+        "source": "",
+    }
+
+    with pytest.warns(
+        DuplicateThermoMLEntryWarning,
+        match="35598034897404032129990573617925713559702236029053845170364984208600110431820",
+    ):
+        dataset.add_properties(*[property_, property_])
+
+    assert len(dataset) == 1
+
+
+@pytest.mark.filterwarnings("error")
+def test_thermoml_no_warning_for_slightly_different_properties():
+
+    property1 = {
+        "id": 1,
+        "tag": "density",
+        "smiles": ["COCCO"],
+        "x": [1.0],
+        "temperature": 293.15,
+        "pressure": 101.3,
+        "value": 0.9648800000000002,
+        "std": 5.0000000000000016e-05,
+        "units": "gram / milliliter",
+        "source": "10.61092/iaea.ght7-f9qq",  # this DOI is meaningless
+    }
+
+    # for these properties, trust that ThermoMLProperty._get_property_hash accurately accounts for
+    # std, source, etc. being different. Going from entry (dict) to ThermoMLProperty (class) is
+    # non-trivial and not currently part of the API
+    property_lower_uncertainty = {
+        **property1,
+        "id": 2,
+        "std": property1["std"] * 0.99,
+    }
+
+    property_different_doi = {
+        **property1,
+        "id": 3,
+        "source": "10.61092/iaea.ght7-f9qr",  # this DOI is also meaningless
+    }
+
+    dataset1 = ThermoMLDataSet()
+
+    dataset1.add_properties(*[property1, property_lower_uncertainty])
+
+    assert len(dataset1) == 2
+
+    dataset2 = ThermoMLDataSet()
+
+    dataset2.add_properties(*[property1, property_different_doi])
+
+    assert len(dataset2) == 2

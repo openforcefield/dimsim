@@ -2209,9 +2209,12 @@ class ThermoMLDataSet(pydantic.BaseModel):
                     DuplicateThermoMLEntryWarning,
                 )
 
-            all_ids.add(entry["id"])
+                continue
 
-        self._properties.extend(entries)
+            all_ids.add(entry["id"])
+            print(all_ids)
+
+            self._properties.extend([entry])
 
     def to_pandas(self) -> pandas.DataFrame:
 
