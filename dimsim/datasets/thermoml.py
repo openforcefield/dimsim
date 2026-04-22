@@ -2212,9 +2212,8 @@ class ThermoMLDataSet(pydantic.BaseModel):
                 continue
 
             all_ids.add(entry["id"])
-            print(all_ids)
 
-            self._properties.extend([entry])
+            self._properties.append(entry)
 
     def to_pandas(self) -> pandas.DataFrame:
 
