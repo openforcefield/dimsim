@@ -24,6 +24,11 @@ from dimsim.configs.targets.thermo import DataEntry
 from dimsim.datasets.phase import PropertyPhase
 from dimsim.datasets.provenance import MeasurementSource
 
+
+class DuplicateThermoMLEntryWarning(UserWarning):
+    """A warning raised when a ThermoML entry is found which appears to be a duplicate of another entry."""
+
+
 _property_tag_map = {
     "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "ethalpy_of_mixing",
     "Relative permittivity at zero frequency": "dielectric_constant",
@@ -1864,6 +1869,15 @@ class ThermoMLProperty:
         """
         unit_to_use = _property_unit_map[self.type_string]
 
+        if not self.source:
+            stringified_source = ""
+        elif self.source.doi is not None:
+            stringified_source = self.source.doi
+        elif self.source.reference is not None:
+            stringified_source = self.source.reference
+        else:
+            stringified_source = ""
+
         # Evaluator had a .metadata attribute which we don't have here
         obj = {
             "type": self.type_string,
@@ -1873,7 +1887,7 @@ class ThermoMLProperty:
             "pressure": _standardize_pressure(self.pressure),
             "value": self.value.m_as(unit_to_use),
             "std": self.uncertainty.m_as(unit_to_use) if self.uncertainty is not None else None,
-            "source": self.source,
+            "source": stringified_source,
         }
 
         serialized = json.dumps(obj, sort_keys=True)
@@ -2138,37 +2152,43 @@ class ThermoMLDataSet(pydantic.BaseModel):
                 )
 
             for measured_property in properties:
-                unit_to_use = _property_unit_map[measured_property.type_string]
+                measured_property.source = source
 
-                assert Unit(measured_property.default_unit).is_compatible_with(unit_to_use)  # type: ignore[attr-defined]
-
-                # Could wrap this into a Source.__repr__()? Kinda ugly ...
-                if source.doi is not None:
-                    stringified_source = source.doi
-                elif source.reference is not None:
-                    stringified_source = source.reference
-                else:
-                    stringified_source = ""
-
-                # https://github.com/openforcefield/openff-evaluator/blob/c9b55687be3381768d75afdea01e9e18b5a35fac/openff/evaluator/datasets/datasets.py#L105-L110
-                entry = DataEntry(
-                    id=measured_property._get_raw_property_hash(),
-                    tag=_property_tag_map[measured_property.type_string],
-                    smiles=[component.smiles for component in measured_property.substance.components],
-                    x=[value for value in measured_property.substance.amounts.values()],
-                    temperature=_standardize_temperature(measured_property.temperature),  # type: ignore[typeddict-item]
-                    pressure=_standardize_pressure(measured_property.pressure),  # type: ignore[typeddict-item]
-                    value=measured_property.value.m_as(unit_to_use),
-                    std=measured_property.uncertainty.m_as(unit_to_use)
-                    if measured_property.uncertainty is not None
-                    else None,
-                    units=unit_to_use,
-                    source=stringified_source,  # This is fragile, but really preferable for pyarrow compatiblity
-                )
+                entry = cls._property_to_entry(measured_property)  # , source)
 
                 return_value.add_properties(entry)
 
         return return_value
+
+    @staticmethod
+    def _property_to_entry(measured_property: ThermoMLProperty) -> DataEntry:
+        unit_to_use = _property_unit_map[measured_property.type_string]
+
+        assert Unit(measured_property.default_unit).is_compatible_with(unit_to_use)  # type: ignore[attr-defined]
+
+        # # Could wrap this into a Source.__repr__()? Kinda ugly ...
+        if measured_property.source is None:
+            stringified_source = ""
+        elif measured_property.source.doi is not None:
+            stringified_source = measured_property.source.doi
+        elif measured_property.source.reference is not None:
+            stringified_source = measured_property.source.reference
+        else:
+            stringified_source = ""
+
+        # https://github.com/openforcefield/openff-evaluator/blob/c9b55687be3381768d75afdea01e9e18b5a35fac/openff/evaluator/datasets/datasets.py#L105-L110
+        return DataEntry(
+            id=measured_property._get_raw_property_hash(),
+            tag=_property_tag_map[measured_property.type_string],
+            smiles=[component.smiles for component in measured_property.substance.components],
+            x=[value for value in measured_property.substance.amounts.values()],
+            temperature=_standardize_temperature(measured_property.temperature),  # type: ignore[typeddict-item]
+            pressure=_standardize_pressure(measured_property.pressure),  # type: ignore[typeddict-item]
+            value=measured_property.value.m_as(unit_to_use),
+            std=measured_property.uncertainty.m_as(unit_to_use) if measured_property.uncertainty is not None else None,
+            units=unit_to_use,
+            source=stringified_source,  # This is fragile, but really preferable for pyarrow compatiblity
+        )
 
     def add_properties(self, *entries, validate=True):
         """Adds a physical property to the data set.
@@ -2190,11 +2210,25 @@ class ThermoMLDataSet(pydantic.BaseModel):
                 validate_entry(entry)
 
             if entry["id"] in all_ids:
-                raise KeyError(f"A property with the unique id {entry['id']} already exists.")
+                # See Issue #68, there is probably nothing wrong with duplicated entries, and probably
+                # no reason to store duplicates
+                #   * if properties are truly duplicate from the same source, just warn and move on (but
+                #         maybe deal with later in filterin)
+                #   * if otherwise-identical properties come from different sources, they will hash to
+                #         different ids and we shouldn't end up in this clause
+                #
+                # this is *not true* if important criteria are not included in the hash function that
+                # the id is set from
+                warnings.warn(
+                    f"A property with the unique id {entry['id']} already exists, so not adding it now.",
+                    DuplicateThermoMLEntryWarning,
+                )
+
+                continue
 
             all_ids.add(entry["id"])
 
-        self._properties.extend(entries)
+            self._properties.append(entry)
 
     def to_pandas(self) -> pandas.DataFrame:
 
