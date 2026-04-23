@@ -1922,7 +1922,7 @@ class ThermoMLDataSet(pydantic.BaseModel):
     @property
     def property_types(self) -> set[str]:
         """set of str: The types of property within this data set."""
-        return set([x["tag"] for x in self._properties])
+        return {x["tag"] for x in self._properties}
 
     @classmethod
     def from_doi(cls, *doi_list):
@@ -2202,7 +2202,7 @@ class ThermoMLDataSet(pydantic.BaseModel):
             to the set.
         """
 
-        all_ids = set(x["id"] for x in self)
+        all_ids = {x["id"] for x in self}
 
         # TODO: Do we need to check for adding the same property twice?
         for entry in entries:

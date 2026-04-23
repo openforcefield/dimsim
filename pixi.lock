@@ -5418,7 +5418,7 @@ packages:
   timestamp: 1690101185422
 - pypi: ./
   name: dimsim
-  version: 0.0.1.dev31+g497976596.d20260423
+  version: 0.0.1.dev32+gda0588777.d20260423
   sha256: 68d612b0ab1d6a33b00dca0f5b9de45517ac2645d9e06a63934fa3d301349a2d
   requires_dist:
   - openff-sphinx-theme @ git+https://github.com/openforcefield/openff-sphinx-theme.git@main ; extra == 'doc'
