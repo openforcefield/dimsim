@@ -40,7 +40,11 @@ py312openeye = [ "py312", "openeye", "test", "typing" ]
 dev = [ "py312", "openeye", "test", "typing", "dev" ]
 
 [feature.dev.dependencies]
+openff-packmol = "0.1"
+
+[feature.dev.pypi-dependencies]
 pre-commit = "*"
+parsl = "*"
 
 [feature.openeye]
 channels = [ "openeye", "conda-forge" ]
