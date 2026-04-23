@@ -2,12 +2,51 @@ import uuid
 
 import numpy
 import pytest
-from openff.toolkit import Molecule
+from openff.toolkit import Molecule, Quantity
 from openff.toolkit.utils.toolkits import OPENEYE_AVAILABLE
 from openff.units import Unit
 
 from dimsim._tests.utils import get_test_data_path
-from dimsim.datasets.thermoml import DuplicateThermoMLEntryWarning, ThermoMLDataSet
+from dimsim.datasets.provenance import MeasurementSource
+from dimsim.datasets.thermoml import (
+    DuplicateThermoMLEntryWarning,
+    ThermoMLDataSet,
+    ThermoMLProperty,
+    _property_unit_map,
+    _tag_property_map,
+)
+from dimsim.substances import Component, Substance
+
+
+def data_entry_to_property_and_source(
+    entry: dict,
+) -> ThermoMLProperty:
+
+    property_ = ThermoMLProperty(type_string=_tag_property_map[entry["tag"]])
+    property_.default_unit = _property_unit_map[property_.type_string]
+
+    substance = Substance()
+
+    for smiles, x in zip(entry["smiles"], entry["x"]):
+        substance.add_component(
+            component=Component(smiles=smiles),
+            amount=x,
+        )
+
+    property_.substance = substance
+
+    property_.temperature = Quantity(entry["temperature"], "kelvin")
+    property_.pressure = Quantity(entry["pressure"], "kilopascal") if entry["pressure"] else None
+
+    unit_to_use = _property_unit_map[property_.type_string]
+
+    property_.value = Quantity(entry["value"], unit_to_use)
+    property_.uncertainty = Quantity(entry["std"], unit_to_use)
+
+    # if this was in production, need better way to determine if source is a DOI or not
+    property_.source = MeasurementSource(doi=entry["source"]) if entry["source"].startswith("10.") else None
+
+    return property_
 
 
 @pytest.mark.parametrize(
@@ -323,7 +362,7 @@ def test_thermoml_warn_duplicate_properties():
 @pytest.mark.filterwarnings("error")
 def test_thermoml_no_warning_for_slightly_different_properties():
 
-    property1 = {
+    original = {
         "id": 1,
         "tag": "density",
         "smiles": ["COCCO"],
@@ -336,29 +375,40 @@ def test_thermoml_no_warning_for_slightly_different_properties():
         "source": "10.61092/iaea.ght7-f9qq",  # this DOI is meaningless
     }
 
-    # for these properties, trust that ThermoMLProperty._get_property_hash accurately accounts for
-    # std, source, etc. being different. Going from entry (dict) to ThermoMLProperty (class) is
-    # non-trivial and not currently part of the API
-    property_lower_uncertainty = {
-        **property1,
+    lower_uncertainty = {
+        **original,
         "id": 2,
-        "std": property1["std"] * 0.99,
+        "std": original["std"] * 0.99,
     }
 
-    property_different_doi = {
-        **property1,
+    different_doi = {
+        **original,
         "id": 3,
         "source": "10.61092/iaea.ght7-f9qr",  # this DOI is also meaningless
     }
 
+    # ~roundtrip each through ThermoMLDataSet._property_to_entry to ensure the generated id
+    # is based on values of the property, not just set arbitrarily
+    entry1 = ThermoMLDataSet._property_to_entry(data_entry_to_property_and_source(original))
+
+    entry2 = ThermoMLDataSet._property_to_entry(data_entry_to_property_and_source(lower_uncertainty))
+
+    entry3 = ThermoMLDataSet._property_to_entry(data_entry_to_property_and_source(different_doi))
+
+    assert entry1["id"] != 1
+    assert entry2["id"] != 2
+    assert entry3["id"] != 3
+
     dataset1 = ThermoMLDataSet()
 
-    dataset1.add_properties(*[property1, property_lower_uncertainty])
+    # different uncertainties should each be added as separate entries
+    dataset1.add_properties(*[entry1, entry2])
 
     assert len(dataset1) == 2
 
     dataset2 = ThermoMLDataSet()
 
-    dataset2.add_properties(*[property1, property_different_doi])
+    # different DOIs should also end up as separate entries, even if otherwise identical
+    dataset2.add_properties(*[entry1, entry3])
 
     assert len(dataset2) == 2
