@@ -1,4 +1,4 @@
-import uuid
+import random
 
 import numpy
 import pytest
@@ -238,7 +238,7 @@ def test_to_pandas():
     thermoml_dataset = ThermoMLDataSet()
 
     density_entry = {
-        "id": int(str(uuid.uuid4()).replace("-", "")),
+        "id": random.randint(10**15, 10**16 - 1),  # random 16-digit integer
         "tag": "density",
         "x": [1.0],
         "smiles": ["[C:1]([O:5][C:3]([C:2]([O:4][H:13])([H:9])[H:10])([H:11])[H:12])([H:6])([H:7])[H:8]"],
