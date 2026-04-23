@@ -23,8 +23,6 @@ jobs:
         matrix:
           os: [macOS-latest, ubuntu-latest]
           environment:
-            - py311
-            - py311openeye
             - py312
             - py312openeye
 
