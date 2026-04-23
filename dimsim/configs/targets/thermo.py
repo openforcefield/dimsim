@@ -23,7 +23,7 @@ DATA_SCHEMA = pyarrow.schema(
 
 
 class DataEntry(typing.TypedDict):
-    id: str
+    id: int
 
     tag: str  # was previously EntryTag
 
