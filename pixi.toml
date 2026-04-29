@@ -40,7 +40,8 @@ py312openeye = [ "py312", "openeye", "test", "typing" ]
 dev = [ "py312", "openeye", "test", "typing", "dev" ]
 
 [feature.dev.dependencies]
-openff-packmol = "0.1"
+openff-packmol = "0.1.*"
+pymol-open-source = "*"
 
 [feature.dev.pypi-dependencies]
 pre-commit = "*"
