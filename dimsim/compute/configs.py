@@ -27,7 +27,7 @@ def local_config():
                     max_blocks=1,
                 ),
                 # Optional: Specify exact max workers (processes)
-                max_workers_per_node=os.cpu_count(),
+                max_workers_per_node=int(os.cpu_count() / 2),
             )
         ],
         strategy=None,  # Disable dynamic scaling for simpler local execution
