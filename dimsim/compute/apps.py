@@ -2,14 +2,14 @@ import openmm
 from openff.toolkit import Topology
 from parsl.app.app import python_app
 
-from dimsim.configs.compute.density import DensityConfig
+from dimsim.configs.compute.density import LiquidConfig
 
 
 @python_app
 def prepare_packed_topology(
-    compute_config: DensityConfig,
+    compute_config: LiquidConfig,
     job_dir: str,
-) -> dict[str, DensityConfig | Topology]:
+) -> dict[str, LiquidConfig | Topology]:
     import logging
     import pathlib
     import time
@@ -26,13 +26,12 @@ def prepare_packed_topology(
     )
     logging.info("Starting packing app")
 
-    data_entry = compute_config["target"]
     n_molecules = compute_config["n_molecules"]
 
     time.sleep(n_molecules * 0.001)
     filename = f"{job_dir}/packed_topology.pdb"
 
-    molecules = [Molecule.from_smiles(smiles) for smiles in data_entry["smiles"]]
+    molecules = [Molecule.from_smiles(smiles) for smiles in compute_config["smiles"]]
 
     if pathlib.Path(filename).exists():
         logging.info(f"File {filename} already exists, skipping packing.")
@@ -41,12 +40,12 @@ def prepare_packed_topology(
             "packed_topology": Topology.from_pdb(filename, unique_molecules=molecules),
         }
 
-    n_copies = [int(n_molecules * x) for x in data_entry["x"]]
+    n_copies = [int(n_molecules * x) for x in compute_config["x"]]
 
     result = pack_box(
         molecules,
         n_copies,
-        target_density=Quantity(data_entry["value"] * 0.7, "g/mL"),
+        target_density=Quantity(compute_config["value"] * 0.7, "g/mL"),
         working_directory=job_dir,
     )
 
@@ -62,9 +61,9 @@ def prepare_packed_topology(
 
 @python_app
 def prepare_openmm_system(
-    packing_future: dict[str, DensityConfig | Topology],
+    packing_future: dict[str, LiquidConfig | Topology],
     job_dir: str,
-) -> dict[str, DensityConfig | openmm.System]:
+) -> dict[str, LiquidConfig | openmm.System]:
     import logging
     import pathlib
 
@@ -105,8 +104,8 @@ def prepare_openmm_system(
 
 @python_app
 def minimize_energy(
-    system_future: dict[str, DensityConfig | openmm.System], job_dir: str
-) -> dict[str, DensityConfig | float]:
+    system_future: dict[str, LiquidConfig | openmm.System], job_dir: str
+) -> dict[str, LiquidConfig | float]:
     import logging
 
     import openmm
@@ -121,15 +120,15 @@ def minimize_energy(
     logging.info("Starting energy minimization app")
     system = system_future["openmm_system"]
 
-    data_entry = system_future["compute_config"]["target"]
+    compute_config = system_future["compute_config"]
 
     # this should be in Kelvin
-    temperature = system_future["compute_config"]["target"]["temperature"]
+    temperature = compute_config["temperature"]
 
     packed_topology_file = f"{job_dir}/packed_topology.pdb"
     minimized_topology_file = f"{job_dir}/minimized_topology.pdb"
 
-    molecules = [Molecule.from_smiles(smiles) for smiles in data_entry["smiles"]]
+    molecules = [Molecule.from_smiles(smiles) for smiles in compute_config["smiles"]]
 
     topology = Topology.from_pdb(
         packed_topology_file,
@@ -162,12 +161,16 @@ def minimize_energy(
     with open(minimized_topology_file, "w") as f:
         openmm.app.PDBFile.writeFile(simulation.topology, final_state.getPositions(), f)
 
-    original = original_state.getPotentialEnergy().value_in_unit(openmm.unit.kilojoule_per_mole)
-    final = final_state.getPotentialEnergy().value_in_unit(openmm.unit.kilojoule_per_mole)
+    original: float = original_state.getPotentialEnergy().value_in_unit(openmm.unit.kilojoule_per_mole)
+    final: float = final_state.getPotentialEnergy().value_in_unit(openmm.unit.kilojoule_per_mole)
 
     logging.info(f"Minimized energy from {original:.2f} to {final:.2f}")
 
-    return original, final
+    return {
+        "compute_config": compute_config,
+        "original": original,
+        "final": final,
+    }
 
 
 @python_app

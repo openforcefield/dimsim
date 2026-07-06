@@ -2,10 +2,12 @@ import hashlib
 import json
 import os
 
-from dimsim.configs.compute.density import DensityConfig
+from dimsim.configs.compute.liquid import LiquidConfig
 
 
-def make_job_id(compute_config: DensityConfig) -> str:
+# TODO: LiquidConfig should have a base class?
+#       one for i.e. GasConfig to derive from
+def make_job_id(compute_config: LiquidConfig) -> str:
     """
     Generate a deterministic job ID from compute parameters.
 
@@ -13,11 +15,17 @@ def make_job_id(compute_config: DensityConfig) -> str:
     """
     params = {
         "tag": compute_config["tag"],
-        "target": compute_config["target"],
         "force_field": compute_config["force_field"],
         "n_molecules": str(compute_config["n_molecules"]),
+        "smiles": compute_config["smiles"],
+        "x": compute_config["x"],
+        "temperature": compute_config["temperature"],
+        "pressure": compute_config["pressure"],
+        "value": compute_config["value"],
     }
 
+    # some of attributes - maybe the target value? - could possibly be
+    # excluded from hashing criteria here
     return hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()
 
 
