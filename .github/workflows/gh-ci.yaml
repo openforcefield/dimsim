@@ -23,18 +23,16 @@ jobs:
         matrix:
           os: [macOS-latest, ubuntu-latest]
           environment:
-            - py311
-            - py311openeye
             - py312
             - py312openeye
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Set up virtual environment
-      uses: prefix-dev/setup-pixi@v0.9.5
+      uses: prefix-dev/setup-pixi@v0.10.0
       with:
-        pixi-version: v0.66.0
+        pixi-version: v0.72.0
         environments: ${{ matrix.environment }}
         frozen: true
 
@@ -54,7 +52,7 @@ jobs:
       run: pixi run -e ${{ matrix.environment }} run_tests
 
     - name: codecov
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./coverage.xml

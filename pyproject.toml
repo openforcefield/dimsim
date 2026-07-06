@@ -17,13 +17,12 @@ maintainers = [
 authors = [
   { name = "Lily Wang", email = "lily.wang@openforcefield.org" },
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
   "Natural Language :: English",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
@@ -46,11 +45,11 @@ urls.Issues = "https://github.com/lilyminium/dimsim/issues"
 urls.Repository = "https://github.com/lilyminium/dimsim"
 
 [tool.setuptools]
-zip-safe = false
-include-package-data = false
 packages.find.include = [ "dimsim*" ]
-packages.find.namespaces = false
 packages.find.exclude = [ "dimsim._tests.data*" ]
+packages.find.namespaces = false
+include-package-data = false
+zip-safe = false
 
 [tool.setuptools_scm]
 fallback_version = "0.0.0"
@@ -61,12 +60,12 @@ lint.select = [ "E", "F", "I", "NPY", "RUF", "UP", "W" ]
 lint.isort.known-third-party = [ "openff.toolkit", "openff.utilities", "openff.units", "openff.interchange" ]
 
 [tool.mypy]
-python_version = "3.11"
+exclude = "dimsim/_tests"
+ignore_missing_imports = true
+python_version = "3.12"
+disallow_untyped_defs = false
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
-ignore_missing_imports = true
-exclude = "dimsim/_tests"
 
 [tool.pytest]
 ini_options.minversion = "6.0"

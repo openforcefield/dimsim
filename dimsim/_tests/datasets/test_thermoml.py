@@ -1,13 +1,52 @@
-import uuid
+import random
 
 import numpy
 import pytest
-from openff.toolkit import Molecule
+from openff.toolkit import Molecule, Quantity
 from openff.toolkit.utils.toolkits import OPENEYE_AVAILABLE
 from openff.units import Unit
 
 from dimsim._tests.utils import get_test_data_path
-from dimsim.datasets.thermoml import ThermoMLDataSet
+from dimsim.datasets.provenance import MeasurementSource
+from dimsim.datasets.thermoml import (
+    DuplicateThermoMLEntryWarning,
+    ThermoMLDataSet,
+    ThermoMLProperty,
+    _property_unit_map,
+    _tag_property_map,
+)
+from dimsim.substances import Component, Substance
+
+
+def data_entry_to_property_and_source(
+    entry: dict,
+) -> ThermoMLProperty:
+
+    property_ = ThermoMLProperty(type_string=_tag_property_map[entry["tag"]])
+    property_.default_unit = _property_unit_map[property_.type_string]
+
+    substance = Substance()
+
+    for smiles, x in zip(entry["smiles"], entry["x"]):
+        substance.add_component(
+            component=Component(smiles=smiles),
+            amount=x,
+        )
+
+    property_.substance = substance
+
+    property_.temperature = Quantity(entry["temperature"], "kelvin")
+    property_.pressure = Quantity(entry["pressure"], "kilopascal") if entry["pressure"] else None
+
+    unit_to_use = _property_unit_map[property_.type_string]
+
+    property_.value = Quantity(entry["value"], unit_to_use)
+    property_.uncertainty = Quantity(entry["std"], unit_to_use)
+
+    # if this was in production, need better way to determine if source is a DOI or not
+    property_.source = MeasurementSource(doi=entry["source"]) if entry["source"].startswith("10.") else None
+
+    return property_
 
 
 @pytest.mark.parametrize(
@@ -199,7 +238,7 @@ def test_to_pandas():
     thermoml_dataset = ThermoMLDataSet()
 
     density_entry = {
-        "id": str(uuid.uuid4()).replace("-", ""),
+        "id": random.randint(10**15, 10**16 - 1),  # random 16-digit integer
         "tag": "density",
         "x": [1.0],
         "smiles": ["[C:1]([O:5][C:3]([C:2]([O:4][H:13])([H:9])[H:10])([H:11])[H:12])([H:6])([H:7])[H:8]"],
@@ -293,3 +332,83 @@ def test_thermoml_pyrrolidinone_tautomer_resolution_without_openeye():
                 found_lactim = True
     assert not found_lactam, "Lactam SMILES should not be found in any parsed substance"
     assert found_lactim, "Lactim SMILES not found in any parsed substance"
+
+
+def test_thermoml_warn_duplicate_properties():
+    dataset = ThermoMLDataSet()
+
+    property_ = {
+        "id": 35598034897404032129990573617925713559702236029053845170364984208600110431820,
+        "tag": "density",
+        "smiles": ["COCCO"],
+        "x": [1.0],
+        "temperature": 293.15,
+        "pressure": 101.3,
+        "value": 0.9648800000000002,
+        "std": 5.0000000000000016e-05,
+        "units": "gram / milliliter",
+        "source": "",
+    }
+
+    with pytest.warns(
+        DuplicateThermoMLEntryWarning,
+        match="35598034897404032129990573617925713559702236029053845170364984208600110431820",
+    ):
+        dataset.add_properties(*[property_, property_])
+
+    assert len(dataset) == 1
+
+
+@pytest.mark.filterwarnings("error")
+def test_thermoml_no_warning_for_slightly_different_properties():
+
+    original = {
+        "id": 1,
+        "tag": "density",
+        "smiles": ["COCCO"],
+        "x": [1.0],
+        "temperature": 293.15,
+        "pressure": 101.3,
+        "value": 0.9648800000000002,
+        "std": 5.0000000000000016e-05,
+        "units": "gram / milliliter",
+        "source": "10.61092/iaea.ght7-f9qq",  # this DOI is meaningless
+    }
+
+    lower_uncertainty = {
+        **original,
+        "id": 2,
+        "std": original["std"] * 0.99,
+    }
+
+    different_doi = {
+        **original,
+        "id": 3,
+        "source": "10.61092/iaea.ght7-f9qr",  # this DOI is also meaningless
+    }
+
+    # ~roundtrip each through ThermoMLDataSet._property_to_entry to ensure the generated id
+    # is based on values of the property, not just set arbitrarily
+    entry1 = ThermoMLDataSet._property_to_entry(data_entry_to_property_and_source(original))
+
+    entry2 = ThermoMLDataSet._property_to_entry(data_entry_to_property_and_source(lower_uncertainty))
+
+    entry3 = ThermoMLDataSet._property_to_entry(data_entry_to_property_and_source(different_doi))
+
+    assert entry1["id"] != 1
+    assert entry2["id"] != 2
+    assert entry3["id"] != 3
+
+    dataset1 = ThermoMLDataSet()
+
+    # different uncertainties should each be added as separate entries
+    dataset1.add_properties(*[entry1, entry2])
+
+    assert len(dataset1) == 2
+
+    dataset2 = ThermoMLDataSet()
+
+    # different DOIs should also end up as separate entries, even if otherwise identical
+    dataset2.add_properties(*[entry1, entry3])
+
+    assert len(dataset2) == 2
