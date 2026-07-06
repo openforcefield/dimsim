@@ -32,6 +32,8 @@ openmmtools = "*"
 pytorch = "*"
 smee = "*"
 descent = "*"
+# shim
+rdkit = "2023.*"
 
 [environments]
 py312 = [ "py312", "test", "typing" ]
