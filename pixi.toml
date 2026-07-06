@@ -32,7 +32,8 @@ openmmtools = "*"
 pytorch = "*"
 smee = "*"
 descent = "*"
-# shim
+# shims
+pyarrow = "20"
 rdkit = "2023.*"
 
 [environments]
