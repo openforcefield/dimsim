@@ -27,7 +27,7 @@ def gas_config_from_data_entry(
     Create a `VacuumGas` config from thermophysical and chemical information in a `DataEntry`
     and job-specific inputs.
     """
-    return VacuumGas(
+    return VacuumGas(  # type: ignore[typeddict-unknown-key]
         tag="gas",
         force_field=force_field,
         n_molecules=n_molecules,

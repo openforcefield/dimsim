@@ -1,13 +1,18 @@
 """Prep (simulation) jobs from (thermophysical) data entries."""
 
+from collections.abc import Sequence
+
+from dimsim.configs._compute import BaseComputeConfig
+from dimsim.configs.liquid import BulkLiquid
+
 
 def compute_configs_from_data_entries(
     data_entries: list[dict],
     force_field: str,
     n_molecules: int,
-) -> list[dict]:
+) -> Sequence[BaseComputeConfig]:
     """Convert a list of thermophysical data entries into a list of simulation configs."""
-    compute_configs = list()
+    compute_configs: list[BaseComputeConfig] = list()
 
     for data_entry in data_entries:
         these_configs = _compute_configs_from_data_entry(data_entry, force_field, n_molecules)
@@ -20,11 +25,11 @@ def _compute_configs_from_data_entry(
     data_entry: dict,
     force_field: str,
     n_molecules: int,
-) -> list[dict]:
+) -> Sequence[BaseComputeConfig]:
     """Convert a single thermophysical data entry into a list of simulation configs."""
     match data_entry:
         case {"tag": "density"}:
-            return _make_liquid_density_comput_configs(data_entry, force_field, n_molecules)
+            return _make_liquid_density_compute_configs(data_entry, force_field, n_molecules)
         case {"tag": "enthalpy_of_mixing"}:
             return _make_enthalpy_of_mixing_compute_configs(data_entry, force_field, n_molecules)
         case _:
@@ -34,11 +39,11 @@ def _compute_configs_from_data_entry(
     return [dict()]
 
 
-def _make_liquid_density_comput_configs(
+def _make_liquid_density_compute_configs(
     data_entry: dict,
     force_field: str,
     n_molecules: int,
-) -> list[dict]:
+) -> Sequence[BaseComputeConfig]:
     from dimsim.configs.liquid import BulkLiquid
 
     return [
@@ -59,7 +64,7 @@ def _make_enthalpy_of_mixing_compute_configs(
     data_entry: dict,
     force_field: str,
     n_molecules: int,
-) -> list[dict]:
+) -> Sequence[BulkLiquid]:
     from dimsim.configs.liquid import BulkLiquid
 
     liquid_configs = [

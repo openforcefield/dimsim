@@ -1,7 +1,9 @@
 import typing
 
 
-class BaseComputeConfig(typing.TypedDict):
+class BaseComputeConfig(typing.TypedDict, extra_items=typing.Any):  # type: ignore[call-arg]
+    # mypy does not yet support extra_items
+    # https://github.com/python/mypy/issues/18176
     force_field: str
 
     n_molecules: int
