@@ -4,16 +4,12 @@ from dimsim.configs._compute import BaseComputeConfig
 from dimsim.configs.targets.thermo import DataEntry
 
 
-class BulkLiquid(BaseComputeConfig):
-    tag: typing.Literal["liquid"]
+class VacuumGas(BaseComputeConfig):
+    tag: typing.Literal["gas"]
 
     """
     Maybe add an RNG seed?
     """
-
-    pressure: float
-
-    value: float
 
     """
     maybe?
@@ -22,17 +18,17 @@ class BulkLiquid(BaseComputeConfig):
     """
 
 
-def liquid_config_from_data_entry(
+def gas_config_from_data_entry(
     data_entry: DataEntry,
     force_field: str,
     n_molecules: int,
-) -> BulkLiquid:
+) -> VacuumGas:
     """
-    Create a `BulkLiquid` config from thermophysical and chemical information in a `DataEntry`
+    Create a `VacuumGas` config from thermophysical and chemical information in a `DataEntry`
     and job-specific inputs.
     """
-    return BulkLiquid(
-        tag="liquid",
+    return VacuumGas(
+        tag="gas",
         force_field=force_field,
         n_molecules=n_molecules,
         smiles=data_entry["smiles"],

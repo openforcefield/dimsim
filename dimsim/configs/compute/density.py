@@ -4,7 +4,7 @@ from dimsim.configs.targets.thermo import DataEntry
 
 
 class DensityConfig(typing.TypedDict):
-    tag: typing.Literal["density"] = "density"
+    tag: typing.Literal["density"]
 
     target: DataEntry
 
