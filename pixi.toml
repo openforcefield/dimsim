@@ -48,6 +48,7 @@ pymol-open-source = "*"
 
 [feature.dev.pypi-dependencies]
 pre-commit = "*"
+jupyterlab = "*"
 ipython = "*"
 ipdb = "*"
 parsl = "*"
