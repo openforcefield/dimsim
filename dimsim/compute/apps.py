@@ -2,14 +2,14 @@ import openmm
 from openff.toolkit import Topology
 from parsl.app.app import python_app
 
-from dimsim.configs.compute.density import LiquidConfig
+from dimsim.configs.liquid import BulkLiquid
 
 
 @python_app
 def prepare_packed_topology(
-    compute_config: LiquidConfig,
+    compute_config: BulkLiquid,
     job_dir: str,
-) -> dict[str, LiquidConfig | Topology]:
+) -> dict[str, BulkLiquid | Topology]:
     import logging
     import pathlib
     import time
@@ -61,9 +61,9 @@ def prepare_packed_topology(
 
 @python_app
 def prepare_openmm_system(
-    packing_future: dict[str, LiquidConfig | Topology],
+    packing_future: dict[str, BulkLiquid | Topology],
     job_dir: str,
-) -> dict[str, LiquidConfig | openmm.System]:
+) -> dict[str, BulkLiquid | openmm.System]:
     import logging
     import pathlib
 
@@ -104,8 +104,8 @@ def prepare_openmm_system(
 
 @python_app
 def minimize_energy(
-    system_future: dict[str, LiquidConfig | openmm.System], job_dir: str
-) -> dict[str, LiquidConfig | float]:
+    system_future: dict[str, BulkLiquid | openmm.System], job_dir: str
+) -> dict[str, BulkLiquid | float]:
     import logging
 
     import openmm
