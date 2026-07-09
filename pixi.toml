@@ -20,6 +20,7 @@ dask = "*"
 dask-jobqueue = "*"
 dask-kubernetes = "*"
 rdkit-stubs = "*"
+parsl = "*"
 dimsim = { path = ".", editable = true }
 
 [dependencies]
@@ -51,7 +52,6 @@ pre-commit = "*"
 jupyterlab = "*"
 ipython = "*"
 ipdb = "*"
-parsl = "*"
 ruff = "*"
 
 [feature.openeye]
