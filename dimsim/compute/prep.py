@@ -85,7 +85,7 @@ def _make_enthalpy_of_mixing_compute_configs(
             BulkLiquid(
                 tag="liquid",
                 force_field=force_field,
-                n_molecules=n_molecules,
+                n_molecules=n_molecules,  # not sure if each pure simulation should have the full n_molecules?
                 smiles=[component_smiles],
                 x=[1.0],
                 temperature=data_entry["temperature"],
