@@ -1,5 +1,6 @@
 """Prep (simulation) jobs from (thermophysical) data entries."""
 
+
 def compute_configs_from_data_entries(
     data_entries: list[dict],
     force_field: str,
@@ -13,6 +14,7 @@ def compute_configs_from_data_entries(
         compute_configs.extend(these_configs)
 
     return compute_configs
+
 
 def _compute_configs_from_data_entry(
     data_entry: dict,
@@ -52,6 +54,7 @@ def _make_liquid_density_comput_configs(
         )
     ]
 
+
 def _make_enthalpy_of_mixing_compute_configs(
     data_entry: dict,
     force_field: str,
@@ -85,5 +88,5 @@ def _make_enthalpy_of_mixing_compute_configs(
                 value=data_entry["value"],
             )
         )
-    
+
     return liquid_configs
