@@ -28,15 +28,15 @@ def _compute_configs_from_data_entry(
 ) -> Sequence[BaseComputeConfig]:
     """Convert a single thermophysical data entry into a list of simulation configs."""
     match data_entry:
-        case {"tag": "density"}:
+        case {"tag": "density" | "dielectric_constant"}:
             return _make_liquid_density_compute_configs(data_entry, force_field, n_molecules)
-        case {"tag": "enthalpy_of_mixing"}:
+        case {"tag": "enthalpy_of_mixing" | "exceess_molar_volume"}:
             return _make_enthalpy_of_mixing_compute_configs(data_entry, force_field, n_molecules)
+        case {"tag": "enthalpy_of_vaporization"}:
+            return _make_enthalpy_of_vaporization_compute_configs(data_entry, force_field, n_molecules)
         case _:
             print(1)
             raise ValueError(f"Unsupported data entry tag: {data_entry['tag']}")
-
-    return [dict()]
 
 
 def _make_liquid_density_compute_configs(
@@ -94,4 +94,36 @@ def _make_enthalpy_of_mixing_compute_configs(
             )
         )
 
-    return liquid_configs
+    return tuple(liquid_configs)
+
+
+def _make_enthalpy_of_vaporization_compute_configs(
+    data_entry: dict,
+    force_field: str,
+    n_molecules: int,
+) -> Sequence[BaseComputeConfig]:
+    from dimsim.configs.gas import VacuumGas
+    from dimsim.configs.liquid import BulkLiquid
+
+    return (
+        BulkLiquid(
+            tag="liquid",
+            force_field=force_field,
+            n_molecules=n_molecules,
+            smiles=data_entry["smiles"],
+            x=data_entry["x"],
+            temperature=data_entry["temperature"],
+            pressure=data_entry["pressure"],
+            value=data_entry["value"],
+        ),
+        VacuumGas(
+            tag="gas",
+            force_field=force_field,
+            n_molecules=n_molecules,
+            smiles=data_entry["smiles"],
+            x=data_entry["x"],
+            temperature=data_entry["temperature"],
+            pressure=data_entry["pressure"],
+            value=data_entry["value"],
+        ),
+    )
