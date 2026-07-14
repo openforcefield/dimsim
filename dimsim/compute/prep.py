@@ -56,7 +56,7 @@ def _make_liquid_density_compute_configs(
                 x=data_entry["x"],
                 temperature=data_entry["temperature"],
                 pressure=data_entry["pressure"],
-                density=data_entry["value"],
+                density=data_entry["value"] if data_entry["tag"] == "density" else None,
             )
         ]
     )
@@ -78,7 +78,7 @@ def _make_enthalpy_of_mixing_compute_configs(
             x=data_entry["x"],
             temperature=data_entry["temperature"],
             pressure=data_entry["pressure"],
-            density=None,
+            density=data_entry["value"] if data_entry["tag"] == "density" else None,
         )
     ]
 
@@ -92,7 +92,7 @@ def _make_enthalpy_of_mixing_compute_configs(
                 x=[1.0],
                 temperature=data_entry["temperature"],
                 pressure=data_entry["pressure"],
-                density=None,
+                density=data_entry["value"] if data_entry["tag"] == "density" else None,
             )
         )
 
