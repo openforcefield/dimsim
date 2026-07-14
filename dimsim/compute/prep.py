@@ -46,18 +46,20 @@ def _make_liquid_density_compute_configs(
 ) -> Sequence[BaseComputeConfig]:
     from dimsim.configs.liquid import BulkLiquid
 
-    return tuple([
-        BulkLiquid(
-            tag="liquid",
-            force_field=force_field,
-            n_molecules=n_molecules,
-            smiles=data_entry["smiles"],
-            x=data_entry["x"],
-            temperature=data_entry["temperature"],
-            pressure=data_entry["pressure"],
-            density=data_entry["value"],
-        )
-    ])
+    return tuple(
+        [
+            BulkLiquid(
+                tag="liquid",
+                force_field=force_field,
+                n_molecules=n_molecules,
+                smiles=data_entry["smiles"],
+                x=data_entry["x"],
+                temperature=data_entry["temperature"],
+                pressure=data_entry["pressure"],
+                density=data_entry["value"],
+            )
+        ]
+    )
 
 
 def _make_enthalpy_of_mixing_compute_configs(
