@@ -13,7 +13,7 @@ class BulkLiquid(BaseComputeConfig):
 
     pressure: float
 
-    value: float
+    density: float | None
 
     """
     maybe?
@@ -39,5 +39,5 @@ def liquid_config_from_data_entry(
         x=data_entry["x"],
         temperature=data_entry["temperature"],
         pressure=data_entry["pressure"],
-        value=data_entry["value"],
+        density=data_entry["value"],
     )

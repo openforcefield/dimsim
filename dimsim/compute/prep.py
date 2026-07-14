@@ -46,7 +46,7 @@ def _make_liquid_density_compute_configs(
 ) -> Sequence[BaseComputeConfig]:
     from dimsim.configs.liquid import BulkLiquid
 
-    return [
+    return tuple([
         BulkLiquid(
             tag="liquid",
             force_field=force_field,
@@ -55,9 +55,9 @@ def _make_liquid_density_compute_configs(
             x=data_entry["x"],
             temperature=data_entry["temperature"],
             pressure=data_entry["pressure"],
-            value=data_entry["value"],
+            density=data_entry["value"],
         )
-    ]
+    ])
 
 
 def _make_enthalpy_of_mixing_compute_configs(
@@ -76,7 +76,7 @@ def _make_enthalpy_of_mixing_compute_configs(
             x=data_entry["x"],
             temperature=data_entry["temperature"],
             pressure=data_entry["pressure"],
-            value=data_entry["value"],
+            density=None,
         )
     ]
 
@@ -90,7 +90,7 @@ def _make_enthalpy_of_mixing_compute_configs(
                 x=[1.0],
                 temperature=data_entry["temperature"],
                 pressure=data_entry["pressure"],
-                value=data_entry["value"],
+                density=None,
             )
         )
 
@@ -114,7 +114,7 @@ def _make_enthalpy_of_vaporization_compute_configs(
             x=data_entry["x"],
             temperature=data_entry["temperature"],
             pressure=data_entry["pressure"],
-            value=data_entry["value"],
+            density=None,
         ),
         VacuumGas(
             tag="gas",
@@ -123,7 +123,5 @@ def _make_enthalpy_of_vaporization_compute_configs(
             smiles=data_entry["smiles"],
             x=data_entry["x"],
             temperature=data_entry["temperature"],
-            pressure=data_entry["pressure"],
-            value=data_entry["value"],
         ),
     )

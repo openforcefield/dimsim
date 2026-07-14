@@ -45,7 +45,7 @@ def prepare_packed_topology(
     result = pack_box(
         molecules,
         n_copies,
-        target_density=Quantity(compute_config["value"] * 0.7, "g/mL"),
+        target_density=Quantity(compute_config.get("density", 0.7) * 0.7, "g/mL"),  # type: ignore[operator]
         working_directory=job_dir,
     )
 

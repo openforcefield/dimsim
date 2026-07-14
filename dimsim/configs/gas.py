@@ -35,5 +35,4 @@ def gas_config_from_data_entry(
         x=data_entry["x"],
         temperature=data_entry["temperature"],
         pressure=data_entry["pressure"],
-        value=data_entry["value"],
     )
