@@ -5,7 +5,7 @@ platforms = [ "linux-64", "osx-arm64" ]
 
 [tasks]
 run_mypy = "python -m mypy -p 'dimsim'"
-run_tests = "python -m pytest -v --cov=dimsim --cov-config=pyproject.toml --cov-append --cov-report=xml --color=yes dimsim/_tests"
+run_tests = "python -m pytest -v -n logical --durations=10 --cov=dimsim --cov-config=pyproject.toml --cov-append --cov-report=xml --color=yes dimsim/_tests"
 
 [pypi-dependencies]
 pydantic = "*"

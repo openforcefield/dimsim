@@ -127,3 +127,20 @@ def _make_enthalpy_of_vaporization_compute_configs(
             temperature=data_entry["temperature"],
         ),
     )
+
+
+# TODO: Move this into the step that processes multiple configs, maybe SimulationWorkflow.submit_batch
+# TODO: When setting up jobs, could have these key a dict that also stores target densities (for when the property is
+#       pure liquid but not density, like dielectric constant or enthalpy of mixing). See Issue #103
+def get_liquid_deduplication_key(item: BulkLiquid, ignore_keys: list[str] = list()):
+    # TODO: Might want to make this item: BaseComputeConfig
+
+    smiles_sorted, x_sorted = [*map(tuple, zip(*sorted(zip(item["smiles"], item["x"]), key=lambda pair: pair[0])))]
+    subset = {
+        "temperature": item["temperature"],
+        "pressure": item["pressure"],
+        "smiles": smiles_sorted,
+        "x": x_sorted,
+    }
+
+    return tuple((k, v) for k, v in subset.items() if k not in ignore_keys)
