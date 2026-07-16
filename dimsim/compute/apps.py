@@ -1,6 +1,7 @@
 import openmm
+import openmm.app
 from openff.toolkit import Topology
-from parsl.app.app import python_app
+from parsl import File, python_app
 
 from dimsim.configs.liquid import BulkLiquid
 
@@ -105,7 +106,7 @@ def prepare_openmm_system(
 @python_app
 def minimize_energy(
     system_future: dict[str, BulkLiquid | openmm.System], job_dir: str
-) -> dict[str, BulkLiquid | float]:
+) -> dict[str, BulkLiquid | float | tuple[File, ...]]:
     import logging
 
     import openmm
@@ -117,10 +118,10 @@ def minimize_energy(
         filename=f"{job_dir}/simulation.log",
         level=logging.INFO,
     )
-    logging.info("Starting energy minimization app")
+    logging.info("Starting OpenMM energy minimization app")
     system = system_future["openmm_system"]
 
-    compute_config = system_future["compute_config"]
+    compute_config: BulkLiquid = system_future["compute_config"]
 
     # this should be in Kelvin
     temperature = compute_config["temperature"]
@@ -141,7 +142,7 @@ def minimize_energy(
         integrator=openmm.LangevinMiddleIntegrator(
             temperature * openmm.unit.kelvin,
             1.0 / openmm.unit.picosecond,
-            1.0 * openmm.unit.femtoseconds,
+            1.0 * openmm.unit.femtoseconds,  # TODO: This should be user input
         ),
     )
 
@@ -166,8 +167,31 @@ def minimize_energy(
 
     logging.info(f"Minimized energy from {original:.2f} to {final:.2f}")
 
+    simulation_files = [
+        File(f"{job_dir}/simulation_toology.pdb"),
+        File(f"{job_dir}/simulation_system.xml"),
+        File(f"{job_dir}/simulation_integrator.xml"),
+        File(f"{job_dir}/simulation_checkpoint.chk"),
+    ]
+
+    with open(simulation_files[0].filepath, "w") as f:
+        openmm.app.PDBFile.writeFile(
+            topology=simulation.topology,
+            positions=simulation.context.getState(getPositions=True).getPositions(),
+            file=f,
+        )
+
+    with open(simulation_files[1].filepath, "w") as f:
+        f.write(openmm.XmlSerializer.serialize(simulation.system))
+
+    with open(simulation_files[2].filepath, "w") as f:
+        f.write(openmm.XmlSerializer.serialize(simulation.integrator))
+
+    simulation.saveCheckpoint(simulation_files[3].filepath)
+
     return {
         "compute_config": compute_config,
+        "simulation_files": tuple(simulation_files),
         "original": original,
         "final": final,
     }
