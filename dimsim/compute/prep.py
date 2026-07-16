@@ -65,7 +65,7 @@ def _make_liquid_density_compute_configs(
 def _make_enthalpy_of_mixing_compute_configs(
     data_entry: dict,
     force_field: str,
-    n_molecules: int,
+    n_molecules: int,  # error if float? would this value ever be the result of rounding?
 ) -> Sequence[BulkLiquid]:
     from dimsim.configs.liquid import BulkLiquid
 
@@ -137,10 +137,12 @@ def get_liquid_deduplication_key(item: BulkLiquid, ignore_keys: list[str] = list
 
     smiles_sorted, x_sorted = [*map(tuple, zip(*sorted(zip(item["smiles"], item["x"]), key=lambda pair: pair[0])))]
     subset = {
+        "force_field": item["force_field"],
+        "x": x_sorted,
+        "smiles": smiles_sorted,
         "temperature": item["temperature"],
         "pressure": item["pressure"],
-        "smiles": smiles_sorted,
-        "x": x_sorted,
+        "n_molecules": item["n_molecules"],
     }
 
     return tuple((k, v) for k, v in subset.items() if k not in ignore_keys)
