@@ -3,11 +3,13 @@
 from collections.abc import Sequence
 
 from dimsim.configs._compute import BaseComputeConfig
+from dimsim.configs.gas import VacuumGas
 from dimsim.configs.liquid import BulkLiquid
+from dimsim.configs.targets.thermo import DataEntry
 
 
 def compute_configs_from_data_entries(
-    data_entries: list[dict],
+    data_entries: list[DataEntry],
     force_field: str,
     n_molecules: int,
 ) -> Sequence[BaseComputeConfig]:
@@ -22,7 +24,7 @@ def compute_configs_from_data_entries(
 
 
 def _compute_configs_from_data_entry(
-    data_entry: dict,
+    data_entry: DataEntry,
     force_field: str,
     n_molecules: int,
 ) -> Sequence[BaseComputeConfig]:
@@ -31,19 +33,18 @@ def _compute_configs_from_data_entry(
         case {"tag": "density" | "dielectric_constant"}:
             return _make_liquid_density_compute_configs(data_entry, force_field, n_molecules)
         case {"tag": "enthalpy_of_mixing" | "exceess_molar_volume"}:
-            return _make_enthalpy_of_mixing_compute_configs(data_entry, force_field, n_molecules)
+            return _make_enthalpy_of_mixing_compute_configs(data_entry, force_field, n_molecules)  # type: ignore[arg-type]
         case {"tag": "enthalpy_of_vaporization"}:
             return _make_enthalpy_of_vaporization_compute_configs(data_entry, force_field, n_molecules)
         case _:
-            print(1)
             raise ValueError(f"Unsupported data entry tag: {data_entry['tag']}")
 
 
 def _make_liquid_density_compute_configs(
-    data_entry: dict,
+    data_entry: DataEntry,
     force_field: str,
     n_molecules: int,
-) -> Sequence[BaseComputeConfig]:
+) -> Sequence[BulkLiquid]:
     from dimsim.configs.liquid import BulkLiquid
 
     return tuple(
@@ -63,7 +64,7 @@ def _make_liquid_density_compute_configs(
 
 
 def _make_enthalpy_of_mixing_compute_configs(
-    data_entry: dict,
+    data_entry: DataEntry,
     force_field: str,
     n_molecules: int,  # error if float? would this value ever be the result of rounding?
 ) -> Sequence[BulkLiquid]:
@@ -100,10 +101,10 @@ def _make_enthalpy_of_mixing_compute_configs(
 
 
 def _make_enthalpy_of_vaporization_compute_configs(
-    data_entry: dict,
+    data_entry: DataEntry,
     force_field: str,
     n_molecules: int,
-) -> Sequence[BaseComputeConfig]:
+) -> Sequence[BulkLiquid | VacuumGas]:
     from dimsim.configs.gas import VacuumGas
     from dimsim.configs.liquid import BulkLiquid
 

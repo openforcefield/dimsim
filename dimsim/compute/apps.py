@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import openmm
 import openmm.app
 from openff.toolkit import Topology
@@ -152,11 +154,6 @@ def minimize_energy(
 
     simulation.minimizeEnergy()
 
-    # simulation.reporters.append(openmm.app.DCDReporter(outputs[0].filepath, 100))
-
-    # print("Minimized energy, now running 10,000 steps of dynamics...")
-    # simulation.step(10_000)
-
     final_state = simulation.context.getState(energy=True, positions=True)
 
     with open(minimized_topology_file, "w") as f:
@@ -168,7 +165,7 @@ def minimize_energy(
     logging.info(f"Minimized energy from {original:.2f} to {final:.2f}")
 
     simulation_files = [
-        File(f"{job_dir}/simulation_toology.pdb"),
+        File(f"{job_dir}/simulation_topology.pdb"),
         File(f"{job_dir}/simulation_system.xml"),
         File(f"{job_dir}/simulation_integrator.xml"),
         File(f"{job_dir}/simulation_checkpoint.chk"),
@@ -195,6 +192,77 @@ def minimize_energy(
         "original": original,
         "final": final,
     }
+
+
+EquilibrationConfig = object
+
+
+@python_app
+def run_equilibration(
+    compute_config: BulkLiquid,
+    equilibration_config: EquilibrationConfig,
+    minimization_future: dict[str, BulkLiquid | float | tuple[File, ...]],
+    job_dir: str,
+) -> dict[str, File]:
+    # TODO: Expose barostat (+ thermostat?) to user
+    import logging
+
+    logging.basicConfig(
+        filename=f"{job_dir}/simulation.log",
+        level=logging.INFO,
+    )
+    logging.info("Starting equilibraiton run")
+
+    minimized_files: tuple[File, ...] = minimization_future["simulation_files"]  # type: ignore[assignment]
+
+    with open(minimized_files[0].filepath) as f:
+        topology = openmm.app.PDBFile(f).getTopology()
+
+    with open(minimized_files[1].filepath) as f:
+        system = openmm.XmlSerializer.deserialize(f.read())
+
+    with open(minimized_files[2].filepath) as f:
+        integrator = openmm.XmlSerializer.deserialize(f.read())
+
+    with open(minimized_files[3].filepath, "rb") as f:
+        simulation = openmm.app.Simulation(topology, system, integrator)
+        simulation.loadCheckpoint(f)
+
+    simulation.system.addForce(
+        openmm.MonteCarloBarostat(
+            1.0 * openmm.unit.atmosphere,
+            300.0 * openmm.unit.kelvin,
+        )
+    )
+
+    logging.info("Reinitializing context")
+    simulation.context.reinitialize(preserveState=True)
+
+    trajectory_file = File(f"{job_dir}/trajectory.dcd")
+    data_file = File(f"{job_dir}/simulation_data.log")
+
+    simulation.reporters.append(
+        openmm.app.StateDataReporter(
+            file=data_file.filepath,
+            reportInterval=1000,
+            step=True,
+            potentialEnergy=True,
+            kineticEnergy=True,
+            totalEnergy=True,
+            temperature=True,
+            volume=True,
+            density=True,
+            speed=True,
+        )
+    )
+
+    simulation.reporters.append(openmm.app.DCDReporter(trajectory_file.filepath, 1000))
+
+    logging.info("Running 1,000,000 steps of MD")
+    # simulation.step(equilibration_config["steps_per_iteration"])
+    simulation.step(1_000_000)
+
+    return {"trajectory_file": trajectory_file}
 
 
 @python_app

@@ -2,26 +2,27 @@ import hashlib
 import json
 import os
 
-from dimsim.configs.compute.liquid import LiquidConfig
+from dimsim.configs._compute import BaseComputeConfig
 
 
 # TODO: LiquidConfig should have a base class?
 #       one for i.e. GasConfig to derive from
-def make_job_id(compute_config: LiquidConfig) -> str:
+def make_job_id(compute_config: BaseComputeConfig) -> str:
     """
     Generate a deterministic job ID from compute parameters.
 
     Maybe this could be simplified if it only has one argument?
     """
+    # TODO: Improve how this handles VacuumGas
     params = {
-        "tag": compute_config["tag"],
+        "tag": compute_config["tag"],  # type: ignore[typeddict-item]
         "force_field": compute_config["force_field"],
         "n_molecules": str(compute_config["n_molecules"]),
         "smiles": compute_config["smiles"],
         "x": compute_config["x"],
         "temperature": compute_config["temperature"],
-        "pressure": compute_config["pressure"],
-        "value": compute_config["value"],
+        "pressure": compute_config.get("pressure"),
+        "density": compute_config.get("density"),
     }
 
     # some of attributes - maybe the target value? - could possibly be
