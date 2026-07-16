@@ -1,6 +1,7 @@
+from dimsim.configs.compute.density import DensityConfig
+
 from dimsim.compute.configs import local_config, slurm_config
 from dimsim.compute.workflow import SimulationWorkflow
-from dimsim.configs.compute.density import DensityConfig
 from dimsim.datasets.thermoml import ThermoMLDataSet
 
 dataset = ThermoMLDataSet.from_xml(open("dimsim/_tests/data/thermoml/single_density.xml").read())

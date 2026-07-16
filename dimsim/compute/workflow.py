@@ -8,7 +8,7 @@ from dimsim.compute.apps import (
     prepare_packed_topology,
 )
 from dimsim.compute.jobs import get_job_paths, is_complete, make_job_id
-from dimsim.configs.compute.density import DensityConfig
+from dimsim.configs._compute import BaseComputeConfig
 
 
 class SimulationWorkflow:
@@ -19,7 +19,7 @@ class SimulationWorkflow:
 
         parsl.load(parsl_config)
 
-    def submit(self, compute_config: DensityConfig):
+    def submit(self, compute_config: BaseComputeConfig):
         """Submit a single end-to-end simulation pipeline."""
         job_id = make_job_id(compute_config)
         job_dir = get_job_paths(self.base_dir, job_id)["root"]
@@ -49,11 +49,11 @@ class SimulationWorkflow:
 
         return {"job_id": job_id, "future": minimize_future}
 
-    def submit_batch(self, compute_configs: list[DensityConfig]):
+    def submit_batch(self, compute_configs: list[BaseComputeConfig]):
         """Submit many jobs, skipping already-complete ones."""
         return [result for spec in compute_configs if (result := self.submit(spec)) is not None]
 
-    def run(self, compute_configs: list[DensityConfig]):
+    def run(self, compute_configs: list[BaseComputeConfig]):
         """Submit a batch and block until all complete."""
         pending = self.submit_batch(compute_configs)
 
