@@ -207,11 +207,15 @@ def run_equilibration(
     # TODO: Expose barostat (+ thermostat?) to user
     import logging
 
+    import openmm
+    import openmm.app
+    import openmm.unit
+
     logging.basicConfig(
         filename=f"{job_dir}/simulation.log",
         level=logging.INFO,
     )
-    logging.info("Starting equilibraiton run")
+    logging.info("Starting equilibration run")
 
     minimized_files: tuple[File, ...] = minimization_future["simulation_files"]  # type: ignore[assignment]
 
@@ -224,14 +228,12 @@ def run_equilibration(
     with open(minimized_files[2].filepath) as f:
         integrator = openmm.XmlSerializer.deserialize(f.read())
 
-    with open(minimized_files[3].filepath, "rb") as f:
-        simulation = openmm.app.Simulation(topology, system, integrator)
-        simulation.loadCheckpoint(f)
-
+    simulation = openmm.app.Simulation(topology, system, integrator)
+    simulation.loadCheckpoint(minimized_files[3].filepath)
     simulation.system.addForce(
         openmm.MonteCarloBarostat(
-            1.0 * openmm.unit.atmosphere,
-            300.0 * openmm.unit.kelvin,
+            compute_config["pressure"] * openmm.unit.kilopascal,
+            compute_config["temperature"] * openmm.unit.kelvin,
         )
     )
 
@@ -320,7 +322,7 @@ def run_production(
         simulation = openmm.app.Simulation(topology, system, integrator)
         simulation.loadCheckpoint(f)
 
-    logging.info("Reinitializing context (in equilibration step)")
+    logging.info("Reinitializing context (in production step)")
     simulation.context.reinitialize(preserveState=True)
 
     simulation_files = [

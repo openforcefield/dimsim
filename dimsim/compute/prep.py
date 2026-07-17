@@ -32,7 +32,7 @@ def _compute_configs_from_data_entry(
     match data_entry:
         case {"tag": "density" | "dielectric_constant"}:
             return _make_liquid_density_compute_configs(data_entry, force_field, n_molecules)
-        case {"tag": "enthalpy_of_mixing" | "exceess_molar_volume"}:
+        case {"tag": "enthalpy_of_mixing" | "excess_molar_volume"}:
             return _make_enthalpy_of_mixing_compute_configs(data_entry, force_field, n_molecules)  # type: ignore[arg-type]
         case {"tag": "enthalpy_of_vaporization"}:
             return _make_enthalpy_of_vaporization_compute_configs(data_entry, force_field, n_molecules)

@@ -37,15 +37,6 @@ def sample_bulk_liquid_config(sample_density_target) -> BulkLiquid:
     )
 
 
-"""
-@python_app
-def prepare_packed_topology(
-    compute_config: BulkLiquid,
-    job_dir: str,
-) -> dict[str, BulkLiquid | Topology]:
-"""
-
-
 class TestPreparePackedTopology:
     def test_prepare_packed_topology(self, sample_bulk_liquid_config, tmp_path):
         job_dir = tmp_path / "job"
@@ -69,7 +60,7 @@ def prepare_openmm_system(
 """
 
 
-class TestPrepareOpenMMSytem:
+class TestPrepareOpenMMSystem:
     def test_prepare_openmm_system(self, sample_bulk_liquid_config, tmp_path):
         job_dir = tmp_path / "job"
         job_dir.mkdir()

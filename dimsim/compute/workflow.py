@@ -11,7 +11,7 @@ from dimsim.compute.apps import (
     run_equilibration,
     run_production,
 )
-from dimsim.compute.jobs import get_job_paths, is_complete, make_job_id
+from dimsim.compute.jobs import get_job_paths, make_job_id
 from dimsim.configs._compute import BaseComputeConfig
 from dimsim.configs.targets.thermo import DataEntry
 
@@ -40,7 +40,7 @@ class SimulationWorkflow:
 
         logging.info(f"Made job id (same as job dir) {job_id} for this compute config")
 
-        if is_complete(self.base_dir, job_id):
+        if pathlib.Path(job_dir, "production_trajectory.dcd").exists():
             logging.info(f"short-circuiting {job_id}!")
             return None  # already done, skip
 
