@@ -16,6 +16,9 @@ with SimulationWorkflow("jobs", local_config()) as workflow:
             n_molecules=200 + extra_molecules,
         )
 
+# TODO: Show how to get results by only knowing targets (+force field + n_molecules) and no internal IDs
+# TODO: Show how to check status while running
+
 # production
 if False:
     with SimulationWorkflow("outputs", slurm_config("gpu")) as workflow:

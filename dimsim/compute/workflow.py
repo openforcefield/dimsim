@@ -7,7 +7,9 @@ from dimsim.compute.apps import (
     minimize_energy,
     prepare_openmm_system,
     prepare_packed_topology,
+    run_density_analysis,
     run_equilibration,
+    run_production,
 )
 from dimsim.compute.jobs import get_job_paths, is_complete, make_job_id
 from dimsim.configs._compute import BaseComputeConfig
@@ -52,9 +54,10 @@ class SimulationWorkflow:
         # 2. set up openmm system
         setup_future = prepare_openmm_system(pack_future, job_dir)
 
-        # 3 (for now ...) get minimized energy
+        # 3. (for now ...) get minimized energy
         minimize_future = minimize_energy(setup_future, job_dir)
 
+        # 4. run equilibration step
         equilibration_future = run_equilibration(
             compute_config=compute_config,
             equilibration_config=None,
@@ -62,14 +65,25 @@ class SimulationWorkflow:
             job_dir=job_dir,
         )
 
-        # 3. run equilibration step
-        # 4. run "production" step
+        # 5. run "production" step
+        production_future = run_production(
+            compute_config=compute_config,
+            production_config=None,
+            equilibration_future=equilibration_future,
+            job_dir=job_dir,
+        )
+
         # sim_future = run_simulation(config_future, job_dir)
         # 5. analyze trajectory
         # 6. check for convergence, if not converged, run more production and repeat
         # analysis_future = analyze_trajectory(sim_future, job_dir)
 
-        return {"job_id": job_id, "future": equilibration_future}
+        # TODO: Switch out into each different property
+        analysis_future = run_density_analysis(
+            compute_config=compute_config, production_future=production_future, job_dir=job_dir
+        )
+
+        return {"job_id": job_id, "future": analysis_future}
 
     def _submit_compute_batch(
         self,
