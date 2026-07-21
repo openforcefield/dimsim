@@ -3,9 +3,11 @@ on:
   push:
     branches:
       - main
+      - compute-layer
   pull_request:
     branches:
       - main
+      - compute-layer
   schedule:
     # nightly tests, between US and AUS working hours
     - cron: "0 3 * * *"

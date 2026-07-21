@@ -30,7 +30,7 @@ class DuplicateThermoMLEntryWarning(UserWarning):
 
 
 _property_tag_map = {
-    "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "ethalpy_of_mixing",
+    "Excess molar enthalpy (molar enthalpy of mixing), kJ/mol": "enthalpy_of_mixing",
     "Relative permittivity at zero frequency": "dielectric_constant",
     "Mass density, kg/m3": "density",
     "Molar enthalpy of vaporization or sublimation, kJ/mol": "enthalpy_of_vaporization",
