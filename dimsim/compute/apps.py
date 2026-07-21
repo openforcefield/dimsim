@@ -210,6 +210,7 @@ def run_equilibration(
     import openmm
     import openmm.app
     import openmm.unit
+    from smee.mm import TensorReporter
 
     logging.basicConfig(
         filename=f"{job_dir}/simulation.log",
@@ -247,6 +248,7 @@ def run_equilibration(
         File(f"{job_dir}/production_system.xml"),  # probably don't need to carry this through ...
         File(f"{job_dir}/equilibration_integrator.xml"),
         File(f"{job_dir}/equilibration_checkpoint.chk"),
+        File(f"{job_dir}/equilibration_trajectory.msgpack"),
     ]
 
     simulation.reporters.append(
@@ -264,10 +266,23 @@ def run_equilibration(
         )
     )
 
-    simulation.reporters.append(openmm.app.DCDReporter(simulation_files[1].filepath, 1000))
+    dcd_reporter = openmm.app.DCDReporter(
+        file=simulation_files[1].filepath,
+        reportInterval=1000,
+    )
+
+    smee_reporter = TensorReporter(
+        output_file=open(simulation_files[6].filepath, "wb"),
+        report_interval=1000,
+        beta=1 / (compute_config["temperature"] * openmm.unit.kelvin),
+        pressure=compute_config["pressure"] * openmm.unit.kilopascal,
+    )
+
+    simulation.reporters.append(dcd_reporter)
+    simulation.reporters.append(smee_reporter)
 
     logging.info("Running 10,000 steps of MD")
-    # simulation.step(equilibration_config["steps_per_iteration"])
+
     simulation.step(10_000)
 
     with open(simulation_files[0].filepath, "w") as f:
@@ -298,8 +313,9 @@ def run_production(
     equilibration_future: dict[str, tuple[File, ...]],
     job_dir: str,
 ) -> dict[str, tuple[File, ...]]:
-
     import logging
+
+    from smee.mm import TensorReporter
 
     logging.basicConfig(
         filename=f"{job_dir}/simulation.log",
@@ -332,6 +348,7 @@ def run_production(
         File(f"{job_dir}/production_system.xml"),
         File(f"{job_dir}/production_integrator.xml"),
         File(f"{job_dir}/production_checkpoint.chk"),
+        File(f"{job_dir}/production_trajectory.msgpack"),
     ]
 
     simulation.reporters.append(
@@ -349,7 +366,20 @@ def run_production(
         )
     )
 
-    simulation.reporters.append(openmm.app.DCDReporter(simulation_files[1].filepath, 1000))
+    dcd_reporter = openmm.app.DCDReporter(
+        file=simulation_files[1].filepath,
+        reportInterval=1000,
+    )
+
+    smee_reporter = TensorReporter(
+        output_file=open(simulation_files[6].filepath, "wb"),
+        report_interval=1000,
+        beta=1 / (compute_config["temperature"] * openmm.unit.kelvin),
+        pressure=compute_config["pressure"] * openmm.unit.kilopascal,
+    )
+
+    simulation.reporters.append(dcd_reporter)
+    simulation.reporters.append(smee_reporter)
 
     logging.info("Running 100,000 steps of MD")
     # simulation.step(equilibration_config["steps_per_iteration"])
