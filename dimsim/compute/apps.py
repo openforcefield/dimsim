@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import openmm
+import openmm.app
 from openff.toolkit import Topology
-from parsl.app.app import python_app
+from parsl import File, python_app
 
 from dimsim.configs.liquid import BulkLiquid
 
@@ -105,7 +108,7 @@ def prepare_openmm_system(
 @python_app
 def minimize_energy(
     system_future: dict[str, BulkLiquid | openmm.System], job_dir: str
-) -> dict[str, BulkLiquid | float]:
+) -> dict[str, BulkLiquid | float | tuple[File, ...]]:
     import logging
 
     import openmm
@@ -117,10 +120,10 @@ def minimize_energy(
         filename=f"{job_dir}/simulation.log",
         level=logging.INFO,
     )
-    logging.info("Starting energy minimization app")
+    logging.info("Starting OpenMM energy minimization app")
     system = system_future["openmm_system"]
 
-    compute_config = system_future["compute_config"]
+    compute_config: BulkLiquid = system_future["compute_config"]
 
     # this should be in Kelvin
     temperature = compute_config["temperature"]
@@ -141,7 +144,7 @@ def minimize_energy(
         integrator=openmm.LangevinMiddleIntegrator(
             temperature * openmm.unit.kelvin,
             1.0 / openmm.unit.picosecond,
-            1.0 * openmm.unit.femtoseconds,
+            1.0 * openmm.unit.femtoseconds,  # TODO: This should be user input
         ),
     )
 
@@ -150,11 +153,6 @@ def minimize_energy(
     original_state = simulation.context.getState(energy=True)
 
     simulation.minimizeEnergy()
-
-    # simulation.reporters.append(openmm.app.DCDReporter(outputs[0].filepath, 100))
-
-    # print("Minimized energy, now running 10,000 steps of dynamics...")
-    # simulation.step(10_000)
 
     final_state = simulation.context.getState(energy=True, positions=True)
 
@@ -166,11 +164,239 @@ def minimize_energy(
 
     logging.info(f"Minimized energy from {original:.2f} to {final:.2f}")
 
+    simulation_files = [
+        File(f"{job_dir}/simulation_topology.pdb"),
+        File(f"{job_dir}/simulation_system.xml"),
+        File(f"{job_dir}/simulation_integrator.xml"),
+        File(f"{job_dir}/simulation_checkpoint.chk"),
+    ]
+
+    with open(simulation_files[0].filepath, "w") as f:
+        openmm.app.PDBFile.writeFile(
+            topology=simulation.topology,
+            positions=simulation.context.getState(getPositions=True).getPositions(),
+            file=f,
+        )
+
+    with open(simulation_files[1].filepath, "w") as f:
+        f.write(openmm.XmlSerializer.serialize(simulation.system))
+
+    with open(simulation_files[2].filepath, "w") as f:
+        f.write(openmm.XmlSerializer.serialize(simulation.integrator))
+
+    simulation.saveCheckpoint(simulation_files[3].filepath)
+
     return {
         "compute_config": compute_config,
+        "simulation_files": tuple(simulation_files),
         "original": original,
         "final": final,
     }
+
+
+EquilibrationConfig = object
+
+
+@python_app
+def run_equilibration(
+    compute_config: BulkLiquid,
+    equilibration_config: EquilibrationConfig,
+    minimization_future: dict[str, BulkLiquid | float | tuple[File, ...]],
+    job_dir: str,
+) -> dict[str, tuple[File, ...]]:
+    # TODO: Expose barostat (+ thermostat?) to user
+    import logging
+
+    import openmm
+    import openmm.app
+    import openmm.unit
+
+    logging.basicConfig(
+        filename=f"{job_dir}/simulation.log",
+        level=logging.INFO,
+    )
+    logging.info("Starting equilibration run")
+
+    minimized_files: tuple[File, ...] = minimization_future["simulation_files"]  # type: ignore[assignment]
+
+    with open(minimized_files[0].filepath) as f:
+        topology = openmm.app.PDBFile(f).getTopology()
+
+    with open(minimized_files[1].filepath) as f:
+        system = openmm.XmlSerializer.deserialize(f.read())
+
+    with open(minimized_files[2].filepath) as f:
+        integrator = openmm.XmlSerializer.deserialize(f.read())
+
+    simulation = openmm.app.Simulation(topology, system, integrator)
+    simulation.loadCheckpoint(minimized_files[3].filepath)
+    simulation.system.addForce(
+        openmm.MonteCarloBarostat(
+            compute_config["pressure"] * openmm.unit.kilopascal,
+            compute_config["temperature"] * openmm.unit.kelvin,
+        )
+    )
+
+    logging.info("Reinitializing context (in equilibration step)")
+    simulation.context.reinitialize(preserveState=True)
+
+    simulation_files = [
+        File(f"{job_dir}/equilibrated_topology.pdb"),
+        File(f"{job_dir}/equilibration_trajectory.dcd"),
+        File(f"{job_dir}/equilibration_log.log"),
+        File(f"{job_dir}/production_system.xml"),  # probably don't need to carry this through ...
+        File(f"{job_dir}/equilibration_integrator.xml"),
+        File(f"{job_dir}/equilibration_checkpoint.chk"),
+    ]
+
+    simulation.reporters.append(
+        openmm.app.StateDataReporter(
+            file=simulation_files[2].filepath,
+            reportInterval=1000,
+            step=True,
+            potentialEnergy=True,
+            kineticEnergy=True,
+            totalEnergy=True,
+            temperature=True,
+            volume=True,
+            density=True,
+            speed=True,
+        )
+    )
+
+    simulation.reporters.append(openmm.app.DCDReporter(simulation_files[1].filepath, 1000))
+
+    logging.info("Running 10,000 steps of MD")
+    # simulation.step(equilibration_config["steps_per_iteration"])
+    simulation.step(10_000)
+
+    with open(simulation_files[0].filepath, "w") as f:
+        openmm.app.PDBFile.writeFile(
+            topology=simulation.topology,
+            positions=simulation.context.getState(getPositions=True).getPositions(),
+            file=f,
+        )
+    with open(simulation_files[3].filepath, "w") as f:
+        f.write(openmm.XmlSerializer.serialize(simulation.system))
+
+    with open(simulation_files[4].filepath, "w") as f:
+        f.write(openmm.XmlSerializer.serialize(simulation.integrator))
+
+    simulation.saveCheckpoint(simulation_files[5].filepath)
+
+    # do we no longer need to wire through the compute config ... ?
+    return {"simulation_files": tuple(simulation_files)}
+
+
+ProductionConfig = object
+
+
+@python_app
+def run_production(
+    compute_config: BulkLiquid,
+    production_config: ProductionConfig,
+    equilibration_future: dict[str, tuple[File, ...]],
+    job_dir: str,
+) -> dict[str, tuple[File, ...]]:
+
+    import logging
+
+    logging.basicConfig(
+        filename=f"{job_dir}/simulation.log",
+        level=logging.INFO,
+    )
+    logging.info("Starting production run")
+
+    equilibrated_files: tuple[File, ...] = equilibration_future["simulation_files"]  # type: ignore[assignment]
+
+    with open(equilibrated_files[0].filepath) as f:
+        topology = openmm.app.PDBFile(f).getTopology()
+
+    with open(equilibrated_files[3].filepath) as f:
+        system = openmm.XmlSerializer.deserialize(f.read())
+
+    with open(equilibrated_files[4].filepath) as f:
+        integrator = openmm.XmlSerializer.deserialize(f.read())
+
+    with open(equilibrated_files[5].filepath, "rb") as f:
+        simulation = openmm.app.Simulation(topology, system, integrator)
+        simulation.loadCheckpoint(f)
+
+    logging.info("Reinitializing context (in production step)")
+    simulation.context.reinitialize(preserveState=True)
+
+    simulation_files = [
+        File(f"{job_dir}/production_topology.pdb"),
+        File(f"{job_dir}/production_trajectory.dcd"),
+        File(f"{job_dir}/production_log.log"),
+        File(f"{job_dir}/production_system.xml"),
+        File(f"{job_dir}/production_integrator.xml"),
+        File(f"{job_dir}/production_checkpoint.chk"),
+    ]
+
+    simulation.reporters.append(
+        openmm.app.StateDataReporter(
+            file=simulation_files[2].filepath,
+            reportInterval=1000,
+            step=True,
+            potentialEnergy=True,
+            kineticEnergy=True,
+            totalEnergy=True,
+            temperature=True,
+            volume=True,
+            density=True,
+            speed=True,
+        )
+    )
+
+    simulation.reporters.append(openmm.app.DCDReporter(simulation_files[1].filepath, 1000))
+
+    logging.info("Running 100,000 steps of MD")
+    # simulation.step(equilibration_config["steps_per_iteration"])
+    simulation.step(100_000)
+
+    with open(simulation_files[0].filepath, "w") as f:
+        openmm.app.PDBFile.writeFile(
+            topology=simulation.topology,
+            positions=simulation.context.getState(getPositions=True).getPositions(),
+            file=f,
+        )
+    with open(simulation_files[3].filepath, "w") as f:
+        f.write(openmm.XmlSerializer.serialize(simulation.system))
+
+    with open(simulation_files[4].filepath, "w") as f:
+        f.write(openmm.XmlSerializer.serialize(simulation.integrator))
+
+    simulation.saveCheckpoint(simulation_files[5].filepath)
+
+    return {"simulation_files": tuple(simulation_files)}
+
+
+@python_app
+def run_density_analysis(
+    compute_config: BulkLiquid,
+    production_future: dict[str, tuple[File, ...]],
+    job_dir: str,
+) -> dict[str, float]:
+    import logging
+
+    import pandas
+
+    logging.basicConfig(
+        filename=f"{job_dir}/simulation.log",
+        level=logging.INFO,
+    )
+    logging.info("Starting density analysis")
+
+    # TODO: Double check for equilibration/stability
+    production_files: tuple[File, ...] = production_future["simulation_files"]  # type: ignore[assignment]
+
+    dataframe = pandas.read_csv(production_files[2].filepath)
+
+    estimate = dataframe["Density (g/mL)"].mean()
+    logging.info(f"Estimated mean density: {estimate:.4f} g/mL")
+
+    return {"mean_density": estimate}
 
 
 @python_app
