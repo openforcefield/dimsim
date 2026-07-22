@@ -274,7 +274,7 @@ def run_equilibration(
     smee_reporter = TensorReporter(
         output_file=open(simulation_files[6].filepath, "wb"),
         report_interval=1000,
-        beta=1 / (compute_config["temperature"] * openmm.unit.kelvin),
+        beta=1.0 / openmm.unit.kilocalories_per_mole,
         pressure=compute_config["pressure"] * openmm.unit.kilopascal,
     )
 
@@ -374,7 +374,7 @@ def run_production(
     smee_reporter = TensorReporter(
         output_file=open(simulation_files[6].filepath, "wb"),
         report_interval=1000,
-        beta=1 / (compute_config["temperature"] * openmm.unit.kelvin),
+        beta=1.0 / openmm.unit.kilocalories_per_mole,
         pressure=compute_config["pressure"] * openmm.unit.kilopascal,
     )
 
