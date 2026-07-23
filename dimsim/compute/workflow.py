@@ -36,6 +36,7 @@ class SimulationWorkflow:
 
         job_id = make_job_id(compute_config)
         job_dir = get_job_paths(self.base_dir, job_id)["root"]
+        # maybe serialize all configs into the job_dir? could simplify some function signatures
         pathlib.Path(job_dir).mkdir(exist_ok=True)
 
         logging.info(f"Made job id (same as job dir) {job_id} for this compute config")
