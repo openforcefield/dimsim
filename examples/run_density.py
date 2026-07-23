@@ -1,3 +1,6 @@
+import mdtraj
+import parsl
+
 from dimsim.compute.configs import local_config, slurm_config
 from dimsim.compute.fetch import fetch_trajectory_paths_from_target
 from dimsim.compute.workflow import SimulationWorkflow
@@ -40,3 +43,22 @@ trajectory_paths = [
 print(trajectory_paths)
 # [('jobs/f88a3e081bc694c0e4bec5d25332f116d7543de667a5e1de0dca3455795be2fb/production_trajectory.dcd',),
 #  ('jobs/083d52acc879707f21ca1531c3a7285dda9752b263e6966f42de276743ec8f89/production_trajectory.dcd',)]
+
+for trajectory_path in trajectory_paths:
+    trajectory_path = trajectory_path[0]
+    print(
+        round(
+            mdtraj.density(
+                mdtraj.load(
+                    trajectory_path,
+                    top=trajectory_path.replace("production_trajectory.dcd", "production_topology.pdb"),
+                )
+            ).mean(),
+            2,
+        )
+    )
+
+try:
+    parsl.dfk().cleanup()
+except Exception:
+    pass
