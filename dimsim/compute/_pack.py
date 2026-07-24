@@ -44,7 +44,7 @@ def _prepare_packed_topology(
     result = pack_box(
         molecules,
         n_copies,
-        target_density=Quantity(compute_config.get("density", 0.7) * 0.7, "g/mL"),  # type: ignore[operator]
+        target_density=Quantity(compute_config.get("density", 1.0) * 0.7, "g/mL"),  # type: ignore[operator]
         working_directory=job_dir,
     )
 
@@ -53,6 +53,6 @@ def _prepare_packed_topology(
     logging.info(f"packed {result.n_molecules} molecules")
 
     return {
-        "compute_config": compute_config,
+        "compute_config": compute_config,  # do we really need to return this?
         "packed_topology": result,
     }
