@@ -28,14 +28,17 @@ target = DataEntry(
     }
 )
 
-with open("sample_density/target_config.json", "w") as f:
-    json.dump(target, f)
+with open("sample_density/target_config.json", "w") as target_config:
+    json.dump(target, target_config)
 
 compute = _make_liquid_density_compute_configs(
     data_entry=target,
     force_field="openff-2.3.0.offxml",
     n_molecules=200,
 )[0]
+
+with open("sample_density/compute_config.json", "w") as compute_config:
+    json.dump(compute, compute_config)
 
 packing_result = _prepare_packed_topology(
     compute_config=compute,

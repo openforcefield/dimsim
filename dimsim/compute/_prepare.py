@@ -26,7 +26,7 @@ def _prepare_openmm_system(
     filename = f"{job_dir}/openmm_system.xml"
 
     if pathlib.Path(filename).exists():
-        logging.warning(f"File {filename} already exists, skipping packing.")
+        logging.warning(f"File {filename} already exists, skipping system prep.")
         return {
             "compute_config": packing_future["compute_config"],
             "openmm_system": openmm.XmlSerializer.deserialize(open(filename).read()),
