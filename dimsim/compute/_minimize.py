@@ -30,6 +30,8 @@ def _minimize_energy(
     # this should be in Kelvin
     temperature = compute_config["temperature"]
 
+    # this file is not in inputs, but is likely to be there by chance -
+    # should be a better wya of handling this file and the information it stores
     packed_topology_file = f"{job_dir}/packed_topology.pdb"
     minimized_topology_file = f"{job_dir}/minimized_topology.pdb"
 

@@ -25,14 +25,6 @@ def bulk_liquid():
     )
 
 
-"""
-def _prepare_openmm_system(
-    packing_future: dict[str, BulkLiquid | Topology],
-    job_dir: str,
-) -> dict[str, BulkLiquid | openmm.System]:
-"""
-
-
 @pytest.fixture
 def packing_future() -> dict[str, BulkLiquid | Topology]:
     compute_config = BulkLiquid(
