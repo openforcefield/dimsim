@@ -16,6 +16,7 @@ def _run_equilibration(
     # TODO: Expose barostat (+ thermostat?) to user
     import logging
 
+    import openmm
     import openmm.app
     import openmm.unit
 

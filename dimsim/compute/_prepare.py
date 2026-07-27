@@ -27,9 +27,11 @@ def _prepare_openmm_system(
 
     if pathlib.Path(filename).exists():
         logging.warning(f"File {filename} already exists, skipping system prep.")
+        with open(filename) as f:
+            system = openmm.XmlSerializer.deserialize(f.read())
         return {
             "compute_config": packing_future["compute_config"],
-            "openmm_system": openmm.XmlSerializer.deserialize(open(filename).read()),
+            "openmm_system": system,
         }
 
     compute_config = packing_future["compute_config"]
