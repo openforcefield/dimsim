@@ -1,0 +1,13 @@
+tolerance 2.000000
+filetype pdb
+output packmol_output.pdb
+
+structure _PACKING_MOLECULE0.pdb
+  number 100
+  inside box 0. 0. 0. 26.56899126671057 26.56899126671057 18.2013274563503
+end structure
+
+structure _PACKING_MOLECULE1.pdb
+  number 100
+  inside box 0. 0. 0. 26.56899126671057 26.56899126671057 18.2013274563503
+end structure
