@@ -20,7 +20,7 @@ def _run_density_analysis(
     logging.info("Starting density analysis")
 
     # TODO: Double check for equilibration/stability
-    production_files: ProductionFiles = production_future["simulation_files"]  # type: ignore[assignment]
+    production_files: ProductionFiles = production_future["simulation_files"]
 
     dataframe = pandas.read_csv(production_files["log"].filepath)
 

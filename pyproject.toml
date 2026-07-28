@@ -64,6 +64,7 @@ exclude = "dimsim/_tests"
 ignore_missing_imports = true
 python_version = "3.12"
 disallow_untyped_defs = false
+warn_unused_ignores = true
 warn_return_any = true
 warn_unused_configs = true
 
