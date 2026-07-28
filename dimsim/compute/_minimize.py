@@ -77,9 +77,8 @@ def _minimize_energy(
         checkpoint=File(f"{job_dir}/minimized_checkpoint.chk"),
     )
 
-    assert pathlib.Path(files["topology"].filepath).exists(), (
-        f"Topology file {files['topology'].filepath} does not exist"
-    )
+    if not pathlib.Path(files["topology"].filepath).exists():
+        raise FileNotFoundError(f"Topology file {files['topology'].filepath} does not exist")
 
     with open(files["topology"].filepath, "w") as f:
         openmm.app.PDBFile.writeFile(
