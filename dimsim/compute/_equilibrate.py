@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from parsl import File
+from smee.mm import TensorReporter
 
 from dimsim.configs.liquid import BulkLiquid
 
@@ -56,27 +57,26 @@ def _run_equilibration(
         File(f"{job_dir}/production_system.xml"),  # probably don't need to carry this through ...
         File(f"{job_dir}/equilibration_integrator.xml"),
         File(f"{job_dir}/equilibration_checkpoint.chk"),
+        File(f"{job_dir}/equilibration_trajectory.msgpack"),
     ]
 
-    simulation.reporters.append(
-        openmm.app.StateDataReporter(
-            file=simulation_files[2].filepath,
-            reportInterval=1000,
-            step=True,
-            potentialEnergy=True,
-            kineticEnergy=True,
-            totalEnergy=True,
-            temperature=True,
-            volume=True,
-            density=True,
-            speed=True,
-        )
+    dcd_reporter = openmm.app.DCDReporter(
+        file=simulation_files[1].filepath,
+        reportInterval=1000,
     )
 
-    simulation.reporters.append(openmm.app.DCDReporter(simulation_files[1].filepath, 1000))
+    smee_reporter = TensorReporter(
+        output_file=open(simulation_files[6].filepath, "wb"),
+        report_interval=1000,
+        beta=1.0 / openmm.unit.kilocalories_per_mole,
+        pressure=compute_config["pressure"] * openmm.unit.kilopascal,
+    )
+
+    simulation.reporters.append(dcd_reporter)
+    simulation.reporters.append(smee_reporter)
 
     logging.info("Running 10,000 steps of MD")
-    # simulation.step(equilibration_config["steps_per_iteration"])
+
     simulation.step(10_000)
 
     with open(simulation_files[0].filepath, "w") as f:
