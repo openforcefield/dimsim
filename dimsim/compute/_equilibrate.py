@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from parsl import File
+from smee.mm import TensorReporter
 
 from dimsim.compute._files import (
     EquilibrationFiles,
@@ -55,7 +56,8 @@ def _run_equilibration(
 
     files = EquilibrationFiles(
         topology=File(f"{job_dir}/equilibrated_topology.pdb"),
-        trajectory=File(f"{job_dir}/equilibration_trajectory.dcd"),
+        dcd_trajectory=File(f"{job_dir}/equilibration_trajectory.dcd"),
+        msgpack_trajectory=File(f"{job_dir}/equilibration_trajectory.msgpack"),
         log=File(f"{job_dir}/equilibration_log.log"),
         system=File(f"{job_dir}/equilibration_system.xml"),
         integrator=File(f"{job_dir}/equilibration_integrator.xml"),
@@ -77,10 +79,23 @@ def _run_equilibration(
         )
     )
 
-    simulation.reporters.append(openmm.app.DCDReporter(files["trajectory"].filepath, 1000))
+    dcd_reporter = openmm.app.DCDReporter(
+        file=files["dcd_trajectory"].filepath,
+        reportInterval=1000,
+    )
+
+    smee_reporter = TensorReporter(
+        output_file=open(files["msgpack_trajectory"].filepath, "wb"),
+        report_interval=1000,
+        beta=1.0 / openmm.unit.kilocalories_per_mole,
+        pressure=compute_config["pressure"] * openmm.unit.kilopascal,
+    )
+
+    simulation.reporters.append(dcd_reporter)
+    simulation.reporters.append(smee_reporter)
 
     logging.info("Running 10,000 steps of MD")
-    # simulation.step(equilibration_config["steps_per_iteration"])
+
     simulation.step(10_000)
 
     with open(files["topology"].filepath, "w") as f:

@@ -20,7 +20,8 @@ class EquilibrationFiles(TypedDict):
     """Files needed in the `run_equilibration` app."""
 
     topology: File
-    trajectory: File
+    dcd_trajectory: File
+    msgpack_trajectory: File
     log: File
     system: File
     integrator: File
@@ -31,7 +32,8 @@ class ProductionFiles(TypedDict):
     """Files needed in the `run_production` app."""
 
     topology: File
-    trajectory: File
+    dcd_trajectory: File
+    msgpack_trajectory: File
     log: File
     system: File
     integrator: File
