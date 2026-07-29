@@ -3,9 +3,14 @@ from __future__ import annotations
 import openmm
 import openmm.app
 from openff.toolkit import Topology
-from parsl import File, python_app
+from parsl import python_app
 
 from dimsim.compute._equilibrate import EquilibrationConfig
+from dimsim.compute._files import (
+    EquilibrationFiles,
+    MinimizationFiles,
+    ProductionFiles,
+)
 from dimsim.compute._produce import ProductionConfig
 from dimsim.configs.liquid import BulkLiquid
 
@@ -33,7 +38,7 @@ def prepare_openmm_system(
 @python_app
 def minimize_energy(
     system_future: dict[str, BulkLiquid | openmm.System], job_dir: str
-) -> dict[str, BulkLiquid | float | tuple[File, ...]]:
+) -> dict[str, BulkLiquid | float | MinimizationFiles]:
     from dimsim.compute._minimize import _minimize_energy
 
     return _minimize_energy(system_future, job_dir)
@@ -43,9 +48,9 @@ def minimize_energy(
 def run_equilibration(
     compute_config: BulkLiquid,
     equilibration_config: EquilibrationConfig,
-    minimization_future: dict[str, BulkLiquid | float | tuple[File, ...]],
+    minimization_future: dict[str, BulkLiquid | float | MinimizationFiles],
     job_dir: str,
-) -> dict[str, tuple[File, ...]]:
+) -> dict[str, EquilibrationFiles]:
     from dimsim.compute._equilibrate import _run_equilibration
 
     return _run_equilibration(compute_config, equilibration_config, minimization_future, job_dir)
@@ -55,9 +60,9 @@ def run_equilibration(
 def run_production(
     compute_config: BulkLiquid,
     production_config: ProductionConfig,
-    equilibration_future: dict[str, tuple[File, ...]],
+    equilibration_future: dict[str, EquilibrationFiles],
     job_dir: str,
-) -> dict[str, tuple[File, ...]]:
+) -> dict[str, ProductionFiles]:
 
     from dimsim.compute._produce import _run_production
 
@@ -67,7 +72,7 @@ def run_production(
 @python_app
 def run_density_analysis(
     compute_config: BulkLiquid,
-    production_future: dict[str, tuple[File, ...]],
+    production_future: dict[str, ProductionFiles],
     job_dir: str,
 ) -> dict[str, float]:
     """Run a naive density analysis of production trajectories. For debugging only, not for tensor fitting."""

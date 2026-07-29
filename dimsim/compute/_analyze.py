@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from parsl import File
-
+from dimsim.compute._files import ProductionFiles
 from dimsim.configs.liquid import BulkLiquid
 
 
 def _run_density_analysis(
     compute_config: BulkLiquid,
-    production_future: dict[str, tuple[File, ...]],
+    production_future: dict[str, ProductionFiles],
     job_dir: str,
 ) -> dict[str, float]:
     import logging
@@ -21,9 +20,9 @@ def _run_density_analysis(
     logging.info("Starting density analysis")
 
     # TODO: Double check for equilibration/stability
-    production_files: tuple[File, ...] = production_future["simulation_files"]  # type: ignore[assignment]
+    production_files: ProductionFiles = production_future["simulation_files"]
 
-    dataframe = pandas.read_csv(production_files[2].filepath)
+    dataframe = pandas.read_csv(production_files["log"].filepath)
 
     estimate = dataframe["Density (g/mL)"].mean()
     logging.info(f"Estimated mean density: {estimate:.4f} g/mL")

@@ -28,15 +28,15 @@ def _prepare_packed_topology(
     n_molecules = compute_config["n_molecules"]
 
     time.sleep(n_molecules * 0.001)
-    filename = f"{job_dir}/packed_topology.pdb"
+    packed_topology_file = f"{job_dir}/packed_topology.pdb"
 
     molecules = [Molecule.from_smiles(smiles) for smiles in compute_config["smiles"]]
 
-    if pathlib.Path(filename).exists():
-        logging.info(f"File {filename} already exists, skipping packing.")
+    if pathlib.Path(packed_topology_file).exists():
+        logging.info(f"File {packed_topology_file} already exists, skipping packing.")
         return {
             "compute_config": compute_config,
-            "packed_topology": Topology.from_pdb(filename, unique_molecules=molecules),
+            "packed_topology": Topology.from_pdb(packed_topology_file, unique_molecules=molecules),
         }
 
     n_copies = [int(n_molecules * x) for x in compute_config["x"]]
@@ -48,11 +48,11 @@ def _prepare_packed_topology(
     result = pack_box(
         molecules,
         n_copies,
-        target_density=Quantity(density * 0.7, "g/mL"),  # type: ignore[operator]
+        target_density=Quantity(density * 0.7, "g/mL"),
         working_directory=job_dir,
     )
 
-    result.to_file(f"{job_dir}/packed_topology.pdb", file_format="pdb")
+    result.to_file(packed_topology_file, file_format="pdb")
 
     logging.info(f"packed {result.n_molecules} molecules")
 

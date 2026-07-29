@@ -5,13 +5,15 @@ import openmm.app
 from openff.toolkit import Topology
 from parsl import File
 
+from dimsim.compute._files import MinimizationFiles
 from dimsim.configs.liquid import BulkLiquid
 
 
 def _minimize_energy(
     system_future: dict[str, BulkLiquid | openmm.System], job_dir: str
-) -> dict[str, BulkLiquid | float | tuple[File, ...]]:
+) -> dict[str, BulkLiquid | float | MinimizationFiles]:
     import logging
+    import pathlib
 
     import openmm
     import openmm.app
@@ -68,31 +70,34 @@ def _minimize_energy(
 
     logging.info(f"Minimized energy from {original:.2f} to {final:.2f}")
 
-    simulation_files = [
-        File(f"{job_dir}/simulation_topology.pdb"),
-        File(f"{job_dir}/simulation_system.xml"),
-        File(f"{job_dir}/simulation_integrator.xml"),
-        File(f"{job_dir}/simulation_checkpoint.chk"),
-    ]
+    files = MinimizationFiles(
+        topology=File(minimized_topology_file),
+        system=File(f"{job_dir}/minimized_system.xml"),
+        integrator=File(f"{job_dir}/minimized_integrator.xml"),
+        checkpoint=File(f"{job_dir}/minimized_checkpoint.chk"),
+    )
 
-    with open(simulation_files[0].filepath, "w") as f:
+    if not pathlib.Path(files["topology"].filepath).exists():
+        raise FileNotFoundError(f"Topology file {files['topology'].filepath} does not exist")
+
+    with open(files["topology"].filepath, "w") as f:
         openmm.app.PDBFile.writeFile(
             topology=simulation.topology,
             positions=simulation.context.getState(getPositions=True).getPositions(),
             file=f,
         )
 
-    with open(simulation_files[1].filepath, "w") as f:
+    with open(files["system"].filepath, "w") as f:
         f.write(openmm.XmlSerializer.serialize(simulation.system))
 
-    with open(simulation_files[2].filepath, "w") as f:
+    with open(files["integrator"].filepath, "w") as f:
         f.write(openmm.XmlSerializer.serialize(simulation.integrator))
 
-    simulation.saveCheckpoint(simulation_files[3].filepath)
+    simulation.saveCheckpoint(files["checkpoint"].filepath)
 
     return {
         "compute_config": compute_config,
-        "simulation_files": tuple(simulation_files),
+        "simulation_files": files,
         "original": original,
         "final": final,
     }
