@@ -1,3 +1,4 @@
+import json
 import pathlib
 from collections.abc import Sequence
 
@@ -35,11 +36,22 @@ class SimulationWorkflow:
         logging.info(f"Submitting {compute_config} compute configs to workflow")
 
         job_id = make_job_id(compute_config)
+
         job_dir = get_job_paths(self.base_dir, job_id)["root"]
         # maybe serialize all configs into the job_dir? could simplify some function signatures
         pathlib.Path(job_dir).mkdir(exist_ok=True)
 
         logging.info(f"Made job id (same as job dir) {job_id} for this compute config")
+
+        with open(
+            pathlib.Path(self.base_dir) / job_id / "compute_config.json",
+            "w",
+        ) as file:
+            json.dump(
+                compute_config,
+                file,
+                indent=4,
+            )
 
         if pathlib.Path(job_dir, "production_trajectory.dcd").exists():
             logging.info(f"short-circuiting {job_id}!")
