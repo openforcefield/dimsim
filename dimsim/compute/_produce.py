@@ -57,6 +57,20 @@ def _run_production(
         checkpoint=File(f"{job_dir}/production_checkpoint.chk"),
     )
 
+    simulation.reporters.append(
+        openmm.app.StateDataReporter(
+            file=files["log"].filepath,
+            reportInterval=1000,
+            step=True,
+            potentialEnergy=True,
+            kineticEnergy=True,
+            totalEnergy=True,
+            temperature=True,
+            volume=True,
+            density=True,
+            speed=True,
+        )
+    )
     dcd_reporter = openmm.app.DCDReporter(
         file=files["dcd_trajectory"].filepath,
         reportInterval=1000,
