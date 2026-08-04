@@ -118,6 +118,7 @@ class SimulationWorkflow:
             target_config,
             force_field,
             n_molecules,
+            n_replicates=n_replicates,
         )
 
         return self.run(compute_configs=compute_configs)

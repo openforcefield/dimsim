@@ -57,6 +57,21 @@ def _run_production(
         checkpoint=File(f"{job_dir}/production_checkpoint.chk"),
     )
 
+    simulation.reporters.append(
+        openmm.app.StateDataReporter(
+            file=files["log"].filepath,
+            reportInterval=1000,
+            step=True,
+            potentialEnergy=True,
+            kineticEnergy=True,
+            totalEnergy=True,
+            temperature=True,
+            volume=True,
+            density=True,
+            speed=True,
+        )
+    )
+
     dcd_reporter = openmm.app.DCDReporter(
         file=files["dcd_trajectory"].filepath,
         reportInterval=1000,
@@ -74,7 +89,7 @@ def _run_production(
 
     simulation.context.setVelocitiesToTemperature(
         compute_config["temperature"] * openmm.unit.kelvin,
-        randomSeed=compute_config["replicate_index"],
+        compute_config["replicate_index"],
     )
 
     logging.info("Running 100,000 steps of MD")
