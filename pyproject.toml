@@ -60,6 +60,7 @@ lint.select = [ "E", "F", "I", "NPY", "RUF", "UP", "W" ]
 lint.isort.known-third-party = [ "openff.toolkit", "openff.utilities", "openff.units", "openff.interchange" ]
 
 [tool.mypy]
+mypy_path = "stubs/"
 exclude = "dimsim/_tests"
 ignore_missing_imports = true
 python_version = "3.12"
