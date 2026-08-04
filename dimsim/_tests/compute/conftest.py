@@ -3,6 +3,8 @@ import pytest
 from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
 
+from dimsim.configs.liquid import BulkLiquid
+
 
 @pytest.fixture(scope="session", autouse=True)
 def parsl_test_setup():
@@ -16,3 +18,18 @@ def parsl_test_setup():
     yield  # Run tests
 
     parsl.clear()  # Teardown
+
+
+@pytest.fixture
+def liquid_config() -> BulkLiquid:
+    return BulkLiquid(
+        tag="liquid",
+        force_field="test_force_field",
+        n_molecules=10,
+        replicate_index=0,
+        smiles=["CCO"],
+        x=[1.0],
+        density=0.8,
+        temperature=300.0,
+        pressure=101.325,
+    )

@@ -17,7 +17,8 @@ def make_job_id(compute_config: BaseComputeConfig) -> str:
     params = {
         "tag": compute_config["tag"],  # type: ignore[typeddict-item]
         "force_field": compute_config["force_field"],
-        "n_molecules": str(compute_config["n_molecules"]),
+        "n_molecules": compute_config["n_molecules"],
+        "replicate_index": compute_config["replicate_index"],
         "smiles": compute_config["smiles"],
         "x": compute_config["x"],
         "temperature": compute_config["temperature"],
