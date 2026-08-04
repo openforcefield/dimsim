@@ -4,7 +4,9 @@ from importlib.resources import files
 import openmm
 import pytest
 from openff.toolkit import Molecule, Topology
+from parsl import File
 
+from dimsim.compute._pack import PackingFiles
 from dimsim.compute._prepare import _prepare_openmm_system
 from dimsim.configs.liquid import BulkLiquid
 
@@ -35,14 +37,11 @@ def packing_future() -> dict[str, BulkLiquid | Topology]:
         ),
     )
 
-    packed_topology = Topology.from_pdb(
-        str(files("dimsim") / "_tests/data/app_files/sample_density/packed_topology.pdb"),
-        unique_molecules=[Molecule.from_smiles(smiles) for smiles in compute_config["smiles"]],
-    )
-
     return {
         "compute_config": compute_config,  # do we really need to return this?
-        "packed_topology": packed_topology,
+        "packed_files": PackingFiles(
+            packed_topology=File(files("dimsim") / "_tests/data/app_files/sample_density/packed_topology.pdb")
+        ),
     }
 
 
@@ -54,4 +53,8 @@ def test_prepare_openmm_system(packing_future, tmp_path):
 
     assert isinstance(prepare_result["openmm_system"], openmm.System)
 
-    assert prepare_result["openmm_system"].getNumParticles() == packing_future["packed_topology"].n_atoms
+    topology = Topology.from_pdb(
+        file_path=packing_future["packed_files"]["packed_topology"].filepath,
+        unique_molecules=[Molecule.from_smiles(smiles) for smiles in packing_future["compute_config"]["smiles"]],
+    )
+    assert prepare_result["openmm_system"].getNumParticles() == topology.n_atoms

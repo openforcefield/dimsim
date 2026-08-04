@@ -1,5 +1,6 @@
 import pytest
-from openff.toolkit import Topology
+from openff.toolkit import Molecule, Topology
+from parsl import File
 
 from dimsim.compute._pack import _prepare_packed_topology
 from dimsim.configs.liquid import BulkLiquid
@@ -34,12 +35,17 @@ def _get_density(topology: Topology) -> float:
 def test_basic_packing(bulk_liquid, tmp_path):
     result = _prepare_packed_topology(bulk_liquid, str(tmp_path))
 
-    assert isinstance(result["packed_topology"], Topology)
+    assert isinstance(result["packed_files"], dict)
+    assert isinstance(result["packed_files"]["packed_topology"], File)
 
-    assert result["packed_topology"].n_molecules == bulk_liquid["n_molecules"]
+    topology = Topology.from_pdb(
+        file_path=result["packed_files"]["packed_topology"].filepath,
+        unique_molecules=[Molecule.from_smiles(smiles) for smiles in result["compute_config"]["smiles"]],
+    )
+    assert topology.n_molecules == bulk_liquid["n_molecules"]
 
     # currently the default is to scale to 0.7 * density (if defined)
-    assert _get_density(result["packed_topology"]) == pytest.approx(bulk_liquid["density"] * 0.7, rel=0.1)
+    assert _get_density(topology) == pytest.approx(bulk_liquid["density"] * 0.7, rel=0.1)
 
 
 def test_packing_with_no_density_in_target(bulk_liquid, tmp_path):
@@ -49,11 +55,16 @@ def test_packing_with_no_density_in_target(bulk_liquid, tmp_path):
 
     result = _prepare_packed_topology(bulk_liquid_no_density, str(tmp_path))
 
-    assert isinstance(result["packed_topology"], Topology)
+    assert isinstance(result["packed_files"], dict)
+    assert isinstance(result["packed_files"]["packed_topology"], File)
 
-    assert result["packed_topology"].n_molecules == bulk_liquid_no_density["n_molecules"]
+    topology = Topology.from_pdb(
+        file_path=result["packed_files"]["packed_topology"].filepath,
+        unique_molecules=[Molecule.from_smiles(smiles) for smiles in result["compute_config"]["smiles"]],
+    )
+    assert topology.n_molecules == bulk_liquid_no_density["n_molecules"]
 
-    assert _get_density(result["packed_topology"]) == pytest.approx(0.7, rel=0.1)
+    assert _get_density(topology) == pytest.approx(0.7, rel=0.1)
 
 
 def test_packing_with_altered_n_molecules(bulk_liquid, tmp_path):
@@ -63,11 +74,14 @@ def test_packing_with_altered_n_molecules(bulk_liquid, tmp_path):
 
     result = _prepare_packed_topology(bulk_liquid_altered_n_molecules, str(tmp_path))
 
-    assert isinstance(result["packed_topology"], Topology)
+    assert isinstance(result["packed_files"], dict)
+    assert isinstance(result["packed_files"]["packed_topology"], File)
 
-    assert result["packed_topology"].n_molecules == bulk_liquid_altered_n_molecules["n_molecules"]
+    topology = Topology.from_pdb(
+        file_path=result["packed_files"]["packed_topology"].filepath,
+        unique_molecules=[Molecule.from_smiles(smiles) for smiles in result["compute_config"]["smiles"]],
+    )
+    assert topology.n_molecules == bulk_liquid_altered_n_molecules["n_molecules"]
 
     # currently the default is to scale to 0.7 * density (if defined)
-    assert _get_density(result["packed_topology"]) == pytest.approx(
-        bulk_liquid_altered_n_molecules["density"] * 0.7, rel=0.1
-    )
+    assert _get_density(topology) == pytest.approx(bulk_liquid_altered_n_molecules["density"] * 0.7, rel=0.1)

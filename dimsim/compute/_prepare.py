@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import openmm
 import openmm.app
-from openff.toolkit import Topology
+from openff.toolkit import Molecule, Topology
 
+from dimsim.compute._files import PackingFiles
 from dimsim.configs.liquid import BulkLiquid
 
 
 def _prepare_openmm_system(
-    packing_future: dict[str, BulkLiquid | Topology],
+    packing_future: dict[str, BulkLiquid | PackingFiles],
     job_dir: str,
 ) -> dict[str, BulkLiquid | openmm.System]:
     import logging
@@ -34,8 +35,13 @@ def _prepare_openmm_system(
             "openmm_system": system,
         }
 
-    compute_config = packing_future["compute_config"]
-    packed_topology: Topology = packing_future["packed_topology"]
+    compute_config: BulkLiquid = packing_future["compute_config"]  # type: ignore[assignment]
+    packing_files: PackingFiles = packing_future["packed_files"]  # type: ignore[assignment]
+
+    packed_topology: Topology = Topology.from_pdb(
+        file_path=packing_files["packed_topology"].filepath,
+        unique_molecules=[Molecule.from_smiles(smiles) for smiles in compute_config["smiles"]],
+    )
 
     force_field = ForceField(compute_config["force_field"])
 
