@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import typing
+
 from parsl import File
 from smee.mm import TensorReporter
 
@@ -7,9 +9,16 @@ from dimsim.compute._files import (
     EquilibrationFiles,
     MinimizationFiles,
 )
+from dimsim.configs.compute.ensemble import Ensemble
 from dimsim.configs.liquid import BulkLiquid
 
-EquilibrationConfig = object
+
+class EquilibrationConfig(typing.TypedDict):
+    ensemble: Ensemble
+
+    steps_per_iteration: int
+
+    step_size: float
 
 
 def _run_equilibration(

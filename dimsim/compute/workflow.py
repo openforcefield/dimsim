@@ -75,8 +75,8 @@ class SimulationWorkflow:
         )
 
         # sim_future = run_simulation(config_future, job_dir)
-        # 5. analyze trajectory
-        # 6. check for convergence, if not converged, run more production and repeat
+        # 1. analyze trajectory
+        # 1. check for convergence, if not converged, run more production and repeat
         # analysis_future = analyze_trajectory(sim_future, job_dir)
 
         # TODO: Switch out into each different property
