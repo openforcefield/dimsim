@@ -27,15 +27,31 @@ def _compute_configs_from_data_entry(
     data_entry: DataEntry,
     force_field: str,
     n_molecules: int,
+    n_replicates: int = 3,
 ) -> Sequence[BaseComputeConfig]:
     """Convert a single thermophysical data entry into a list of simulation configs."""
     match data_entry:
         case {"tag": "density" | "dielectric_constant"}:
-            return _make_liquid_density_compute_configs(data_entry, force_field, n_molecules)
+            return _make_liquid_density_compute_configs(
+                data_entry,
+                force_field,
+                n_molecules,
+                n_replicates,
+            )
         case {"tag": "enthalpy_of_mixing" | "excess_molar_volume"}:
-            return _make_enthalpy_of_mixing_compute_configs(data_entry, force_field, n_molecules)
+            return _make_enthalpy_of_mixing_compute_configs(
+                data_entry,
+                force_field,
+                n_molecules,
+                n_replicates,
+            )
         case {"tag": "enthalpy_of_vaporization"}:
-            return _make_enthalpy_of_vaporization_compute_configs(data_entry, force_field, n_molecules)
+            return _make_enthalpy_of_vaporization_compute_configs(
+                data_entry,
+                force_field,
+                n_molecules,
+                n_replicates,
+            )
         case _:
             raise ValueError(f"Unsupported data entry tag: {data_entry['tag']}")
 
@@ -44,6 +60,7 @@ def _make_liquid_density_compute_configs(
     data_entry: DataEntry,
     force_field: str,
     n_molecules: int,
+    n_replicates: int = 3,
 ) -> Sequence[BulkLiquid]:
     from dimsim.configs.liquid import BulkLiquid
 
@@ -53,12 +70,14 @@ def _make_liquid_density_compute_configs(
                 tag="liquid",
                 force_field=force_field,
                 n_molecules=n_molecules,
+                replicate_index=replicate_index,
                 smiles=data_entry["smiles"],
                 x=data_entry["x"],
                 temperature=data_entry["temperature"],
                 pressure=data_entry["pressure"],
                 density=data_entry["value"] if data_entry["tag"] == "density" else None,
             )
+            for replicate_index in range(n_replicates)
         ]
     )
 
@@ -67,35 +86,41 @@ def _make_enthalpy_of_mixing_compute_configs(
     data_entry: DataEntry,
     force_field: str,
     n_molecules: int,  # error if float? would this value ever be the result of rounding?
+    n_replicates: int = 3,
 ) -> Sequence[BulkLiquid]:
     from dimsim.configs.liquid import BulkLiquid
 
-    liquid_configs = [
-        BulkLiquid(
-            tag="liquid",
-            force_field=force_field,
-            n_molecules=n_molecules,
-            smiles=data_entry["smiles"],
-            x=data_entry["x"],
-            temperature=data_entry["temperature"],
-            pressure=data_entry["pressure"],
-            density=data_entry["value"] if data_entry["tag"] == "density" else None,
-        )
-    ]
+    liquid_configs: list[BulkLiquid] = list()
 
-    for component_smiles, component_x in zip(data_entry["smiles"], data_entry["x"]):
+    for replicate_index in range(n_replicates):
         liquid_configs.append(
             BulkLiquid(
                 tag="liquid",
                 force_field=force_field,
-                n_molecules=n_molecules,  # not sure if each pure simulation should have the full n_molecules?
-                smiles=[component_smiles],
-                x=[1.0],
+                n_molecules=n_molecules,
+                replicate_index=replicate_index,
+                smiles=data_entry["smiles"],
+                x=data_entry["x"],
                 temperature=data_entry["temperature"],
                 pressure=data_entry["pressure"],
                 density=data_entry["value"] if data_entry["tag"] == "density" else None,
             )
         )
+
+        for component_smiles, _component_x in zip(data_entry["smiles"], data_entry["x"]):
+            liquid_configs.append(
+                BulkLiquid(
+                    tag="liquid",
+                    force_field=force_field,
+                    n_molecules=n_molecules,  # not sure if each pure simulation should have the full n_molecules?
+                    replicate_index=replicate_index,
+                    smiles=[component_smiles],
+                    x=[1.0],
+                    temperature=data_entry["temperature"],
+                    pressure=data_entry["pressure"],
+                    density=data_entry["value"] if data_entry["tag"] == "density" else None,
+                )
+            )
 
     return tuple(liquid_configs)
 
@@ -104,30 +129,38 @@ def _make_enthalpy_of_vaporization_compute_configs(
     data_entry: DataEntry,
     force_field: str,
     n_molecules: int,
+    n_replicates: int = 3,
 ) -> Sequence[BulkLiquid | VacuumGas]:
     from dimsim.configs.gas import VacuumGas
     from dimsim.configs.liquid import BulkLiquid
 
-    return (
-        BulkLiquid(
-            tag="liquid",
-            force_field=force_field,
-            n_molecules=n_molecules,
-            smiles=data_entry["smiles"],
-            x=data_entry["x"],
-            temperature=data_entry["temperature"],
-            pressure=data_entry["pressure"],
-            density=None,
-        ),
-        VacuumGas(
-            tag="gas",
-            force_field=force_field,
-            n_molecules=n_molecules,
-            smiles=data_entry["smiles"],
-            x=data_entry["x"],
-            temperature=data_entry["temperature"],
-        ),
-    )
+    compute_configs: list[BulkLiquid | VacuumGas] = list()
+
+    for replicate_index in range(n_replicates):
+        compute_configs.append(
+            BulkLiquid(
+                tag="liquid",
+                force_field=force_field,
+                n_molecules=n_molecules,
+                smiles=data_entry["smiles"],
+                x=data_entry["x"],
+                temperature=data_entry["temperature"],
+                pressure=data_entry["pressure"],
+                density=None,
+            )
+        )
+        compute_configs.append(
+            VacuumGas(
+                tag="gas",
+                force_field=force_field,
+                n_molecules=n_molecules,
+                smiles=data_entry["smiles"],
+                x=data_entry["x"],
+                temperature=data_entry["temperature"],
+            )
+        )
+
+    return tuple(compute_configs)
 
 
 # TODO: Move this into the step that processes multiple configs, maybe SimulationWorkflow.submit_batch

@@ -101,6 +101,7 @@ class SimulationWorkflow:
         target_config: DataEntry,
         force_field: str,
         n_molecules: int,
+        n_replicates: int = 3,
     ):
         import logging
 
