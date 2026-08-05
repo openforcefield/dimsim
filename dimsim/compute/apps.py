@@ -11,24 +11,22 @@ from dimsim.compute._files import (
     ProductionFiles,
 )
 from dimsim.compute._produce import ProductionConfig
-from dimsim.configs.liquid import BulkLiquid
 
 
 @python_app
 def prepare_packed_topology(
-    compute_config: BulkLiquid,
     job_dir: str,
-) -> dict[str, BulkLiquid | PackingFiles]:
+) -> dict[str, PackingFiles]:
     from dimsim.compute._pack import _prepare_packed_topology
 
-    return _prepare_packed_topology(compute_config, job_dir)
+    return _prepare_packed_topology(job_dir)
 
 
 @python_app
 def prepare_openmm_system(
-    packing_future: dict[str, BulkLiquid | PackingFiles],
+    packing_future: dict[str, PackingFiles],
     job_dir: str,
-) -> dict[str, BulkLiquid | PreparingFiles]:
+) -> dict[str, PreparingFiles]:
     from dimsim.compute._prepare import _prepare_openmm_system
 
     return _prepare_openmm_system(packing_future, job_dir)
@@ -36,9 +34,9 @@ def prepare_openmm_system(
 
 @python_app
 def minimize_energy(
-    system_future: dict[str, BulkLiquid | PackingFiles],
+    system_future: dict[str, PreparingFiles],
     job_dir: str,
-) -> dict[str, BulkLiquid | float | MinimizationFiles]:
+) -> dict[str, float | MinimizationFiles]:
     from dimsim.compute._minimize import _minimize_energy
 
     return _minimize_energy(system_future, job_dir)
@@ -46,19 +44,17 @@ def minimize_energy(
 
 @python_app
 def run_equilibration(
-    compute_config: BulkLiquid,
     equilibration_config: EquilibrationConfig,
-    minimization_future: dict[str, BulkLiquid | float | MinimizationFiles],
+    minimization_future: dict[str, float | MinimizationFiles],
     job_dir: str,
 ) -> dict[str, EquilibrationFiles]:
     from dimsim.compute._equilibrate import _run_equilibration
 
-    return _run_equilibration(compute_config, equilibration_config, minimization_future, job_dir)
+    return _run_equilibration(equilibration_config, minimization_future, job_dir)
 
 
 @python_app
 def run_production(
-    compute_config: BulkLiquid,
     production_config: ProductionConfig,
     equilibration_future: dict[str, EquilibrationFiles],
     job_dir: str,
@@ -66,16 +62,15 @@ def run_production(
 
     from dimsim.compute._produce import _run_production
 
-    return _run_production(compute_config, production_config, equilibration_future, job_dir)
+    return _run_production(production_config, equilibration_future, job_dir)
 
 
 @python_app
 def run_density_analysis(
-    compute_config: BulkLiquid,
     production_future: dict[str, ProductionFiles],
     job_dir: str,
 ) -> dict[str, float]:
     """Run a naive density analysis of production trajectories. For debugging only, not for tensor fitting."""
     from dimsim.compute._analyze import _run_density_analysis
 
-    return _run_density_analysis(compute_config, production_future, job_dir)
+    return _run_density_analysis(production_future, job_dir)

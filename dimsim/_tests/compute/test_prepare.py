@@ -46,6 +46,11 @@ def packing_future() -> dict[str, BulkLiquid | Topology]:
 
 
 def test_prepare_openmm_system(packing_future, tmp_path):
+    json.dump(
+        packing_future["compute_config"],
+        open(f"{tmp_path}/compute_config.json", "w"),
+    )
+
     prepare_result = _prepare_openmm_system(
         packing_future=packing_future,
         job_dir=str(tmp_path),

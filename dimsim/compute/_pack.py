@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from parsl import File
 
 from dimsim.compute._files import PackingFiles
@@ -7,9 +9,8 @@ from dimsim.configs.liquid import BulkLiquid
 
 
 def _prepare_packed_topology(
-    compute_config: BulkLiquid,
     job_dir: str,
-) -> dict[str, BulkLiquid | PackingFiles]:
+) -> dict[str, PackingFiles]:
     import logging
     import pathlib
     import time
@@ -25,6 +26,8 @@ def _prepare_packed_topology(
         level=logging.INFO,
     )
 
+    compute_config = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
+
     files = PackingFiles(
         packed_topology=File(f"{job_dir}/packed_topology.pdb"),
     )
@@ -32,7 +35,6 @@ def _prepare_packed_topology(
     if pathlib.Path(files["packed_topology"].filepath).exists():
         logging.info(f"File {files['packed_topology'].filepath} already exists, skipping packing.")
         return {
-            "compute_config": compute_config,
             "packed_files": files,
         }
 
@@ -61,8 +63,5 @@ def _prepare_packed_topology(
     logging.info(f"packed {result.n_molecules} molecules")
 
     return {
-        # do we really need to return this? we can just serialize it into
-        # a compute_config.json file early on ...
-        "compute_config": compute_config,
         "packed_files": files,
     }

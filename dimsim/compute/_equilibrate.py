@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from parsl import File
 from smee.mm import TensorReporter
 
@@ -13,9 +15,8 @@ EquilibrationConfig = object
 
 
 def _run_equilibration(
-    compute_config: BulkLiquid,
     equilibration_config: EquilibrationConfig,
-    minimization_future: dict[str, BulkLiquid | float | MinimizationFiles],
+    minimization_future: dict[str, float | MinimizationFiles],
     job_dir: str,
 ) -> dict[str, EquilibrationFiles]:
     # TODO: Expose barostat (+ thermostat?) to user
@@ -30,6 +31,8 @@ def _run_equilibration(
         level=logging.INFO,
     )
     logging.info("Starting equilibration run")
+
+    compute_config = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
 
     minimized_files: MinimizationFiles = minimization_future["simulation_files"]  # type: ignore[assignment]
 

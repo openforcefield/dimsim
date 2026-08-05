@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from openff.toolkit import Molecule, Topology
 from parsl import File
@@ -33,14 +35,16 @@ def _get_density(topology: Topology) -> float:
 
 
 def test_basic_packing(bulk_liquid, tmp_path):
-    result = _prepare_packed_topology(bulk_liquid, str(tmp_path))
+    json.dump(bulk_liquid, open(f"{tmp_path}/compute_config.json", "w"))
+
+    result = _prepare_packed_topology(str(tmp_path))
 
     assert isinstance(result["packed_files"], dict)
     assert isinstance(result["packed_files"]["packed_topology"], File)
 
     topology = Topology.from_pdb(
         file_path=result["packed_files"]["packed_topology"].filepath,
-        unique_molecules=[Molecule.from_smiles(smiles) for smiles in result["compute_config"]["smiles"]],
+        unique_molecules=[Molecule.from_smiles(smiles) for smiles in bulk_liquid["smiles"]],
     )
     assert topology.n_molecules == bulk_liquid["n_molecules"]
 
@@ -53,14 +57,16 @@ def test_packing_with_no_density_in_target(bulk_liquid, tmp_path):
     bulk_liquid_no_density = bulk_liquid.copy()
     del bulk_liquid_no_density["density"]
 
-    result = _prepare_packed_topology(bulk_liquid_no_density, str(tmp_path))
+    json.dump(bulk_liquid_no_density, open(f"{tmp_path}/compute_config.json", "w"))
+
+    result = _prepare_packed_topology(str(tmp_path))
 
     assert isinstance(result["packed_files"], dict)
     assert isinstance(result["packed_files"]["packed_topology"], File)
 
     topology = Topology.from_pdb(
         file_path=result["packed_files"]["packed_topology"].filepath,
-        unique_molecules=[Molecule.from_smiles(smiles) for smiles in result["compute_config"]["smiles"]],
+        unique_molecules=[Molecule.from_smiles(smiles) for smiles in bulk_liquid_no_density["smiles"]],
     )
     assert topology.n_molecules == bulk_liquid_no_density["n_molecules"]
 
@@ -72,14 +78,16 @@ def test_packing_with_altered_n_molecules(bulk_liquid, tmp_path):
     bulk_liquid_altered_n_molecules = bulk_liquid.copy()
     bulk_liquid_altered_n_molecules["n_molecules"] = 210
 
-    result = _prepare_packed_topology(bulk_liquid_altered_n_molecules, str(tmp_path))
+    json.dump(bulk_liquid_altered_n_molecules, open(f"{tmp_path}/compute_config.json", "w"))
+
+    result = _prepare_packed_topology(str(tmp_path))
 
     assert isinstance(result["packed_files"], dict)
     assert isinstance(result["packed_files"]["packed_topology"], File)
 
     topology = Topology.from_pdb(
         file_path=result["packed_files"]["packed_topology"].filepath,
-        unique_molecules=[Molecule.from_smiles(smiles) for smiles in result["compute_config"]["smiles"]],
+        unique_molecules=[Molecule.from_smiles(smiles) for smiles in bulk_liquid_altered_n_molecules["smiles"]],
     )
     assert topology.n_molecules == bulk_liquid_altered_n_molecules["n_molecules"]
 
