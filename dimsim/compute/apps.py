@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import openmm
-import openmm.app
-from openff.toolkit import Topology
 from parsl import python_app
 
 from dimsim.compute._equilibrate import EquilibrationConfig
 from dimsim.compute._files import (
     EquilibrationFiles,
     MinimizationFiles,
+    PackingFiles,
+    PreparingFiles,
     ProductionFiles,
 )
 from dimsim.compute._produce import ProductionConfig
@@ -19,7 +18,7 @@ from dimsim.configs.liquid import BulkLiquid
 def prepare_packed_topology(
     compute_config: BulkLiquid,
     job_dir: str,
-) -> dict[str, BulkLiquid | Topology]:
+) -> dict[str, BulkLiquid | PackingFiles]:
     from dimsim.compute._pack import _prepare_packed_topology
 
     return _prepare_packed_topology(compute_config, job_dir)
@@ -27,9 +26,9 @@ def prepare_packed_topology(
 
 @python_app
 def prepare_openmm_system(
-    packing_future: dict[str, BulkLiquid | Topology],
+    packing_future: dict[str, BulkLiquid | PackingFiles],
     job_dir: str,
-) -> dict[str, BulkLiquid | openmm.System]:
+) -> dict[str, BulkLiquid | PreparingFiles]:
     from dimsim.compute._prepare import _prepare_openmm_system
 
     return _prepare_openmm_system(packing_future, job_dir)
@@ -37,7 +36,8 @@ def prepare_openmm_system(
 
 @python_app
 def minimize_energy(
-    system_future: dict[str, BulkLiquid | openmm.System], job_dir: str
+    system_future: dict[str, BulkLiquid | PackingFiles],
+    job_dir: str,
 ) -> dict[str, BulkLiquid | float | MinimizationFiles]:
     from dimsim.compute._minimize import _minimize_energy
 

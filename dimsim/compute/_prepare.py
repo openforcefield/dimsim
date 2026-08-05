@@ -3,8 +3,9 @@ from __future__ import annotations
 import openmm
 import openmm.app
 from openff.toolkit import Molecule, Topology
+from parsl import File
 
-from dimsim.compute._files import PackingFiles
+from dimsim.compute._files import PackingFiles, PreparingFiles
 from dimsim.configs.liquid import BulkLiquid
 
 
@@ -24,15 +25,15 @@ def _prepare_openmm_system(
     )
     logging.info("Starting OpenMM system creation app")
 
-    filename = f"{job_dir}/openmm_system.xml"
+    files = PreparingFiles(
+        openmm_system=File(f"{job_dir}/openmm_system.xml"),
+    )
 
-    if pathlib.Path(filename).exists():
-        logging.warning(f"File {filename} already exists, skipping system prep.")
-        with open(filename) as f:
-            system = openmm.XmlSerializer.deserialize(f.read())
+    if pathlib.Path(files["openmm_system"].filepath).exists():
+        logging.warning(f"File {files['openmm_system'].filepath} already exists, skipping system prep.")
         return {
             "compute_config": packing_future["compute_config"],
-            "openmm_system": system,
+            "prepared_files": files,
         }
 
     compute_config: BulkLiquid = packing_future["compute_config"]  # type: ignore[assignment]
@@ -47,11 +48,11 @@ def _prepare_openmm_system(
 
     openmm_system = force_field.create_openmm_system(packed_topology)
 
-    with open(filename, "w") as f:
+    with open(files["openmm_system"].filepath, "w") as f:
         f.write(openmm.XmlSerializer.serialize(openmm_system))
 
     logging.info("made openmm system!")
     return {
         "compute_config": compute_config,
-        "openmm_system": openmm_system,
+        "prepared_files": files,
     }

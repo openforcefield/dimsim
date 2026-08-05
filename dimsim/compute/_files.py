@@ -7,6 +7,10 @@ class PackingFiles(TypedDict):
     packed_topology: File
 
 
+class PreparingFiles(TypedDict):
+    openmm_system: File
+
+
 class MinimizationFiles(TypedDict):
     """Files needed in the `minimize_energy` app."""
 
