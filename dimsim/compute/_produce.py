@@ -61,7 +61,7 @@ def _run_production(
 
     simulation.context.setVelocitiesToTemperature(
         compute_config["temperature"] * openmm.unit.kelvin,
-        compute_config["replicate_index"],
+        compute_config["replicate_index"] + 1,
     )
 
     simulation.reporters.append(
