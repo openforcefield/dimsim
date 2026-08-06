@@ -11,11 +11,15 @@ def _run_density_analysis(
 
     import pandas
 
-    logging.basicConfig(
-        filename=f"{job_dir}/simulation.log",
-        level=logging.INFO,
-    )
-    logging.info("Starting density analysis")
+    logger = logging.getLogger("dimsim")  # same package name
+    logger.handlers.clear()  # worker starts fresh, but be safe
+    logger.setLevel(logging.INFO)
+    handler = logging.FileHandler(f"{job_dir}/produce.log")
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    logger.addHandler(handler)
+    logger.propagate = False
+
+    logger.info("Starting density analysis")
 
     # TODO: Double check for equilibration/stability
     production_files: ProductionFiles = production_future["simulation_files"]
@@ -23,6 +27,7 @@ def _run_density_analysis(
     dataframe = pandas.read_csv(production_files["log"].filepath)
 
     estimate = dataframe["Density (g/mL)"].mean()
-    logging.info(f"Estimated mean density: {estimate:.4f} g/mL")
+
+    logger.info(f"Estimated mean density: {estimate:.4f} g/mL")
 
     return {"mean_density": estimate}

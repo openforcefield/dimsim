@@ -20,11 +20,23 @@ def _minimize_energy(
     import openmm.unit
     from openff.toolkit import Molecule
 
-    logging.basicConfig(
-        filename=f"{job_dir}/simulation.log",
-        level=logging.INFO,
+    logger = logging.getLogger("dimsim")  # same package name
+    logger.handlers.clear()  # worker starts fresh, but be safe
+    logger.setLevel(logging.INFO)
+    handler = logging.FileHandler(f"{job_dir}/minimize.log")
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    logger.addHandler(handler)
+    logger.propagate = False
+
+    logger.info("Starting OpenMM energy minimization app")
+
+    files = MinimizationFiles(
+        topology=File(f"{job_dir}/minimized_topology.pdb"),
+        system=File(f"{job_dir}/minimized_system.xml"),
+        integrator=File(f"{job_dir}/minimized_integrator.xml"),
+        checkpoint=File(f"{job_dir}/minimized_checkpoint.chk"),
     )
-    logging.info("Starting OpenMM energy minimization app")
+
     system = openmm.XmlSerializer.deserialize(open(system_future["prepared_files"]["openmm_system"].filepath).read())
 
     compute_config: BulkLiquid = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
@@ -32,15 +44,10 @@ def _minimize_energy(
     # this should be in Kelvin
     temperature = compute_config["temperature"]
 
-    # this file is not in inputs, but is likely to be there by chance -
-    # should be a better way of handling this file and the information it stores
-    packed_topology_file = f"{job_dir}/packed_topology.pdb"
-    minimized_topology_file = f"{job_dir}/minimized_topology.pdb"
-
     molecules = [Molecule.from_smiles(smiles) for smiles in compute_config["smiles"]]
 
     topology = Topology.from_pdb(
-        packed_topology_file,
+        system_future["prepared_files"]["packed_topology"].filepath,
         unique_molecules=molecules,
     )
 
@@ -62,20 +69,13 @@ def _minimize_energy(
 
     final_state = simulation.context.getState(energy=True, positions=True)
 
-    with open(minimized_topology_file, "w") as f:
+    with open(files["topology"].filepath, "w") as f:
         openmm.app.PDBFile.writeFile(simulation.topology, final_state.getPositions(), f)
 
     original: float = original_state.getPotentialEnergy().value_in_unit(openmm.unit.kilojoule_per_mole)
     final: float = final_state.getPotentialEnergy().value_in_unit(openmm.unit.kilojoule_per_mole)
 
-    logging.info(f"Minimized energy from {original:.2f} to {final:.2f}")
-
-    files = MinimizationFiles(
-        topology=File(minimized_topology_file),
-        system=File(f"{job_dir}/minimized_system.xml"),
-        integrator=File(f"{job_dir}/minimized_integrator.xml"),
-        checkpoint=File(f"{job_dir}/minimized_checkpoint.chk"),
-    )
+    logger.info(f"Minimized energy from {original:.2f} to {final:.2f}")
 
     if not pathlib.Path(files["topology"].filepath).exists():
         raise FileNotFoundError(f"Topology file {files['topology'].filepath} does not exist")
@@ -87,9 +87,11 @@ def _minimize_energy(
             file=f,
         )
 
+    # Do we need this? the system is probably the same before and after minimization ...
     with open(files["system"].filepath, "w") as f:
         f.write(openmm.XmlSerializer.serialize(simulation.system))
 
+    # same as above
     with open(files["integrator"].filepath, "w") as f:
         f.write(openmm.XmlSerializer.serialize(simulation.integrator))
 

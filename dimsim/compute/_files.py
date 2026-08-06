@@ -8,6 +8,7 @@ class PackingFiles(TypedDict):
 
 
 class PreparingFiles(TypedDict):
+    packed_topology: File
     openmm_system: File
 
 

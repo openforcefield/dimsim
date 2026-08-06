@@ -23,11 +23,15 @@ def _run_production(
 ) -> dict[str, ProductionFiles]:
     import logging
 
-    logging.basicConfig(
-        filename=f"{job_dir}/simulation.log",
-        level=logging.INFO,
-    )
-    logging.info("Starting production run")
+    logger = logging.getLogger("dimsim")  # same package name
+    logger.handlers.clear()  # worker starts fresh, but be safe
+    logger.setLevel(logging.INFO)
+    handler = logging.FileHandler(f"{job_dir}/produce.log")
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    logger.addHandler(handler)
+    logger.propagate = False
+
+    logger.info("Starting production run")
 
     compute_config = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
 
@@ -56,7 +60,7 @@ def _run_production(
         simulation = openmm.app.Simulation(topology, system, integrator)
         simulation.loadCheckpoint(f)
 
-    logging.info("Reinitializing context (in production step)")
+    logger.info("Reinitializing context (in production step)")
     simulation.context.reinitialize(preserveState=True)
 
     dcd_reporter = openmm.app.DCDReporter(
@@ -89,7 +93,7 @@ def _run_production(
         )
     )
 
-    logging.info("Running 100,000 steps of MD")
+    logger.info("Running 100,000 steps of MD")
 
     simulation.step(100_000)
 

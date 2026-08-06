@@ -26,11 +26,15 @@ def _run_equilibration(
     import openmm.app
     import openmm.unit
 
-    logging.basicConfig(
-        filename=f"{job_dir}/simulation.log",
-        level=logging.INFO,
-    )
-    logging.info("Starting equilibration run")
+    logger = logging.getLogger("dimsim")  # same package name
+    logger.handlers.clear()  # worker starts fresh, but be safe
+    logger.setLevel(logging.INFO)
+    handler = logging.FileHandler(f"{job_dir}/equilibrate.log")
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    logger.addHandler(handler)
+    logger.propagate = False
+
+    logger.info("Starting equilibration run")
 
     compute_config = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
 
@@ -54,7 +58,7 @@ def _run_equilibration(
         )
     )
 
-    logging.info("Reinitializing context (in equilibration step)")
+    logger.info("Reinitializing context (in equilibration step)")
     simulation.context.reinitialize(preserveState=True)
 
     files = EquilibrationFiles(
@@ -97,7 +101,7 @@ def _run_equilibration(
     simulation.reporters.append(dcd_reporter)
     simulation.reporters.append(smee_reporter)
 
-    logging.info("Running 10,000 steps of MD")
+    logger.info("Running 10,000 steps of MD")
 
     simulation.step(10_000)
 

@@ -141,7 +141,7 @@ class CoordinateStore:
         temperature_tolerance : float | None, optional
             Temperature tolerance in Kelvin.
         pressure : float | None, optional
-            Target pressure in atm.
+            Target pressure in atm.  # NOTE: elsewhere dimsim uses kPa
             If pressure is None and pressure_tolerance is None,
             this filter will be ignored.
             If pressure is None and pressure_tolerance is not None,
