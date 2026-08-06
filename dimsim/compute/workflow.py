@@ -72,7 +72,7 @@ class SimulationWorkflow:
         # trajectory_dcd = File(f"{job_dir}/trajectory.dcd")
 
         # 1. pack from compute config
-        pack_future = prepare_packed_topology(compute_config, job_dir)
+        pack_future = prepare_packed_topology(job_dir)
 
         # 2. set up openmm system
         setup_future = prepare_openmm_system(pack_future, job_dir)
@@ -82,7 +82,6 @@ class SimulationWorkflow:
 
         # 4. run equilibration step
         equilibration_future = run_equilibration(
-            compute_config=compute_config,
             equilibration_config=None,
             minimization_future=minimize_future,
             job_dir=job_dir,
@@ -90,7 +89,6 @@ class SimulationWorkflow:
 
         # 5. run "production" step
         production_future = run_production(
-            compute_config=compute_config,
             production_config=None,
             equilibration_future=equilibration_future,
             job_dir=job_dir,
