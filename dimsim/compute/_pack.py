@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from openff.toolkit import Topology
+import json
 
+from parsl import File
+
+from dimsim.compute._files import PackingFiles
 from dimsim.configs.liquid import BulkLiquid
 
 
 def _prepare_packed_topology(
-    compute_config: BulkLiquid,
     job_dir: str,
-) -> dict[str, BulkLiquid | Topology]:
+) -> dict[str, PackingFiles]:
     import logging
     import pathlib
     import time
@@ -23,7 +25,18 @@ def _prepare_packed_topology(
         filename=f"{job_dir}/simulation.log",
         level=logging.INFO,
     )
-    logging.info("Starting packing app")
+
+    compute_config = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
+
+    files = PackingFiles(
+        packed_topology=File(f"{job_dir}/packed_topology.pdb"),
+    )
+
+    if pathlib.Path(files["packed_topology"].filepath).exists():
+        logging.info(f"File {files['packed_topology'].filepath} already exists, skipping packing.")
+        return {
+            "packed_files": files,
+        }
 
     n_molecules = compute_config["n_molecules"]
 
@@ -31,13 +44,6 @@ def _prepare_packed_topology(
     packed_topology_file = f"{job_dir}/packed_topology.pdb"
 
     molecules = [Molecule.from_smiles(smiles) for smiles in compute_config["smiles"]]
-
-    if pathlib.Path(packed_topology_file).exists():
-        logging.info(f"File {packed_topology_file} already exists, skipping packing.")
-        return {
-            "compute_config": compute_config,
-            "packed_topology": Topology.from_pdb(packed_topology_file, unique_molecules=molecules),
-        }
 
     n_copies = [int(n_molecules * x) for x in compute_config["x"]]
 
@@ -57,6 +63,5 @@ def _prepare_packed_topology(
     logging.info(f"packed {result.n_molecules} molecules")
 
     return {
-        "compute_config": compute_config,  # do we really need to return this?
-        "packed_topology": result,
+        "packed_files": files,
     }

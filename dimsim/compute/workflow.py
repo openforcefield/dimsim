@@ -1,3 +1,5 @@
+import json
+import logging
 import pathlib
 from collections.abc import Sequence
 
@@ -15,12 +17,20 @@ from dimsim.compute.jobs import get_job_paths, make_job_id
 from dimsim.configs._compute import BaseComputeConfig
 from dimsim.configs.targets.thermo import DataEntry
 
+logger = logging.getLogger(__name__)  # module-level logger, not root
+
 
 class SimulationWorkflow:
     def __init__(self, base_dir, parsl_config):
         pathlib.Path(base_dir).mkdir(exist_ok=True)
 
         self.base_dir = base_dir
+
+        handler = logging.FileHandler(f"{base_dir}/workflow.log")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+        logger.propagate = False  # avoid double-logging if root also has handlers
 
         parsl.load(parsl_config)
 
@@ -29,21 +39,29 @@ class SimulationWorkflow:
         compute_config: BaseComputeConfig,
     ):
         """Submit a single end-to-end simulation pipeline."""
-        import logging
+        parsl.set_file_logger(f"{self.base_dir}/parsl_log.log", level=logging.DEBUG)
 
-        logging.info("Starting packing app")
-        logging.info(f"Submitting {compute_config} compute configs to workflow")
+        logger.info("Starting packing app")
+        logger.info(f"Submitting {compute_config} compute configs to workflow")
 
         job_id = make_job_id(compute_config)
         job_dir = get_job_paths(self.base_dir, job_id)["root"]
         # maybe serialize all configs into the job_dir? could simplify some function signatures
         pathlib.Path(job_dir).mkdir(exist_ok=True)
 
-        logging.info(f"Made job id (same as job dir) {job_id} for this compute config")
+        logger.info(f"Made job id (same as job dir) {job_id} for this compute config")
+
+        json.dump(
+            compute_config,
+            open(f"{job_dir}/compute_config.json", "w"),
+            indent=4,
+        )
 
         if pathlib.Path(job_dir, "production_trajectory.dcd").exists():
-            logging.info(f"short-circuiting {job_id}!")
+            logger.info(f"short-circuiting {job_id}!")
             return None  # already done, skip
+        else:
+            logger.info(f"short-circuit check for job {job_id} failed, running full workflow")
 
         # packed_pdb = File(f"{job_dir}/packed.pdb")
         # system_xml = File(f"{job_dir}/system.xml")
@@ -91,9 +109,8 @@ class SimulationWorkflow:
         compute_configs: Sequence[BaseComputeConfig],
     ):
         """Submit many jobs, skipping already-complete ones."""
-        import logging
 
-        logging.info(f"Submitting {len(compute_configs)} compute configs to workflow")
+        logger.info(f"Submitting {len(compute_configs)} compute configs to workflow")
         return [result for spec in compute_configs if (result := self._submit_compute(spec)) is not None]
 
     def submit_target(
@@ -102,13 +119,12 @@ class SimulationWorkflow:
         force_field: str,
         n_molecules: int,
     ):
-        import logging
 
         from dimsim.compute.prep import (
             _compute_configs_from_data_entry,
         )
 
-        logging.info(
+        logger.info(
             f"submitting target {target_config['tag']} with {n_molecules} molecules and force field {force_field}"
         )
         # for some properties this will be len 2+, for some len 1,
