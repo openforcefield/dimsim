@@ -13,6 +13,7 @@ def prepare_future() -> dict[str, PreparingFiles]:
     return {
         "prepared_files": PreparingFiles(
             openmm_system=File(files("dimsim") / "_tests/data/app_files/sample_density/openmm_system.xml"),
+            packed_topology=File(files("dimsim") / "_tests/data/app_files/sample_density/packed_topology.pdb"),
         ),
     }
 

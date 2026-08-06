@@ -39,7 +39,8 @@ def _run_production(
         topology=File(f"{job_dir}/production_topology.pdb"),
         dcd_trajectory=File(f"{job_dir}/production_trajectory.dcd"),
         msgpack_trajectory=File(f"{job_dir}/production_trajectory.msgpack"),
-        log=File(f"{job_dir}/production_log.log"),
+        log=File(f"{job_dir}/production.log"),
+        data=File(f"{job_dir}/production.csv"),
         system=File(f"{job_dir}/production_system.xml"),
         integrator=File(f"{job_dir}/production_integrator.xml"),
         checkpoint=File(f"{job_dir}/production_checkpoint.chk"),
@@ -80,7 +81,7 @@ def _run_production(
 
     simulation.reporters.append(
         openmm.app.StateDataReporter(
-            file=files["log"].filepath,
+            file=files["data"].filepath,
             reportInterval=1000,
             step=True,
             potentialEnergy=True,

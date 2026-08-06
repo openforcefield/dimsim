@@ -24,10 +24,14 @@ def _run_density_analysis(
     # TODO: Double check for equilibration/stability
     production_files: ProductionFiles = production_future["simulation_files"]
 
-    dataframe = pandas.read_csv(production_files["log"].filepath)
+    dataframe = pandas.read_csv(production_files["data"].filepath)
 
-    estimate = dataframe["Density (g/mL)"].mean()
+    mean = dataframe["Density (g/mL)"].mean()
+    std = dataframe["Density (g/mL)"].std()
 
-    logger.info(f"Estimated mean density: {estimate:.4f} g/mL")
+    logger.info(f"Estimated mean density: {mean:.4f} +/- {std:.4f} g/mL")
 
-    return {"mean_density": estimate}
+    return {
+        "mean": mean,
+        "std": std,
+    }

@@ -101,7 +101,8 @@ class SimulationWorkflow:
 
         # TODO: Switch out into each different property
         analysis_future = run_density_analysis(
-            compute_config=compute_config, production_future=production_future, job_dir=job_dir
+            production_future=production_future,
+            job_dir=job_dir,
         )
 
         return {"job_id": job_id, "future": analysis_future}
