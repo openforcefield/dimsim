@@ -2,6 +2,7 @@ import pathlib
 from collections.abc import Sequence
 
 import parsl
+import pyarrow.parquet
 
 from dimsim.compute.apps import (
     minimize_energy,
@@ -13,6 +14,7 @@ from dimsim.compute.apps import (
 )
 from dimsim.compute.jobs import get_job_paths, make_job_id
 from dimsim.configs._compute import BaseComputeConfig
+from dimsim.configs.liquid import LIQUID_SCHEMA
 from dimsim.configs.targets.thermo import DataEntry
 
 
@@ -23,6 +25,9 @@ class SimulationWorkflow:
         self.base_dir = base_dir
 
         parsl.load(parsl_config)
+
+        # this should be based on a schema that's not specific to liquids
+        pyarrow.parquet.write_table(LIQUID_SCHEMA.empty_table(), "jobs.parquet")
 
     def _submit_compute(
         self,
