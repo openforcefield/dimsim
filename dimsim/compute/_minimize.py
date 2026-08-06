@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-import openmm
-import openmm.app
+import json
+
 from openff.toolkit import Topology
 from parsl import File
 
-from dimsim.compute._files import MinimizationFiles
+from dimsim.compute._files import MinimizationFiles, PreparingFiles
 from dimsim.configs.liquid import BulkLiquid
 
 
 def _minimize_energy(
-    system_future: dict[str, BulkLiquid | openmm.System], job_dir: str
-) -> dict[str, BulkLiquid | float | MinimizationFiles]:
+    system_future: dict[str, PreparingFiles],
+    job_dir: str,
+) -> dict[str, float | MinimizationFiles]:
     import logging
     import pathlib
 
-    import openmm
     import openmm.app
     import openmm.unit
     from openff.toolkit import Molecule
@@ -25,9 +25,9 @@ def _minimize_energy(
         level=logging.INFO,
     )
     logging.info("Starting OpenMM energy minimization app")
-    system = system_future["openmm_system"]
+    system = openmm.XmlSerializer.deserialize(open(system_future["prepared_files"]["openmm_system"].filepath).read())
 
-    compute_config: BulkLiquid = system_future["compute_config"]
+    compute_config: BulkLiquid = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
 
     # this should be in Kelvin
     temperature = compute_config["temperature"]
@@ -96,7 +96,6 @@ def _minimize_energy(
     simulation.saveCheckpoint(files["checkpoint"].filepath)
 
     return {
-        "compute_config": compute_config,
         "simulation_files": files,
         "original": original,
         "final": final,

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from dimsim.compute._files import ProductionFiles
-from dimsim.configs.liquid import BulkLiquid
 
 
 def _run_density_analysis(
-    compute_config: BulkLiquid,
     production_future: dict[str, ProductionFiles],
     job_dir: str,
 ) -> dict[str, float]:

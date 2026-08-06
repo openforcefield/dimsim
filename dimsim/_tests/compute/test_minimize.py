@@ -1,40 +1,29 @@
-import json
 import shutil
 from importlib.resources import files
 
-import openmm
 import pytest
-from openff.toolkit import Topology
+from parsl import File
 
+from dimsim.compute._files import PreparingFiles
 from dimsim.compute._minimize import _minimize_energy
-from dimsim.configs.liquid import BulkLiquid
 
 
 @pytest.fixture
-def prepare_future() -> dict[str, BulkLiquid | Topology]:
-    compute_config = BulkLiquid(
-        json.load(
-            open(
-                files("dimsim") / "_tests/data/app_files/sample_density/compute_config.json",
-            ),
-        ),
-    )
+def prepare_future() -> dict[str, PreparingFiles]:
     return {
-        "compute_config": compute_config,
-        "openmm_system": openmm.XmlSerializer.deserialize(
-            open(
-                files("dimsim") / "_tests/data/app_files/sample_density/openmm_system.xml",
-            ).read(),
+        "prepared_files": PreparingFiles(
+            openmm_system=File(files("dimsim") / "_tests/data/app_files/sample_density/openmm_system.xml"),
         ),
     }
 
 
 def test_minimize_basic(prepare_future, tmp_path):
     # shim - see comment in source code
-    shutil.copy(
-        str(files("dimsim") / "_tests/data/app_files/sample_density/packed_topology.pdb"),
-        str(tmp_path / "packed_topology.pdb"),
-    )
+    for file in ["compute_config.json", "packed_topology.pdb", "openmm_system.xml"]:
+        shutil.copy(
+            str(files("dimsim") / f"_tests/data/app_files/sample_density/{file}"),
+            str(tmp_path / file),
+        )
 
     minimize_result = _minimize_energy(
         system_future=prepare_future,

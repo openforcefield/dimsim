@@ -1,21 +1,23 @@
 from __future__ import annotations
 
+import json
+
 import openmm
 import openmm.app
 from openff.toolkit import Molecule, Topology
+from parsl import File
 
-from dimsim.compute._files import PackingFiles
+from dimsim.compute._files import PackingFiles, PreparingFiles
 from dimsim.configs.liquid import BulkLiquid
 
 
 def _prepare_openmm_system(
-    packing_future: dict[str, BulkLiquid | PackingFiles],
+    packing_future: dict[str, PackingFiles],
     job_dir: str,
-) -> dict[str, BulkLiquid | openmm.System]:
+) -> dict[str, PreparingFiles]:
     import logging
     import pathlib
 
-    import openmm
     from openff.toolkit import ForceField
 
     logging.basicConfig(
@@ -24,19 +26,18 @@ def _prepare_openmm_system(
     )
     logging.info("Starting OpenMM system creation app")
 
-    filename = f"{job_dir}/openmm_system.xml"
+    files = PreparingFiles(
+        openmm_system=File(f"{job_dir}/openmm_system.xml"),
+    )
 
-    if pathlib.Path(filename).exists():
-        logging.warning(f"File {filename} already exists, skipping system prep.")
-        with open(filename) as f:
-            system = openmm.XmlSerializer.deserialize(f.read())
+    if pathlib.Path(files["openmm_system"].filepath).exists():
+        logging.warning(f"File {files['openmm_system'].filepath} already exists, skipping system prep.")
         return {
-            "compute_config": packing_future["compute_config"],
-            "openmm_system": system,
+            "prepared_files": files,
         }
 
-    compute_config: BulkLiquid = packing_future["compute_config"]  # type: ignore[assignment]
-    packing_files: PackingFiles = packing_future["packed_files"]  # type: ignore[assignment]
+    compute_config: BulkLiquid = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
+    packing_files: PackingFiles = packing_future["packed_files"]
 
     packed_topology: Topology = Topology.from_pdb(
         file_path=packing_files["packed_topology"].filepath,
@@ -47,11 +48,11 @@ def _prepare_openmm_system(
 
     openmm_system = force_field.create_openmm_system(packed_topology)
 
-    with open(filename, "w") as f:
+    with open(files["openmm_system"].filepath, "w") as f:
         f.write(openmm.XmlSerializer.serialize(openmm_system))
 
     logging.info("made openmm system!")
+
     return {
-        "compute_config": compute_config,
-        "openmm_system": openmm_system,
+        "prepared_files": files,
     }

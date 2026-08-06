@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import openmm
 import openmm.app
 from parsl import File
@@ -15,12 +17,10 @@ ProductionConfig = object
 
 
 def _run_production(
-    compute_config: BulkLiquid,
     production_config: ProductionConfig,
     equilibration_future: dict[str, EquilibrationFiles],
     job_dir: str,
 ) -> dict[str, ProductionFiles]:
-
     import logging
 
     logging.basicConfig(
@@ -28,6 +28,18 @@ def _run_production(
         level=logging.INFO,
     )
     logging.info("Starting production run")
+
+    compute_config = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
+
+    files = ProductionFiles(
+        topology=File(f"{job_dir}/production_topology.pdb"),
+        dcd_trajectory=File(f"{job_dir}/production_trajectory.dcd"),
+        msgpack_trajectory=File(f"{job_dir}/production_trajectory.msgpack"),
+        log=File(f"{job_dir}/production_log.log"),
+        system=File(f"{job_dir}/production_system.xml"),
+        integrator=File(f"{job_dir}/production_integrator.xml"),
+        checkpoint=File(f"{job_dir}/production_checkpoint.chk"),
+    )
 
     equilibrated_files: EquilibrationFiles = equilibration_future["simulation_files"]
 
@@ -47,14 +59,9 @@ def _run_production(
     logging.info("Reinitializing context (in production step)")
     simulation.context.reinitialize(preserveState=True)
 
-    files = ProductionFiles(
-        topology=File(f"{job_dir}/production_topology.pdb"),
-        dcd_trajectory=File(f"{job_dir}/production_trajectory.dcd"),
-        msgpack_trajectory=File(f"{job_dir}/production_trajectory.msgpack"),
-        log=File(f"{job_dir}/production_log.log"),
-        system=File(f"{job_dir}/production_system.xml"),
-        integrator=File(f"{job_dir}/production_integrator.xml"),
-        checkpoint=File(f"{job_dir}/production_checkpoint.chk"),
+    simulation.context.setVelocitiesToTemperature(
+        compute_config["temperature"] * openmm.unit.kelvin,
+        compute_config["replicate_index"],
     )
 
     simulation.reporters.append(
@@ -86,11 +93,6 @@ def _run_production(
 
     simulation.reporters.append(dcd_reporter)
     simulation.reporters.append(smee_reporter)
-
-    simulation.context.setVelocitiesToTemperature(
-        compute_config["temperature"] * openmm.unit.kelvin,
-        compute_config["replicate_index"],
-    )
 
     logging.info("Running 100,000 steps of MD")
 

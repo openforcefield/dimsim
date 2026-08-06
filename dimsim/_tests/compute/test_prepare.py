@@ -46,15 +46,26 @@ def packing_future() -> dict[str, BulkLiquid | Topology]:
 
 
 def test_prepare_openmm_system(packing_future, tmp_path):
+    json.dump(
+        packing_future["compute_config"],
+        open(f"{tmp_path}/compute_config.json", "w"),
+    )
+
     prepare_result = _prepare_openmm_system(
         packing_future=packing_future,
         job_dir=str(tmp_path),
     )
 
-    assert isinstance(prepare_result["openmm_system"], openmm.System)
+    assert isinstance(prepare_result["prepared_files"], dict)
+    assert isinstance(prepare_result["prepared_files"]["openmm_system"], File)
 
     topology = Topology.from_pdb(
         file_path=packing_future["packed_files"]["packed_topology"].filepath,
         unique_molecules=[Molecule.from_smiles(smiles) for smiles in packing_future["compute_config"]["smiles"]],
     )
-    assert prepare_result["openmm_system"].getNumParticles() == topology.n_atoms
+
+    openmm_system = openmm.XmlSerializer.deserialize(
+        open(prepare_result["prepared_files"]["openmm_system"].filepath).read()
+    )
+
+    assert openmm_system.getNumParticles() == topology.n_atoms
