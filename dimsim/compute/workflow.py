@@ -32,7 +32,11 @@ class SimulationWorkflow:
         logger.setLevel(logging.INFO)
         logger.propagate = False  # avoid double-logging if root also has handlers
 
+        logger.info(f"Initialized SimulationWorkflow with base_dir={base_dir}")
+
         parsl.load(parsl_config)
+
+        logger.info("Parsl config loaded")
 
     def _submit_compute(
         self,

@@ -18,13 +18,15 @@ def _prepare_packed_topology(
     from openff.packmol import pack_box
     from openff.toolkit import Molecule, Quantity
 
-    # making the job dir should maybe happen inside of SimulationWorkflow.submit() instead of here?
-    pathlib.Path(job_dir).mkdir(exist_ok=True)
+    logger = logging.getLogger("dimsim")  # same package name
+    logger.handlers.clear()  # worker starts fresh, but be safe
+    logger.setLevel(logging.INFO)
+    handler = logging.FileHandler(f"{job_dir}/pack.log")
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    logger.addHandler(handler)
+    logger.propagate = False
 
-    logging.basicConfig(
-        filename=f"{job_dir}/simulation.log",
-        level=logging.INFO,
-    )
+    logger.info("packing topology")
 
     compute_config = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
 
@@ -33,7 +35,8 @@ def _prepare_packed_topology(
     )
 
     if pathlib.Path(files["packed_topology"].filepath).exists():
-        logging.info(f"File {files['packed_topology'].filepath} already exists, skipping packing.")
+        logger.info(f"File {files['packed_topology'].filepath} already exists, skipping packing.")
+
         return {
             "packed_files": files,
         }
@@ -60,7 +63,7 @@ def _prepare_packed_topology(
 
     result.to_file(packed_topology_file, file_format="pdb")
 
-    logging.info(f"packed {result.n_molecules} molecules")
+    logger.info(f"packed {result.n_molecules} molecules")
 
     return {
         "packed_files": files,

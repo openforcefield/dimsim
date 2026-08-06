@@ -10,7 +10,7 @@ class BaseComputeConfig(typing_extensions.TypedDict, extra_items=typing.Any):  #
 
     n_molecules: int
 
-    smiles: list[str]
+    smiles: list[str]  # sorting these (and x) would avoid false negatives
 
     x: list[float]
 

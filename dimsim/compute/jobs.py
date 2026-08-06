@@ -13,7 +13,12 @@ def make_job_id(compute_config: BaseComputeConfig) -> str:
 
     Maybe this could be simplified if it only has one argument?
     """
+    # TODO: Since this is based on a TypedDict, there is basically no validation at
+    #       object creation time. For example, no check that the total mole fraction
+    #       is very close to 1. Here might be a good place to do this?
     # TODO: Improve how this handles VacuumGas
+    # TODO: Sort mole fractions? a 75-25 mixture of A and B is probably the same as a
+    #       25-75 mixture of B and A for our purposes, but the IDs will differ
     params = {
         "tag": compute_config["tag"],  # type: ignore[typeddict-item]
         "force_field": compute_config["force_field"],

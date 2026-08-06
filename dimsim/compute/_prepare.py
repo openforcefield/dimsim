@@ -19,18 +19,22 @@ def _prepare_openmm_system(
 
     from openff.toolkit import ForceField
 
-    logging.basicConfig(
-        filename=f"{job_dir}/simulation.log",
-        level=logging.INFO,
-    )
-    logging.info("Starting OpenMM system creation app")
+    logger = logging.getLogger("dimsim")  # same package name
+    logger.handlers.clear()  # worker starts fresh, but be safe
+    logger.setLevel(logging.INFO)
+    handler = logging.FileHandler(f"{job_dir}/prepare.log")
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    logger.addHandler(handler)
+    logger.propagate = False
+
+    logger.info("Starting OpenMM system creation app")
 
     files = PreparingFiles(
         openmm_system=File(f"{job_dir}/openmm_system.xml"),
     )
 
     if pathlib.Path(files["openmm_system"].filepath).exists():
-        logging.warning(f"File {files['openmm_system'].filepath} already exists, skipping system prep.")
+        logger.info(f"File {files['openmm_system'].filepath} already exists, skipping system prep.")
         return {
             "prepared_files": files,
         }
@@ -50,7 +54,7 @@ def _prepare_openmm_system(
     with open(files["openmm_system"].filepath, "w") as f:
         f.write(openmm.XmlSerializer.serialize(openmm_system))
 
-    logging.info("made openmm system!")
+    logger.info("made openmm system!")
 
     return {
         "prepared_files": files,
