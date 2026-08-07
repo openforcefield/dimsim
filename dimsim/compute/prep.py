@@ -112,7 +112,7 @@ def _make_enthalpy_of_mixing_compute_configs(
                 BulkLiquid(
                     tag="liquid",
                     force_field=force_field,
-                    n_molecules=n_molecules,  # not sure if each pure simulation should have the full n_molecules?
+                    n_molecules=n_molecules,
                     replicate_index=replicate_index,
                     smiles=[component_smiles],
                     x=[1.0],
@@ -154,7 +154,7 @@ def _make_enthalpy_of_vaporization_compute_configs(
             VacuumGas(
                 tag="gas",
                 force_field=force_field,
-                n_molecules=n_molecules,
+                n_molecules=n_molecules,  # this should only ever be 1, but not validated
                 replicate_index=replicate_index,
                 smiles=data_entry["smiles"],
                 x=data_entry["x"],
