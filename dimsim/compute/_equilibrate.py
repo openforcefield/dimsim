@@ -97,6 +97,11 @@ def _run_equilibration(
     simulation.reporters.append(dcd_reporter)
     simulation.reporters.append(smee_reporter)
 
+    simulation.context.setVelocitiesToTemperature(
+        compute_config["temperature"] * openmm.unit.kelvin,
+        compute_config["replicate_index"] + 1,
+    )
+
     logging.info("Running 10,000 steps of MD")
 
     simulation.step(10_000)

@@ -1,12 +1,10 @@
-import os
-
 from parsl.config import Config
 from parsl.executors import HighThroughputExecutor, ThreadPoolExecutor
 from parsl.providers import LocalProvider, SlurmProvider
 from parsl.utils import get_all_checkpoints
 
 
-def local_config():
+def local_config(max_workers: int = 10):
     """For development and testing."""
     if False:
         # If openff-packmol/temporary_cd was threadsafe, better to use
@@ -21,13 +19,13 @@ def local_config():
         executors=[
             HighThroughputExecutor(
                 label="local_process_pool",
-                # LocalProvider runs on the local machine
                 provider=LocalProvider(
                     init_blocks=1,
+                    min_blocks=1,
                     max_blocks=1,
                 ),
-                # Optional: Specify exact max workers (processes)
-                max_workers_per_node=int(os.cpu_count() / 2),
+                max_workers_per_node=max_workers,
+                cores_per_worker=1,
             )
         ],
         strategy=None,  # Disable dynamic scaling for simpler local execution

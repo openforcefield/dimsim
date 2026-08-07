@@ -10,6 +10,8 @@ class BaseComputeConfig(typing_extensions.TypedDict, extra_items=typing.Any):  #
 
     n_molecules: int
 
+    replicate_index: int
+
     smiles: list[str]
 
     x: list[float]

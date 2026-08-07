@@ -118,6 +118,7 @@ class SimulationWorkflow:
         target_config: DataEntry,
         force_field: str,
         n_molecules: int,
+        n_replicates: int = 3,
     ):
 
         from dimsim.compute.prep import (
@@ -133,6 +134,7 @@ class SimulationWorkflow:
             target_config,
             force_field,
             n_molecules,
+            n_replicates=n_replicates,
         )
 
         return self.run(compute_configs=compute_configs)
