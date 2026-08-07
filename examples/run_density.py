@@ -2,7 +2,7 @@ import pathlib
 
 import mdtraj
 import parsl
-from rich.pretty import pprint as print
+from rich import print
 
 from dimsim.compute.configs import local_config, slurm_config
 from dimsim.compute.fetch import fetch_trajectory_paths_from_target
@@ -67,8 +67,7 @@ print(trajectory_paths)
 
 for target_paths in trajectory_paths:
     for target_path in target_paths:
-        job_id = target_path.split("/")[1]
-        trajectory_path = target_path
+        job_id = pathlib.Path(target_path).parts[-2]
         density_all_frames = mdtraj.density(
             mdtraj.load(
                 pathlib.Path(base_dir) / job_id / "production_trajectory.dcd",

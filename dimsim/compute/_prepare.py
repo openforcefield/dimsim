@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 
 import openmm
-import openmm.app
 from openff.toolkit import Molecule, Topology
 from parsl import File
 
