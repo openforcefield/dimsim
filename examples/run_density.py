@@ -76,7 +76,7 @@ for target_paths in trajectory_paths:
         )
 
         print(
-            f"Density estimate for job {job_id}:"
+            f"Density estimate for job {job_id}: "
             f"{density_all_frames.mean():.3f} ± {density_all_frames.std():.3f} kg/m^3"
         )
 """
