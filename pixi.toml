@@ -21,6 +21,7 @@ dask-jobqueue = "*"
 dask-kubernetes = "*"
 rdkit-stubs = "*"
 parsl = "*"
+rich = "*"
 dimsim = { path = ".", editable = true }
 
 [dependencies]

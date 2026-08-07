@@ -37,7 +37,8 @@ def _get_density(topology: Topology) -> float:
 
 
 def test_basic_packing(bulk_liquid, tmp_path):
-    json.dump(bulk_liquid, open(f"{tmp_path}/compute_config.json", "w"))
+    with open(f"{tmp_path}/compute_config.json", "w") as f:
+        json.dump(bulk_liquid, f)
 
     result = _prepare_packed_topology(str(tmp_path))
 
@@ -59,7 +60,8 @@ def test_packing_with_no_density_in_target(bulk_liquid, tmp_path):
     bulk_liquid_no_density = bulk_liquid.copy()
     del bulk_liquid_no_density["density"]
 
-    json.dump(bulk_liquid_no_density, open(f"{tmp_path}/compute_config.json", "w"))
+    with open(f"{tmp_path}/compute_config.json", "w") as f:
+        json.dump(bulk_liquid_no_density, f)
 
     result = _prepare_packed_topology(str(tmp_path))
 
@@ -80,7 +82,8 @@ def test_packing_with_altered_n_molecules(bulk_liquid, tmp_path):
     bulk_liquid_altered_n_molecules = bulk_liquid.copy()
     bulk_liquid_altered_n_molecules["n_molecules"] = 210
 
-    json.dump(bulk_liquid_altered_n_molecules, open(f"{tmp_path}/compute_config.json", "w"))
+    with open(f"{tmp_path}/compute_config.json", "w") as f:
+        json.dump(bulk_liquid_altered_n_molecules, f)
 
     result = _prepare_packed_topology(str(tmp_path))
 

@@ -12,11 +12,13 @@ def fetch_trajectory_paths_from_target(
     target: DataEntry,
     force_field: str,
     n_molecules: int,
+    n_replicates: int,
 ) -> tuple[str, ...]:
     compute_configs = _compute_configs_from_data_entry(
         target,
         force_field,
         n_molecules,
+        n_replicates,
     )
     job_ids = [make_job_id(compute_config) for compute_config in compute_configs]
 

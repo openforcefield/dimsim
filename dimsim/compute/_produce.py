@@ -64,20 +64,10 @@ def _run_production(
     logger.info("Reinitializing context (in production step)")
     simulation.context.reinitialize(preserveState=True)
 
-    dcd_reporter = openmm.app.DCDReporter(
-        file=files["dcd_trajectory"].filepath,
-        reportInterval=1000,
+    simulation.context.setVelocitiesToTemperature(
+        compute_config["temperature"] * openmm.unit.kelvin,
+        compute_config["replicate_index"] + 1,
     )
-
-    smee_reporter = TensorReporter(
-        output_file=open(files["msgpack_trajectory"].filepath, "wb"),
-        report_interval=1000,
-        beta=1.0 / openmm.unit.kilocalories_per_mole,
-        pressure=compute_config["pressure"] * openmm.unit.kilopascal,
-    )
-
-    simulation.reporters.append(dcd_reporter)
-    simulation.reporters.append(smee_reporter)
 
     simulation.reporters.append(
         openmm.app.StateDataReporter(
@@ -93,6 +83,21 @@ def _run_production(
             speed=True,
         )
     )
+
+    dcd_reporter = openmm.app.DCDReporter(
+        file=files["dcd_trajectory"].filepath,
+        reportInterval=1000,
+    )
+
+    smee_reporter = TensorReporter(
+        output_file=open(files["msgpack_trajectory"].filepath, "wb"),
+        report_interval=1000,
+        beta=1.0 / openmm.unit.kilocalories_per_mole,
+        pressure=compute_config["pressure"] * openmm.unit.kilopascal,
+    )
+
+    simulation.reporters.append(dcd_reporter)
+    simulation.reporters.append(smee_reporter)
 
     logger.info("Running 100,000 steps of MD")
 
