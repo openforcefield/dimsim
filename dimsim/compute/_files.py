@@ -28,7 +28,7 @@ class EquilibrationFiles(TypedDict):
     dcd_trajectory: File
     msgpack_trajectory: File
     log: File
-    data: File
+    state_data: File
     system: File
     integrator: File
     checkpoint: File
@@ -41,7 +41,7 @@ class ProductionFiles(TypedDict):
     dcd_trajectory: File
     msgpack_trajectory: File
     log: File
-    data: File
+    state_data: File
     system: File
     integrator: File
     checkpoint: File

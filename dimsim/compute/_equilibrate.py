@@ -66,7 +66,7 @@ def _run_equilibration(
         dcd_trajectory=File(f"{job_dir}/equilibration_trajectory.dcd"),
         msgpack_trajectory=File(f"{job_dir}/equilibration_trajectory.msgpack"),
         log=File(f"{job_dir}/equilibration.log"),
-        data=File(f"{job_dir}/equilibration.csv"),
+        state_data=File(f"{job_dir}/equilibration.csv"),
         system=File(f"{job_dir}/equilibration_system.xml"),
         integrator=File(f"{job_dir}/equilibration_integrator.xml"),
         checkpoint=File(f"{job_dir}/equilibration_checkpoint.chk"),
@@ -74,7 +74,7 @@ def _run_equilibration(
 
     simulation.reporters.append(
         openmm.app.StateDataReporter(
-            file=files["data"].filepath,
+            file=files["state_data"].filepath,
             reportInterval=1000,
             step=True,
             potentialEnergy=True,

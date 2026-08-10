@@ -24,7 +24,7 @@ def _run_density_analysis(
     # TODO: Double check for equilibration/stability
     production_files: ProductionFiles = production_future["simulation_files"]
 
-    dataframe = pandas.read_csv(production_files["data"].filepath)
+    dataframe = pandas.read_csv(production_files["state_data"].filepath)
 
     mean = dataframe["Density (g/mL)"].mean()
     std = dataframe["Density (g/mL)"].std()

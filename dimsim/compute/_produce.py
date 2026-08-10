@@ -40,7 +40,7 @@ def _run_production(
         dcd_trajectory=File(f"{job_dir}/production_trajectory.dcd"),
         msgpack_trajectory=File(f"{job_dir}/production_trajectory.msgpack"),
         log=File(f"{job_dir}/production.log"),
-        data=File(f"{job_dir}/production.csv"),
+        state_data=File(f"{job_dir}/production.csv"),
         system=File(f"{job_dir}/production_system.xml"),
         integrator=File(f"{job_dir}/production_integrator.xml"),
         checkpoint=File(f"{job_dir}/production_checkpoint.chk"),
@@ -71,7 +71,7 @@ def _run_production(
 
     simulation.reporters.append(
         openmm.app.StateDataReporter(
-            file=files["data"].filepath,
+            file=files["state_data"].filepath,
             reportInterval=1000,
             step=True,
             potentialEnergy=True,
