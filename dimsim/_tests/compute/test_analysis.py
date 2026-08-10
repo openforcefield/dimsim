@@ -20,7 +20,7 @@ def test_basic_analysis(tmp_path):
         dcd_trajectory=File(""),
         msgpack_trajectory=File(""),
         log=File(""),
-        data=File(str(tmp_path / "production.csv")),
+        state_data=File(str(tmp_path / "production.csv")),
         system=File(""),
         integrator=File(""),
         checkpoint=File(""),
