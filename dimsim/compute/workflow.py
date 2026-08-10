@@ -22,15 +22,14 @@ logger = logging.getLogger(__name__)  # module-level logger, not root
 
 class SimulationWorkflow:
     def __init__(self, base_dir, parsl_config):
+        from dimsim.compute._logging import _set_up_logger
+
         pathlib.Path(base_dir).mkdir(exist_ok=True)
 
         self.base_dir = base_dir
 
-        handler = logging.FileHandler(f"{base_dir}/workflow.log")
-        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
-        logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
-        logger.propagate = False  # avoid double-logging if root also has handlers
+        # self.logger, maybe?
+        logger = _set_up_logger(f"{base_dir}/workflow.log")
 
         logger.info(f"Initialized SimulationWorkflow with base_dir={base_dir}")
 

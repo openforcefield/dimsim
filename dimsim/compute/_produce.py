@@ -21,15 +21,9 @@ def _run_production(
     equilibration_future: dict[str, EquilibrationFiles],
     job_dir: str,
 ) -> dict[str, ProductionFiles]:
-    import logging
+    from dimsim.compute._logging import _set_up_logger
 
-    logger = logging.getLogger("dimsim")  # same package name
-    logger.handlers.clear()  # worker starts fresh, but be safe
-    logger.setLevel(logging.INFO)
-    handler = logging.FileHandler(f"{job_dir}/produce.log")
-    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
-    logger.addHandler(handler)
-    logger.propagate = False
+    logger = _set_up_logger(f"{job_dir}/produce.log")
 
     logger.info("Starting production run")
 

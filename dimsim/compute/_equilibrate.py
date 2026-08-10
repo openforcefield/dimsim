@@ -20,19 +20,14 @@ def _run_equilibration(
     job_dir: str,
 ) -> dict[str, EquilibrationFiles]:
     # TODO: Expose barostat (+ thermostat?) to user
-    import logging
 
     import openmm
     import openmm.app
     import openmm.unit
 
-    logger = logging.getLogger("dimsim")  # same package name
-    logger.handlers.clear()  # worker starts fresh, but be safe
-    logger.setLevel(logging.INFO)
-    handler = logging.FileHandler(f"{job_dir}/equilibrate.log")
-    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
-    logger.addHandler(handler)
-    logger.propagate = False
+    from dimsim.compute._logging import _set_up_logger
+
+    logger = _set_up_logger(f"{job_dir}/equilibrate.log")
 
     logger.info("Starting equilibration run")
 

@@ -13,20 +13,16 @@ def _minimize_energy(
     system_future: dict[str, PreparingFiles],
     job_dir: str,
 ) -> dict[str, float | MinimizationFiles]:
-    import logging
+
     import pathlib
 
     import openmm.app
     import openmm.unit
     from openff.toolkit import Molecule
 
-    logger = logging.getLogger("dimsim")  # same package name
-    logger.handlers.clear()  # worker starts fresh, but be safe
-    logger.setLevel(logging.INFO)
-    handler = logging.FileHandler(f"{job_dir}/minimize.log")
-    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
-    logger.addHandler(handler)
-    logger.propagate = False
+    from dimsim.compute._logging import _set_up_logger
+
+    logger = _set_up_logger(f"{job_dir}/minimize.log")
 
     logger.info("Starting OpenMM energy minimization app")
 

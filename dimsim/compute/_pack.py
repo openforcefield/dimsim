@@ -11,20 +11,15 @@ from dimsim.configs.liquid import BulkLiquid
 def _prepare_packed_topology(
     job_dir: str,
 ) -> dict[str, PackingFiles]:
-    import logging
     import pathlib
     import time
 
     from openff.packmol import pack_box
     from openff.toolkit import Molecule, Quantity
 
-    logger = logging.getLogger("dimsim")  # same package name
-    logger.handlers.clear()  # worker starts fresh, but be safe
-    logger.setLevel(logging.INFO)
-    handler = logging.FileHandler(f"{job_dir}/pack.log")
-    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
-    logger.addHandler(handler)
-    logger.propagate = False
+    from dimsim.compute._logging import _set_up_logger
+
+    logger = _set_up_logger(f"{job_dir}/pack.log")
 
     logger.info("packing topology")
 
