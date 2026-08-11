@@ -5,6 +5,7 @@ from collections.abc import Sequence
 
 import parsl
 
+from dimsim._db.start import create_database
 from dimsim.compute.apps import (
     minimize_energy,
     prepare_openmm_system,
@@ -33,6 +34,8 @@ class SimulationWorkflow:
         logger.propagate = False  # avoid double-logging if root also has handlers
 
         parsl.load(parsl_config)
+
+        self.low_energy_database = create_database(str(pathlib.Path(self.base_dir) / "minima.db"))
 
     def _submit_compute(
         self,
@@ -68,15 +71,21 @@ class SimulationWorkflow:
         # trajectory_dcd = File(f"{job_dir}/trajectory.dcd")
 
         # 1. pack from compute config
+        # TODO: Short-circuit if a packed topolgoy already exists
         pack_future = prepare_packed_topology(compute_config, job_dir)
 
         # 2. set up openmm system
+        # TODO: Also short-circuit here
         setup_future = prepare_openmm_system(pack_future, job_dir)
 
         # 3. (for now ...) get minimized energy
+        # TODO: Short-circuit here too
+        # TODO: Store the resulting energy into the database, as a starting point
         minimize_future = minimize_energy(setup_future, job_dir)
 
         # 4. run equilibration step
+        # TODO: Short-circuit here too
+        # TODO: Store resulting energy into the database
         equilibration_future = run_equilibration(
             compute_config=compute_config,
             equilibration_config=None,
@@ -85,6 +94,7 @@ class SimulationWorkflow:
         )
 
         # 5. run "production" step
+        # TODO: Store resulting energy into the database
         production_future = run_production(
             compute_config=compute_config,
             production_config=None,
