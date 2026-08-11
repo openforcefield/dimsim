@@ -73,7 +73,7 @@ def test_prepare_openmm_system(packing_future, tmp_path):
 
 
 def test_short_circuit(packing_future, tmp_path):
-    """Test that the function short-circuits if the serialized OpenMM system already eixsts."""
+    """Test that the function short-circuits if the serialized OpenMM system already exists."""
     for file in ["openmm_system.xml"]:
         shutil.copy(
             str(files("dimsim") / f"_tests/data/app_files/sample_density/{file}"),
