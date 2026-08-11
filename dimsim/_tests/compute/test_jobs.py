@@ -3,6 +3,20 @@ from dimsim.configs.liquid import BulkLiquid
 
 
 class TestMakeJobIDs:
+    def test_job_id_same_multiple_calls(self, liquid_config):
+        """Test that calling make_job_id multiple times with the same compute_config returns the same job_id."""
+        job_id_1 = make_job_id(liquid_config)
+        job_id_2 = make_job_id(liquid_config)
+
+        assert job_id_1 == job_id_2
+
+    def test_recreate_compute_config_same_job_id(self, liquid_config):
+        """Test that creating a new compute_config with the same parameters returns the same job_id."""
+        job_id_1 = make_job_id(liquid_config)
+        job_id_2 = make_job_id(BulkLiquid(**liquid_config))
+
+        assert job_id_1 == job_id_2
+
     def test_replicate_index_unique(self, liquid_config):
         """Test that when compute_config['replicate_index'] is different, the job_id is different."""
         job_id_1 = make_job_id(liquid_config)
