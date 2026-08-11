@@ -5,6 +5,9 @@ from collections.abc import Sequence
 
 import parsl
 
+from dimsim.compute._files import (
+    ProductionFiles,
+)
 from dimsim.compute.apps import (
     minimize_energy,
     prepare_openmm_system,
@@ -44,59 +47,16 @@ class SimulationWorkflow:
         """Submit a single end-to-end simulation pipeline."""
         parsl.set_file_logger(f"{self.base_dir}/parsl_log.log", level=logging.DEBUG)
 
-        logger.info("Starting packing app")
         logger.info(f"Submitting {compute_config} compute configs to workflow")
 
-        job_id = make_job_id(compute_config)
-        job_dir = get_job_paths(self.base_dir, job_id)["root"]
-        # maybe serialize all configs into the job_dir? could simplify some function signatures
-        pathlib.Path(job_dir).mkdir(exist_ok=True)
-
-        logger.info(f"Made job id (same as job dir) {job_id} for this compute config")
-
-        json.dump(
-            compute_config,
-            open(f"{job_dir}/compute_config.json", "w"),
-            indent=4,
-        )
-
-        if pathlib.Path(job_dir, "production_trajectory.dcd").exists():
-            logger.info(f"short-circuiting {job_id}!")
-            return None  # already done, skip
+        if compute_config["tag"] == "liquid":  # type: ignore[typeddict-item]
+            job_id, production_future = self._run_liquid_workflow(compute_config)
+        elif compute_config["tag"] == "gas":  # type: ignore[typeddict-item]
+            job_id, production_future = self._run_gas_workflow(compute_config)
         else:
-            logger.info(f"short-circuit check for job {job_id} failed, running full workflow")
+            raise ValueError(f"Unknown compute config tag {compute_config['tag']}")  # type: ignore[typeddict-item]
 
-        # packed_pdb = File(f"{job_dir}/packed.pdb")
-        # system_xml = File(f"{job_dir}/system.xml")
-        # trajectory_dcd = File(f"{job_dir}/trajectory.dcd")
-
-        # 1. pack from compute config
-        pack_future = prepare_packed_topology(job_dir)
-
-        # 2. set up openmm system
-        setup_future = prepare_openmm_system(pack_future, job_dir)
-
-        # 3. (for now ...) get minimized energy
-        minimize_future = minimize_energy(setup_future, job_dir)
-
-        # 4. run equilibration step
-        equilibration_future = run_equilibration(
-            equilibration_config=None,
-            minimization_future=minimize_future,
-            job_dir=job_dir,
-        )
-
-        # 5. run "production" step
-        production_future = run_production(
-            production_config=None,
-            equilibration_future=equilibration_future,
-            job_dir=job_dir,
-        )
-
-        # sim_future = run_simulation(config_future, job_dir)
-        # 5. analyze trajectory
-        # 6. check for convergence, if not converged, run more production and repeat
-        # analysis_future = analyze_trajectory(sim_future, job_dir)
+        job_dir = get_job_paths(self.base_dir, job_id)["root"]
 
         # TODO: Switch out into each different property
         analysis_future = run_density_analysis(
@@ -167,6 +127,98 @@ class SimulationWorkflow:
                 results.append({"job_id": item["job_id"], "error": str(e)})
 
         return results
+
+    def _run_liquid_workflow(self, compute_config: BaseComputeConfig) -> tuple[str, dict[str, ProductionFiles]]:
+        job_id = make_job_id(compute_config)
+        job_dir = get_job_paths(self.base_dir, job_id)["root"]
+
+        pathlib.Path(job_dir).mkdir(exist_ok=True)
+
+        logger.info(f"Made job id (same as job dir) {job_id} for this compute config")
+
+        json.dump(
+            compute_config,
+            open(f"{job_dir}/compute_config.json", "w"),
+            indent=4,
+        )
+
+        if pathlib.Path(job_dir, "production_trajectory.dcd").exists():
+            logger.info(f"short-circuiting {job_id}!")
+            # already done, skip
+
+            # maybe the short-circuiting should be within apps?
+            # otherwise don't know how to construct the ProductionFiles object ...
+            return None  # type:ignore[return-value]
+        else:
+            logger.info(f"short-circuit check for job {job_id} failed, running full workflow")
+
+        pack_future = prepare_packed_topology(job_dir)
+
+        setup_future = prepare_openmm_system(pack_future, job_dir)
+
+        minimize_future = minimize_energy(setup_future, job_dir)
+
+        equilibration_future = run_equilibration(
+            equilibration_config=None,
+            minimization_future=minimize_future,
+            job_dir=job_dir,
+        )
+
+        production_future = run_production(
+            production_config=None,
+            equilibration_future=equilibration_future,
+            job_dir=job_dir,
+        )
+
+        return job_id, production_future
+
+    def _run_gas_workflow(self, compute_config: BaseComputeConfig) -> tuple[str, dict[str, ProductionFiles]]:
+        assert compute_config["n_molecules"] == 1, (
+            f"Gas workflow only supports single-molecule simulations, but got {compute_config['n_molecules']=}"
+        )
+
+        job_id = make_job_id(compute_config)
+        job_dir = get_job_paths(self.base_dir, job_id)["root"]
+
+        pathlib.Path(job_dir).mkdir(exist_ok=True)
+
+        logger.info(f"Made job id (same as job dir) {job_id} for this compute config")
+
+        json.dump(
+            compute_config,
+            open(f"{job_dir}/compute_config.json", "w"),
+            indent=4,
+        )
+
+        if pathlib.Path(job_dir, "production_trajectory.dcd").exists():
+            logger.info(f"short-circuiting {job_id}!")
+            # already done, skip
+
+            # maybe the short-circuiting should be within apps?
+            # otherwise don't know how to construct the ProductionFiles object ...
+            return None  # type:ignore[return-value]
+        else:
+            logger.info(f"short-circuit check for job {job_id} failed, running full workflow")
+
+        pack_future = prepare_packed_topology(job_dir)
+
+        setup_future = prepare_openmm_system(pack_future, job_dir)
+
+        minimize_future = minimize_energy(setup_future, job_dir)
+
+        equilibration_future = run_equilibration(
+            equilibration_config=None,
+            minimization_future=minimize_future,
+            job_dir=job_dir,
+        )
+
+        production_future = run_production(
+            production_config=None,
+            equilibration_future=equilibration_future,
+            job_dir=job_dir,
+        )
+
+        return job_id, production_future
 
     def shutdown(self):
         parsl.clear()

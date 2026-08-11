@@ -14,7 +14,7 @@ density_target = dataset.properties[0]
 
 job_specs = list()
 
-base_dir = "jobs"
+base_dir = "density_example"
 
 
 # production on GPU cluster
