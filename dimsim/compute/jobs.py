@@ -17,15 +17,17 @@ def make_job_id(compute_config: BaseComputeConfig) -> str:
     #       object creation time. For example, no check that the total mole fraction
     #       is very close to 1. Here might be a good place to do this?
     # TODO: Improve how this handles VacuumGas
-    # TODO: Sort mole fractions? a 75-25 mixture of A and B is probably the same as a
-    #       25-75 mixture of B and A for our purposes, but the IDs will differ
+
+    # sort smiles and x according to x, descending
+    sorted_x, sorted_smiles = zip(*sorted(zip(compute_config["x"], compute_config["smiles"]), reverse=True))
+
     params = {
         "tag": compute_config["tag"],  # type: ignore[typeddict-item]
         "force_field": compute_config["force_field"],
         "n_molecules": compute_config["n_molecules"],
         "replicate_index": compute_config["replicate_index"],
-        "smiles": compute_config["smiles"],
-        "x": compute_config["x"],
+        "smiles": sorted_smiles,
+        "x": sorted_x,
         "temperature": compute_config["temperature"],
         "pressure": compute_config.get("pressure"),
         "density": compute_config.get("density"),
