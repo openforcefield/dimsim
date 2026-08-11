@@ -20,17 +20,16 @@ def _run_equilibration(
     job_dir: str,
 ) -> dict[str, EquilibrationFiles]:
     # TODO: Expose barostat (+ thermostat?) to user
-    import logging
 
     import openmm
     import openmm.app
     import openmm.unit
 
-    logging.basicConfig(
-        filename=f"{job_dir}/simulation.log",
-        level=logging.INFO,
-    )
-    logging.info("Starting equilibration run")
+    from dimsim.compute._logging import _set_up_logger
+
+    logger = _set_up_logger(f"{job_dir}/equilibrate.log")
+
+    logger.info("Starting equilibration run")
 
     compute_config = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
 
@@ -54,14 +53,15 @@ def _run_equilibration(
         )
     )
 
-    logging.info("Reinitializing context (in equilibration step)")
+    logger.info("Reinitializing context (in equilibration step)")
     simulation.context.reinitialize(preserveState=True)
 
     files = EquilibrationFiles(
         topology=File(f"{job_dir}/equilibrated_topology.pdb"),
         dcd_trajectory=File(f"{job_dir}/equilibration_trajectory.dcd"),
         msgpack_trajectory=File(f"{job_dir}/equilibration_trajectory.msgpack"),
-        log=File(f"{job_dir}/equilibration_log.log"),
+        log=File(f"{job_dir}/equilibrate.log"),
+        state_data=File(f"{job_dir}/equilibration.csv"),
         system=File(f"{job_dir}/equilibration_system.xml"),
         integrator=File(f"{job_dir}/equilibration_integrator.xml"),
         checkpoint=File(f"{job_dir}/equilibration_checkpoint.chk"),
@@ -69,7 +69,7 @@ def _run_equilibration(
 
     simulation.reporters.append(
         openmm.app.StateDataReporter(
-            file=files["log"].filepath,
+            file=files["state_data"].filepath,
             reportInterval=1000,
             step=True,
             potentialEnergy=True,
@@ -102,7 +102,7 @@ def _run_equilibration(
         compute_config["replicate_index"] + 1,
     )
 
-    logging.info("Running 10,000 steps of MD")
+    logger.info("Running 10,000 steps of MD")
 
     simulation.step(10_000)
 

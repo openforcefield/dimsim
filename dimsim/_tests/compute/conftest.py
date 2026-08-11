@@ -6,7 +6,7 @@ from parsl.executors.threads import ThreadPoolExecutor
 from dimsim.configs.liquid import BulkLiquid
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def parsl_test_setup():
     # Use local threads for predictable and fast unit testing
     local_config = Config(

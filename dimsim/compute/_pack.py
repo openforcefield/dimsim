@@ -11,20 +11,17 @@ from dimsim.configs.liquid import BulkLiquid
 def _prepare_packed_topology(
     job_dir: str,
 ) -> dict[str, PackingFiles]:
-    import logging
     import pathlib
     import time
 
     from openff.packmol import pack_box
     from openff.toolkit import Molecule, Quantity
 
-    # making the job dir should maybe happen inside of SimulationWorkflow.submit() instead of here?
-    pathlib.Path(job_dir).mkdir(exist_ok=True)
+    from dimsim.compute._logging import _set_up_logger
 
-    logging.basicConfig(
-        filename=f"{job_dir}/simulation.log",
-        level=logging.INFO,
-    )
+    logger = _set_up_logger(f"{job_dir}/pack.log")
+
+    logger.info("packing topology")
 
     compute_config = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
 
@@ -33,7 +30,8 @@ def _prepare_packed_topology(
     )
 
     if pathlib.Path(files["packed_topology"].filepath).exists():
-        logging.info(f"File {files['packed_topology'].filepath} already exists, skipping packing.")
+        logger.info(f"File {files['packed_topology'].filepath} already exists, skipping packing.")
+
         return {
             "packed_files": files,
         }
@@ -60,7 +58,7 @@ def _prepare_packed_topology(
 
     result.to_file(packed_topology_file, file_format="pdb")
 
-    logging.info(f"packed {result.n_molecules} molecules")
+    logger.info(f"packed {result.n_molecules} molecules")
 
     return {
         "packed_files": files,

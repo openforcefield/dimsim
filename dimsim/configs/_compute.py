@@ -12,7 +12,7 @@ class BaseComputeConfig(typing_extensions.TypedDict, extra_items=typing.Any):  #
 
     replicate_index: int
 
-    smiles: list[str]
+    smiles: list[str]  # sorting these (and x) would avoid false negatives
 
     x: list[float]
 

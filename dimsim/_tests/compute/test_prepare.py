@@ -1,4 +1,5 @@
 import json
+import shutil
 from importlib.resources import files
 
 import openmm
@@ -69,3 +70,27 @@ def test_prepare_openmm_system(packing_future, tmp_path):
     )
 
     assert openmm_system.getNumParticles() == topology.n_atoms
+
+
+def test_short_circuit(packing_future, tmp_path):
+    """Test that the function short-circuits if the serialized OpenMM system already exists."""
+    for file in ["openmm_system.xml"]:
+        shutil.copy(
+            str(files("dimsim") / f"_tests/data/app_files/sample_density/{file}"),
+            str(tmp_path / file),
+        )
+
+    prepare_result = _prepare_openmm_system(
+        packing_future=packing_future,
+        job_dir=str(tmp_path),
+    )
+
+    assert isinstance(prepare_result["prepared_files"], dict)
+    assert isinstance(prepare_result["prepared_files"]["openmm_system"], File)
+
+    with open(tmp_path / "prepare.log") as f:
+        for line in f.readlines():
+            if "already exists, skipping system prep." in line:
+                return
+
+    raise AssertionError("Did not find expected log message about skipping system prep.")

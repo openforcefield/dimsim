@@ -5,6 +5,7 @@ repos:
     - id: trailing-whitespace
       exclude: '\.(pdb|gro|top|sdf)$'
     - id: end-of-file-fixer
+      exclude: '\.(json)$'
     - id: debug-statements
 - repo: https://github.com/astral-sh/ruff-pre-commit
   rev: v0.16.2

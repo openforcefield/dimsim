@@ -22,17 +22,20 @@ logger = logging.getLogger(__name__)  # module-level logger, not root
 
 class SimulationWorkflow:
     def __init__(self, base_dir, parsl_config):
+        from dimsim.compute._logging import _set_up_logger
+
         pathlib.Path(base_dir).mkdir(exist_ok=True)
 
         self.base_dir = base_dir
 
-        handler = logging.FileHandler(f"{base_dir}/workflow.log")
-        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
-        logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
-        logger.propagate = False  # avoid double-logging if root also has handlers
+        # self.logger, maybe?
+        logger = _set_up_logger(f"{base_dir}/workflow.log")
+
+        logger.info(f"Initialized SimulationWorkflow with base_dir={base_dir}")
 
         parsl.load(parsl_config)
+
+        logger.info("Parsl config loaded")
 
     def _submit_compute(
         self,
@@ -68,7 +71,7 @@ class SimulationWorkflow:
         # trajectory_dcd = File(f"{job_dir}/trajectory.dcd")
 
         # 1. pack from compute config
-        pack_future = prepare_packed_topology(compute_config, job_dir)
+        pack_future = prepare_packed_topology(job_dir)
 
         # 2. set up openmm system
         setup_future = prepare_openmm_system(pack_future, job_dir)
@@ -78,7 +81,6 @@ class SimulationWorkflow:
 
         # 4. run equilibration step
         equilibration_future = run_equilibration(
-            compute_config=compute_config,
             equilibration_config=None,
             minimization_future=minimize_future,
             job_dir=job_dir,
@@ -86,7 +88,6 @@ class SimulationWorkflow:
 
         # 5. run "production" step
         production_future = run_production(
-            compute_config=compute_config,
             production_config=None,
             equilibration_future=equilibration_future,
             job_dir=job_dir,
@@ -99,7 +100,8 @@ class SimulationWorkflow:
 
         # TODO: Switch out into each different property
         analysis_future = run_density_analysis(
-            compute_config=compute_config, production_future=production_future, job_dir=job_dir
+            production_future=production_future,
+            job_dir=job_dir,
         )
 
         return {"job_id": job_id, "future": analysis_future}

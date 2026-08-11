@@ -21,13 +21,11 @@ def _run_production(
     equilibration_future: dict[str, EquilibrationFiles],
     job_dir: str,
 ) -> dict[str, ProductionFiles]:
-    import logging
+    from dimsim.compute._logging import _set_up_logger
 
-    logging.basicConfig(
-        filename=f"{job_dir}/simulation.log",
-        level=logging.INFO,
-    )
-    logging.info("Starting production run")
+    logger = _set_up_logger(f"{job_dir}/produce.log")
+
+    logger.info("Starting production run")
 
     compute_config = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
 
@@ -35,7 +33,8 @@ def _run_production(
         topology=File(f"{job_dir}/production_topology.pdb"),
         dcd_trajectory=File(f"{job_dir}/production_trajectory.dcd"),
         msgpack_trajectory=File(f"{job_dir}/production_trajectory.msgpack"),
-        log=File(f"{job_dir}/production_log.log"),
+        log=File(f"{job_dir}/production.log"),
+        state_data=File(f"{job_dir}/production.csv"),
         system=File(f"{job_dir}/production_system.xml"),
         integrator=File(f"{job_dir}/production_integrator.xml"),
         checkpoint=File(f"{job_dir}/production_checkpoint.chk"),
@@ -56,7 +55,7 @@ def _run_production(
         simulation = openmm.app.Simulation(topology, system, integrator)
         simulation.loadCheckpoint(f)
 
-    logging.info("Reinitializing context (in production step)")
+    logger.info("Reinitializing context (in production step)")
     simulation.context.reinitialize(preserveState=True)
 
     simulation.context.setVelocitiesToTemperature(
@@ -66,7 +65,7 @@ def _run_production(
 
     simulation.reporters.append(
         openmm.app.StateDataReporter(
-            file=files["log"].filepath,
+            file=files["state_data"].filepath,
             reportInterval=1000,
             step=True,
             potentialEnergy=True,
@@ -94,7 +93,7 @@ def _run_production(
     simulation.reporters.append(dcd_reporter)
     simulation.reporters.append(smee_reporter)
 
-    logging.info("Running 100,000 steps of MD")
+    logger.info("Running 100,000 steps of MD")
 
     simulation.step(100_000)
 

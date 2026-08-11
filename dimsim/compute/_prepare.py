@@ -14,23 +14,23 @@ def _prepare_openmm_system(
     packing_future: dict[str, PackingFiles],
     job_dir: str,
 ) -> dict[str, PreparingFiles]:
-    import logging
     import pathlib
 
     from openff.toolkit import ForceField
 
-    logging.basicConfig(
-        filename=f"{job_dir}/simulation.log",
-        level=logging.INFO,
-    )
-    logging.info("Starting OpenMM system creation app")
+    from dimsim.compute._logging import _set_up_logger
+
+    logger = _set_up_logger(f"{job_dir}/prepare.log")
+
+    logger.info("Starting OpenMM system creation app")
 
     files = PreparingFiles(
         openmm_system=File(f"{job_dir}/openmm_system.xml"),
+        packed_topology=File(f"{job_dir}/packed_topology.pdb"),
     )
 
     if pathlib.Path(files["openmm_system"].filepath).exists():
-        logging.warning(f"File {files['openmm_system'].filepath} already exists, skipping system prep.")
+        logger.info(f"File {files['openmm_system'].filepath} already exists, skipping system prep.")
         return {
             "prepared_files": files,
         }
@@ -50,7 +50,7 @@ def _prepare_openmm_system(
     with open(files["openmm_system"].filepath, "w") as f:
         f.write(openmm.XmlSerializer.serialize(openmm_system))
 
-    logging.info("made openmm system!")
+    logger.info("made openmm system!")
 
     return {
         "prepared_files": files,

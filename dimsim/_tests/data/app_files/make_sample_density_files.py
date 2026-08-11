@@ -2,9 +2,14 @@ import json
 import pathlib
 import random
 
+from rich.pretty import pprint as print
+
+from dimsim.compute._analyze import _run_density_analysis
+from dimsim.compute._equilibrate import _run_equilibration
 from dimsim.compute._minimize import _minimize_energy
 from dimsim.compute._pack import _prepare_packed_topology
 from dimsim.compute._prepare import _prepare_openmm_system
+from dimsim.compute._produce import _run_production
 from dimsim.compute.prep import _make_liquid_density_compute_configs
 from dimsim.configs.targets.thermo import DataEntry
 
@@ -29,7 +34,7 @@ target = DataEntry(
 )
 
 with open("sample_density/target_config.json", "w") as target_config:
-    json.dump(target, target_config)
+    json.dump(target, target_config, indent=4)
 
 compute = _make_liquid_density_compute_configs(
     data_entry=target,
@@ -38,19 +43,37 @@ compute = _make_liquid_density_compute_configs(
 )[0]
 
 with open("sample_density/compute_config.json", "w") as compute_config:
-    json.dump(compute, compute_config)
+    json.dump(compute, compute_config, indent=4)
 
 packing_result = _prepare_packed_topology(
-    compute_config=compute,
     job_dir="sample_density/",
 )
 
 prepare_result = _prepare_openmm_system(
     packing_future=packing_result,
-    job_dir="sample_density/",
+    job_dir="sample_density",
 )
 
 minimize_result = _minimize_energy(
     system_future=prepare_result,
-    job_dir="sample_density/",
+    job_dir="sample_density",
 )
+
+equilibration_result = _run_equilibration(
+    equilibration_config=None,
+    minimization_future=minimize_result,
+    job_dir="sample_density",
+)
+
+production_result = _run_production(
+    production_config=None,
+    equilibration_future=equilibration_result,
+    job_dir="sample_density",
+)
+
+analysis_result = _run_density_analysis(
+    production_future=production_result,
+    job_dir="sample_density",
+)
+
+print(analysis_result)

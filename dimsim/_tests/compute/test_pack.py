@@ -1,4 +1,6 @@
 import json
+import shutil
+from importlib.resources import files
 
 import pytest
 from openff.toolkit import Molecule, Topology
@@ -96,3 +98,27 @@ def test_packing_with_altered_n_molecules(bulk_liquid, tmp_path):
 
     # currently the default is to scale to 0.7 * density (if defined)
     assert _get_density(topology) == pytest.approx(bulk_liquid_altered_n_molecules["density"] * 0.7, rel=0.1)
+
+
+def test_short_circuit(bulk_liquid, tmp_path):
+    """Test that the function short-circuits if the packed topology already exists"""
+    json.dump(bulk_liquid, open(f"{tmp_path}/compute_config.json", "w"))
+
+    for file in ["packed_topology.pdb"]:
+        shutil.copy(
+            str(files("dimsim") / f"_tests/data/app_files/sample_density/{file}"),
+            str(tmp_path / file),
+        )
+
+    result = _prepare_packed_topology(str(tmp_path))
+
+    assert isinstance(result["packed_files"], dict)
+    assert isinstance(result["packed_files"]["packed_topology"], File)
+    assert result["packed_files"]["packed_topology"].filepath == str(tmp_path / "packed_topology.pdb")
+
+    with open(tmp_path / "pack.log") as f:
+        for line in f.readlines():
+            if "already exists, skipping packing" in line:
+                return
+
+    raise AssertionError("Did not find expected log message about skipping packing")
