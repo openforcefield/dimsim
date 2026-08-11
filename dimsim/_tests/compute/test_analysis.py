@@ -32,7 +32,7 @@ def test_basic_analysis(tmp_path):
     )
 
     # just some non-zero number
-    assert analysis_result["mean"] > pytest.approx(0)
+    assert analysis_result["mean"] > 0.0
 
     # std should be <10% of the mean
-    assert analysis_result["std"] / analysis_result["mean"] < pytest.approx(0.1)
+    assert analysis_result["std"] / analysis_result["mean"] < 0.1

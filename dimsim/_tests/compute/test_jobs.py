@@ -17,6 +17,24 @@ class TestMakeJobIDs:
 
         assert job_id_1 == job_id_2
 
+    def test_id_same_as_hardcoded(self):
+        other_liquid_config = BulkLiquid(
+            tag="liquid",
+            force_field="test_force_field",
+            n_molecules=400,
+            replicate_index=1,
+            smiles=["CCO", "O"],
+            x=[0.1, 0.9],
+            density=0.86,
+            temperature=301.11,
+            pressure=98.875,
+        )
+
+        job_id = make_job_id(other_liquid_config)
+
+        # hard-coded from an interpreter run
+        assert job_id == "35210a3d45f082dfb8cd85968cce08f860d2431fad0496c12c9f1627b834ed52"
+
     def test_replicate_index_unique(self, liquid_config):
         """Test that when compute_config['replicate_index'] is different, the job_id is different."""
         job_id_1 = make_job_id(liquid_config)
