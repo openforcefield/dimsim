@@ -34,7 +34,7 @@ target = DataEntry(
 )
 
 with open("sample_density/target_config.json", "w") as target_config:
-    json.dump(target, target_config)
+    json.dump(target, target_config, indent=4)
 
 compute = _make_liquid_density_compute_configs(
     data_entry=target,
@@ -43,10 +43,10 @@ compute = _make_liquid_density_compute_configs(
 )[0]
 
 with open("sample_density/compute_config.json", "w") as compute_config:
-    json.dump(compute, compute_config)
+    json.dump(compute, compute_config, indent=4)
 
 packing_result = _prepare_packed_topology(
-    job_dir="sample_density",
+    job_dir="sample_density/",
 )
 
 prepare_result = _prepare_openmm_system(

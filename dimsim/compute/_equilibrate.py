@@ -60,7 +60,7 @@ def _run_equilibration(
         topology=File(f"{job_dir}/equilibrated_topology.pdb"),
         dcd_trajectory=File(f"{job_dir}/equilibration_trajectory.dcd"),
         msgpack_trajectory=File(f"{job_dir}/equilibration_trajectory.msgpack"),
-        log=File(f"{job_dir}/equilibration.log"),
+        log=File(f"{job_dir}/equilibrate.log"),
         state_data=File(f"{job_dir}/equilibration.csv"),
         system=File(f"{job_dir}/equilibration_system.xml"),
         integrator=File(f"{job_dir}/equilibration_integrator.xml"),
