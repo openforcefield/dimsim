@@ -55,12 +55,14 @@ def _run_equilibration(
 
     assert pressure is not None, f"Somehow we haven't set pressure ... we are in {job_dir=}"
 
-    barostat = openmm.MonteCarloBarostat(
-        (pressure * openmm.unit.kilopascal).value_in_unit(openmm.unit.bar),  # pressure in bar
-        compute_config["temperature"],  # temperature in kelvin
-    )
+    # only set pressure in liquid NPT simulations, not in gas-phase NVT simulations
+    if compute_config["tag"] == "liquid":
+        barostat = openmm.MonteCarloBarostat(
+            (pressure * openmm.unit.kilopascal).value_in_unit(openmm.unit.bar),  # pressure in bar
+            compute_config["temperature"],  # temperature in kelvin
+        )
 
-    simulation.system.addForce(barostat)
+        simulation.system.addForce(barostat)
 
     logger.info("Reinitializing context (in equilibration step)")
     simulation.context.reinitialize(preserveState=True)
@@ -109,7 +111,7 @@ def _run_equilibration(
     simulation.reporters.append(smee_reporter)
 
     simulation.context.setVelocitiesToTemperature(
-        compute_config["temperature"] * openmm.unit.kelvin,
+        compute_config["temperature"],  # kelvin, but as float
         compute_config["replicate_index"] + 1,
     )
 

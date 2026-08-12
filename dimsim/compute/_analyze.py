@@ -17,7 +17,11 @@ def _run_density_analysis(
     logger.info("Starting density analysis")
 
     # TODO: Double check for equilibration/stability
-    production_files: ProductionFiles = production_future["simulation_files"]
+    try:
+        production_files: ProductionFiles = production_future["simulation_files"]
+    except TypeError:
+        logger.error(f"Production files not found in future, we are in {job_dir=}")
+        raise
 
     dataframe = pandas.read_csv(production_files["state_data"].filepath)
 

@@ -101,7 +101,8 @@ class SimulationWorkflow:
             n_replicates=n_replicates,
         )
 
-        return self.run(compute_configs=compute_configs)
+        # run each compute job - can be >1 compute job per property
+        self.run(compute_configs=compute_configs)
 
     def submit_target_batch(
         self,
