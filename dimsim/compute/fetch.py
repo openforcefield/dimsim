@@ -20,7 +20,9 @@ def fetch_trajectory_paths_from_target(
         n_molecules,
         n_replicates,
     )
-    job_ids = [make_job_id(compute_config) for compute_config in compute_configs]
+
+    # flatten list[tuple[BulkLiquid | VacuumGas, ...]] into list[BulkLiquid | VacuumGas]
+    job_ids = [make_job_id(compute_config) for tuple_ in compute_configs for compute_config in tuple_]
 
     # TODO: These might not always be named "production_trajectory.dcd"
     trajectories = [pathlib.Path(base_dir) / job_id / "production_trajectory.dcd" for job_id in job_ids]

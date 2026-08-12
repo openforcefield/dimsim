@@ -36,7 +36,7 @@ class SimulationWorkflow:
 
         # at scale these should become databases or something more robust
         self._targets = dict()
-        self._target_compute_mapping: dict[tuple[int, str, int, int], list[tuple[str]]] = dict()
+        self._target_compute_mapping: dict[tuple[int, str, int, int], list[tuple[str, ...]]] = dict()
 
         # self.logger, maybe?
         logger = _set_up_logger(f"{base_dir}/workflow.log")
@@ -101,12 +101,14 @@ class SimulationWorkflow:
         )
 
         # track targets (+ other arg) mapped to compute runs (as job_id) so we can look up results later
-        self._target_compute_mapping[(target_config["id"], force_field, n_molecules, n_replicates)] = [
-            (make_job_id(compute_config),) for compute_config in compute_configs
-        ]
+        self._target_compute_mapping[(target_config["id"], force_field, n_molecules, n_replicates)] = list()
+        for tulple_ in compute_configs:
+            self._target_compute_mapping[(target_config["id"], force_field, n_molecules, n_replicates)].append(
+                tuple([make_job_id(compute_config) for compute_config in tulple_])
+            )
 
         # run each compute job - can be >1 compute job per property
-        self.run(compute_configs=compute_configs)
+        self.run(compute_configs=compute_configs)  # type: ignore[arg-type]
 
     def submit_target_batch(
         self,

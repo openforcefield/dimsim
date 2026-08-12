@@ -2,7 +2,6 @@
 
 from collections.abc import Sequence
 
-from dimsim.configs._compute import BaseComputeConfig
 from dimsim.configs.gas import VacuumGas
 from dimsim.configs.liquid import BulkLiquid
 from dimsim.configs.targets.thermo import DataEntry
@@ -28,7 +27,7 @@ def _compute_configs_from_data_entry(
     force_field: str,
     n_molecules: int,
     n_replicates: int = 3,
-) -> Sequence[tuple[BaseComputeConfig, ...]]:
+) -> Sequence[tuple[BulkLiquid | VacuumGas, ...]]:
     """Convert a single thermophysical data entry into a list of simulation configs."""
 
     match data_entry:
