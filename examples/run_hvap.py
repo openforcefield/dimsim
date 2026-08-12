@@ -1,3 +1,5 @@
+from rich import print
+
 from dimsim.compute.configs import local_config, slurm_config
 from dimsim.compute.workflow import SimulationWorkflow
 from dimsim.datasets.thermoml import ThermoMLDataSet
@@ -22,7 +24,15 @@ with SimulationWorkflow(base_dir, local_config(max_workers=10)) as workflow:
             dhvap_target,
             force_field="openff-2.3.0.offxml",
             n_molecules=500 + extra_molecules,
-            n_replicates=1,
+            n_replicates=2,
         )
 
-    print(workflow._target_compute_mapping)
+    print(f"{workflow._target_compute_mapping=}")
+
+    for extra_molecules in range(2):
+        workflow.estimate_target(
+            dhvap_target,
+            force_field="openff-2.3.0.offxml",
+            n_molecules=500 + extra_molecules,
+            n_replicates=2,
+        )

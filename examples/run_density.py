@@ -32,6 +32,16 @@ with SimulationWorkflow(base_dir, local_config(max_workers=10)) as workflow:
             n_replicates=5,
         )
 
+    print(f"{workflow._target_compute_mapping=}")
+
+    for extra_molecules in range(2):
+        workflow.estimate_target(
+            density_target,
+            force_field="openff-2.3.0.offxml",
+            n_molecules=200 + extra_molecules,
+            n_replicates=5,
+        )
+
 # TODO: Show how to check status while running
 
 # get trajectory paths from root job directory and per-target info (without knowing internal compute configs)

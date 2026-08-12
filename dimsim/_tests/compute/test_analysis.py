@@ -1,10 +1,7 @@
 import shutil
 from importlib.resources import files
 
-from parsl import File
-
 from dimsim.compute._analyze import _run_density_analysis
-from dimsim.compute._files import ProductionFiles
 
 
 def test_basic_analysis(tmp_path):
@@ -15,19 +12,7 @@ def test_basic_analysis(tmp_path):
             str(tmp_path / file),
         )
 
-    production_files = ProductionFiles(
-        topology=File(""),
-        dcd_trajectory=File(""),
-        msgpack_trajectory=File(""),
-        log=File(""),
-        state_data=File(str(tmp_path / "production.csv")),
-        system=File(""),
-        integrator=File(""),
-        checkpoint=File(""),
-    )
-
     analysis_result = _run_density_analysis(
-        production_future={"simulation_files": production_files},
         job_dir=str(tmp_path),
     )
 

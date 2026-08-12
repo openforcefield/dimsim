@@ -3,8 +3,10 @@ import logging
 import pathlib
 from collections.abc import Sequence
 
+import numpy
 import parsl
 from parsl import File
+from rich import print
 
 from dimsim.compute._files import (
     ProductionFiles,
@@ -34,7 +36,7 @@ class SimulationWorkflow:
 
         # at scale these should become databases or something more robust
         self._targets = dict()
-        self._target_compute_mapping: dict[tuple[int, str, int, int], list[str]] = dict()
+        self._target_compute_mapping: dict[tuple[int, str, int, int], list[tuple[str]]] = dict()
 
         # self.logger, maybe?
         logger = _set_up_logger(f"{base_dir}/workflow.log")
@@ -100,7 +102,7 @@ class SimulationWorkflow:
 
         # track targets (+ other arg) mapped to compute runs (as job_id) so we can look up results later
         self._target_compute_mapping[(target_config["id"], force_field, n_molecules, n_replicates)] = [
-            make_job_id(compute_config) for compute_config in compute_configs
+            (make_job_id(compute_config),) for compute_config in compute_configs
         ]
 
         # run each compute job - can be >1 compute job per property
@@ -129,10 +131,28 @@ class SimulationWorkflow:
     ):
         """Naively estimate a target property, assuming the compute has already been run."""
         if target_config["tag"] == "density":
-            job_id = self._target_compute_mapping[(target_config["id"], force_field, n_molecules, n_replicates)][0]
-            return run_density_analysis(
-                job_dir=str(pathlib.Path(self.base_dir) / job_id),
+            # pull job ids for all replicates of this target/force field/n_molecules combination
+            # TODO: other querying into jobs i.e. given a target and force field but any n_molecules
+            job_ids = self._target_compute_mapping[(target_config["id"], force_field, n_molecules, n_replicates)]
+
+            density_futures = [
+                run_density_analysis(
+                    job_dir=str(pathlib.Path(self.base_dir) / job_id[0]),
+                )
+                for job_id in job_ids
+            ]
+
+            density_results = [future.result()["mean"] for future in density_futures]
+
+            print(
+                f"Density estimate for target with below ID, force field {force_field}, "
+                f"{n_molecules} molecules, and {n_replicates} replicates:\n"
+                f"\t(target ID: {target_config['id']})"
+                f"\n\t{numpy.mean(density_results):.3f} ± {numpy.std(density_results):.3f} kg/m^3"
             )
+
+        elif target_config["tag"] == "enthalpy_of_vaporization":
+            print(self._target_compute_mapping[(target_config["id"], force_field, n_molecules, n_replicates)])
 
     def run(self, compute_configs: Sequence[BaseComputeConfig]):
         """Submit a batch and block until all complete."""
@@ -144,8 +164,6 @@ class SimulationWorkflow:
                 result = item["future"].result()
                 results.append({"job_id": item["job_id"], "result": result})
             except Exception as e:
-                print(f"{item.keys()=}")
-                print(f"error is {e=}")
                 results.append({"job_id": item["job_id"], "error": str(e)})
 
         return results

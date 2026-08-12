@@ -2,14 +2,19 @@ from dimsim.compute.prep import compute_configs_from_data_entries, get_liquid_de
 
 
 def test_density_and_dielectric_produce_same_compute_config(density_entry, dielectric_entry):
-
+    """Density and dielectric targets should produce identical configs: pure bulk liquids."""
     compute_configs = compute_configs_from_data_entries(
         data_entries=[density_entry, dielectric_entry],
         force_field="test-10.0",
         n_molecules=600,
     )
 
-    assert len(set(get_liquid_deduplication_key(val) for val in compute_configs)) == 1
+    assert len(compute_configs) == 6
+
+    for this_config in compute_configs:
+        assert len(this_config) == 1
+
+    assert len(set(get_liquid_deduplication_key(val[0]) for val in compute_configs)) == 1
 
 
 def test_basic_deduplciation(density_entry):
@@ -32,7 +37,7 @@ def test_basic_deduplciation(density_entry):
         ),
     ]
 
-    assert len(set(get_liquid_deduplication_key(val) for val in compute_configs)) == 1
+    assert len(set(get_liquid_deduplication_key(val[0]) for val in compute_configs)) == 1
 
 
 def test_different_force_fields_do_not_deduplicate(density_entry):
@@ -50,10 +55,10 @@ def test_different_force_fields_do_not_deduplicate(density_entry):
         ),
     ]
 
-    assert len(set(get_liquid_deduplication_key(val) for val in compute_configs)) == 2
+    assert len(set(get_liquid_deduplication_key(val[0]) for val in compute_configs)) == 2
 
 
-def test_different_n_moelcules_do_not_deduplicate(density_entry):
+def test_different_n_molecules_do_not_deduplicate(density_entry):
 
     compute_configs = [
         *compute_configs_from_data_entries(
@@ -68,4 +73,4 @@ def test_different_n_moelcules_do_not_deduplicate(density_entry):
         ),
     ]
 
-    assert len(set(get_liquid_deduplication_key(val) for val in compute_configs)) == 2
+    assert len(set(get_liquid_deduplication_key(val[0]) for val in compute_configs)) == 2
