@@ -154,7 +154,7 @@ def _make_enthalpy_of_vaporization_compute_configs(
             VacuumGas(
                 tag="gas",
                 force_field=force_field,
-                n_molecules=n_molecules,  # this should only ever be 1, but not validated
+                n_molecules=1,  # 1 no matter what, n_molecules from the user only goes to the liquid phase
                 replicate_index=replicate_index,
                 smiles=data_entry["smiles"],
                 x=data_entry["x"],

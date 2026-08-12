@@ -58,6 +58,11 @@ def _run_production(
     logger.info("Reinitializing context (in production step)")
     simulation.context.reinitialize(preserveState=True)
 
+    # just double check pressure is loaded back in correctly from state
+    barostat = next(force for force in simulation.system.getForces() if isinstance(force, openmm.MonteCarloBarostat))
+
+    assert barostat.getDefaultPressure() is not None
+
     simulation.context.setVelocitiesToTemperature(
         compute_config["temperature"] * openmm.unit.kelvin,
         compute_config["replicate_index"] + 1,
@@ -83,11 +88,19 @@ def _run_production(
         reportInterval=1000,
     )
 
+    pressure = compute_config.get("pressure", None)
+
+    if pressure is None:  # type: ignore[typeddict-item]
+        # bit of a hack - assume liquid should be at 1 atm in the liquid part of dhvap calculations
+        pressure = 101.325  # kPa, same as what's defined in ThermoML-based models
+
+    assert pressure is not None, f"Somehow we haven't set pressure ... we are in {job_dir=}"
+
     smee_reporter = TensorReporter(
         output_file=open(files["msgpack_trajectory"].filepath, "wb"),
         report_interval=1000,
         beta=1.0 / openmm.unit.kilocalories_per_mole,
-        pressure=compute_config["pressure"] * openmm.unit.kilopascal,
+        pressure=pressure * openmm.unit.kilopascal,
     )
 
     simulation.reporters.append(dcd_reporter)

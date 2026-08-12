@@ -46,12 +46,21 @@ def _run_equilibration(
 
     simulation = openmm.app.Simulation(topology, system, integrator)
     simulation.loadCheckpoint(minimized_files["checkpoint"].filepath)
-    simulation.system.addForce(
-        openmm.MonteCarloBarostat(
-            compute_config["pressure"] * openmm.unit.kilopascal,
-            compute_config["temperature"] * openmm.unit.kelvin,
-        )
+
+    pressure = compute_config.get("pressure", None)
+
+    if pressure is None:
+        # bit of a hack - assume liquid should be at 1 atm in the liquid part of dhvap calculations
+        pressure = 101.325  # kPa, same as what's defined in ThermoML-based models
+
+    assert pressure is not None, f"Somehow we haven't set pressure ... we are in {job_dir=}"
+
+    barostat = openmm.MonteCarloBarostat(
+        (pressure * openmm.unit.kilopascal).value_in_unit(openmm.unit.bar),  # pressure in bar
+        compute_config["temperature"],  # temperature in kelvin
     )
+
+    simulation.system.addForce(barostat)
 
     logger.info("Reinitializing context (in equilibration step)")
     simulation.context.reinitialize(preserveState=True)
@@ -87,11 +96,13 @@ def _run_equilibration(
         reportInterval=1000,
     )
 
+    # type hints imply I can pass these in as openmm.unit.Quantity and let it deal with conversions
     smee_reporter = TensorReporter(
         output_file=open(files["msgpack_trajectory"].filepath, "wb"),
         report_interval=1000,
         beta=1.0 / openmm.unit.kilocalories_per_mole,
-        pressure=compute_config["pressure"] * openmm.unit.kilopascal,
+        pressure=pressure
+        * openmm.unit.kilopascal,  # remember this was set by hand, not by the compute config/ThermoML target
     )
 
     simulation.reporters.append(dcd_reporter)

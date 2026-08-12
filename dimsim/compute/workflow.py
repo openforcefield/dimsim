@@ -50,8 +50,10 @@ class SimulationWorkflow:
         logger.info(f"Submitting {compute_config} compute configs to workflow")
 
         if compute_config["tag"] == "liquid":  # type: ignore[typeddict-item]
+            logger.info(f"Submitting {compute_config} compute configs to liquid workflow")
             job_id, production_future = self._run_liquid_workflow(compute_config)
         elif compute_config["tag"] == "gas":  # type: ignore[typeddict-item]
+            logger.info(f"Submitting {compute_config} compute configs to gas workflow")
             job_id, production_future = self._run_gas_workflow(compute_config)
         else:
             raise ValueError(f"Unknown compute config tag {compute_config['tag']}")  # type: ignore[typeddict-item]
@@ -148,7 +150,7 @@ class SimulationWorkflow:
 
             # maybe the short-circuiting should be within apps?
             # otherwise don't know how to construct the ProductionFiles object ...
-            return None  # type:ignore[return-value]
+            return job_id, None  # type:ignore[return-value]
         else:
             logger.info(f"short-circuit check for job {job_id} failed, running full workflow")
 
@@ -175,6 +177,7 @@ class SimulationWorkflow:
     def _run_gas_workflow(self, compute_config: BaseComputeConfig) -> tuple[str, dict[str, ProductionFiles]]:
         assert compute_config["n_molecules"] == 1, (
             f"Gas workflow only supports single-molecule simulations, but got {compute_config['n_molecules']=}"
+            f"and, more generally, {compute_config=}"
         )
 
         job_id = make_job_id(compute_config)
@@ -196,7 +199,7 @@ class SimulationWorkflow:
 
             # maybe the short-circuiting should be within apps?
             # otherwise don't know how to construct the ProductionFiles object ...
-            return None  # type:ignore[return-value]
+            return job_id, None  # type:ignore[return-value]
         else:
             logger.info(f"short-circuit check for job {job_id} failed, running full workflow")
 
