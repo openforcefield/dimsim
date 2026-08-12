@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import pathlib
 
 import openmm
 import openmm.app
@@ -41,6 +42,13 @@ def _run_production(
     )
 
     equilibrated_files: EquilibrationFiles = equilibration_future["simulation_files"]
+
+    if pathlib.Path(files["topology"].filepath).exists():
+        logger.info(f"File {files['topology'].filepath} already exists, skipping production run.")
+
+        return {
+            "simulation_files": files,
+        }
 
     with open(equilibrated_files["topology"].filepath) as f:
         topology = openmm.app.PDBFile(f).getTopology()

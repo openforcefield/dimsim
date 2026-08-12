@@ -12,7 +12,7 @@ from dimsim.configs.liquid import BulkLiquid
 def _minimize_energy(
     system_future: dict[str, PreparingFiles],
     job_dir: str,
-) -> dict[str, float | MinimizationFiles]:
+) -> dict[str, MinimizationFiles]:
 
     import pathlib
 
@@ -32,6 +32,13 @@ def _minimize_energy(
         integrator=File(f"{job_dir}/minimized_integrator.xml"),
         checkpoint=File(f"{job_dir}/minimized_checkpoint.chk"),
     )
+
+    if pathlib.Path(files["topology"].filepath).exists():
+        logger.info(f"File {files['topology'].filepath} already exists, skipping minimization.")
+
+        return {
+            "simulation_files": files,
+        }
 
     system = openmm.XmlSerializer.deserialize(open(system_future["prepared_files"]["openmm_system"].filepath).read())
 
@@ -95,6 +102,4 @@ def _minimize_energy(
 
     return {
         "simulation_files": files,
-        "original": original,
-        "final": final,
     }

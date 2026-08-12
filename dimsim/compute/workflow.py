@@ -4,6 +4,7 @@ import pathlib
 from collections.abc import Sequence
 
 import parsl
+from parsl import File
 
 from dimsim.compute._files import (
     ProductionFiles,
@@ -31,6 +32,10 @@ class SimulationWorkflow:
 
         self.base_dir = base_dir
 
+        # at scale these should become databases or something more robust
+        self._targets = dict()
+        self._target_compute_mapping: dict[tuple[int, str, int, int], list[str]] = dict()
+
         # self.logger, maybe?
         logger = _set_up_logger(f"{base_dir}/workflow.log")
 
@@ -51,22 +56,12 @@ class SimulationWorkflow:
 
         if compute_config["tag"] == "liquid":  # type: ignore[typeddict-item]
             logger.info(f"Submitting {compute_config} compute configs to liquid workflow")
-            job_id, production_future = self._run_liquid_workflow(compute_config)
+            return self._run_liquid_workflow(compute_config)
         elif compute_config["tag"] == "gas":  # type: ignore[typeddict-item]
             logger.info(f"Submitting {compute_config} compute configs to gas workflow")
-            job_id, production_future = self._run_gas_workflow(compute_config)
+            return self._run_gas_workflow(compute_config)
         else:
             raise ValueError(f"Unknown compute config tag {compute_config['tag']}")  # type: ignore[typeddict-item]
-
-        job_dir = get_job_paths(self.base_dir, job_id)["root"]
-
-        # TODO: Switch out into each different property
-        analysis_future = run_density_analysis(
-            production_future=production_future,
-            job_dir=job_dir,
-        )
-
-        return {"job_id": job_id, "future": analysis_future}
 
     def _submit_compute_batch(
         self,
@@ -89,6 +84,8 @@ class SimulationWorkflow:
             _compute_configs_from_data_entry,
         )
 
+        self._targets[target_config["id"]] = target_config
+
         logger.info(
             f"submitting target {target_config['tag']} with {n_molecules} molecules and force field {force_field}"
         )
@@ -101,6 +98,11 @@ class SimulationWorkflow:
             n_replicates=n_replicates,
         )
 
+        # track targets (+ other arg) mapped to compute runs (as job_id) so we can look up results later
+        self._target_compute_mapping[(target_config["id"], force_field, n_molecules, n_replicates)] = [
+            make_job_id(compute_config) for compute_config in compute_configs
+        ]
+
         # run each compute job - can be >1 compute job per property
         self.run(compute_configs=compute_configs)
 
@@ -109,13 +111,28 @@ class SimulationWorkflow:
         target_configs: list[DataEntry],
         force_field: str,
         n_molecules: int,
+        n_replicates: int = 3,
     ):
 
         return [
             result
             for spec in target_configs
-            if (result := self.submit_target(spec, force_field, n_molecules)) is not None
+            if (result := self.submit_target(spec, force_field, n_molecules, n_replicates)) is not None
         ]
+
+    def estimate_target(
+        self,
+        target_config: DataEntry,
+        force_field: str,
+        n_molecules: int,
+        n_replicates: int = 3,
+    ):
+        """Naively estimate a target property, assuming the compute has already been run."""
+        if target_config["tag"] == "density":
+            job_id = self._target_compute_mapping[(target_config["id"], force_field, n_molecules, n_replicates)][0]
+            return run_density_analysis(
+                job_dir=str(pathlib.Path(self.base_dir) / job_id),
+            )
 
     def run(self, compute_configs: Sequence[BaseComputeConfig]):
         """Submit a batch and block until all complete."""
@@ -127,11 +144,13 @@ class SimulationWorkflow:
                 result = item["future"].result()
                 results.append({"job_id": item["job_id"], "result": result})
             except Exception as e:
+                print(f"{item.keys()=}")
+                print(f"error is {e=}")
                 results.append({"job_id": item["job_id"], "error": str(e)})
 
         return results
 
-    def _run_liquid_workflow(self, compute_config: BaseComputeConfig) -> tuple[str, dict[str, ProductionFiles]]:
+    def _run_liquid_workflow(self, compute_config: BaseComputeConfig) -> dict[str, str | dict[str, ProductionFiles]]:
         job_id = make_job_id(compute_config)
         job_dir = get_job_paths(self.base_dir, job_id)["root"]
 
@@ -145,13 +164,23 @@ class SimulationWorkflow:
             indent=4,
         )
 
-        if pathlib.Path(job_dir, "production_trajectory.dcd").exists():
+        if False and pathlib.Path(job_dir, "production_trajectory.dcd").exists():
             logger.info(f"short-circuiting {job_id}!")
             # already done, skip
 
-            # maybe the short-circuiting should be within apps?
-            # otherwise don't know how to construct the ProductionFiles object ...
-            return job_id, None  # type:ignore[return-value]
+            # bit of a hack + assumes some file structure
+            files = ProductionFiles(
+                topology=File(f"{job_dir}/production_topology.pdb"),
+                dcd_trajectory=File(f"{job_dir}/production_trajectory.dcd"),
+                msgpack_trajectory=File(f"{job_dir}/production_trajectory.msgpack"),
+                log=File(f"{job_dir}/production.log"),
+                state_data=File(f"{job_dir}/production.csv"),
+                system=File(f"{job_dir}/production_system.xml"),
+                integrator=File(f"{job_dir}/production_integrator.xml"),
+                checkpoint=File(f"{job_dir}/production_checkpoint.chk"),
+            )
+
+            return {"job_id": job_id, "future": {"files": files}}
         else:
             logger.info(f"short-circuit check for job {job_id} failed, running full workflow")
 
@@ -173,9 +202,9 @@ class SimulationWorkflow:
             job_dir=job_dir,
         )
 
-        return job_id, production_future
+        return {"job_id": job_id, "future": production_future}
 
-    def _run_gas_workflow(self, compute_config: BaseComputeConfig) -> tuple[str, dict[str, ProductionFiles]]:
+    def _run_gas_workflow(self, compute_config: BaseComputeConfig) -> dict[str, str | dict[str, ProductionFiles]]:
         assert compute_config["n_molecules"] == 1, (
             f"Gas workflow only supports single-molecule simulations, but got {compute_config['n_molecules']=}"
             f"and, more generally, {compute_config=}"
@@ -194,13 +223,23 @@ class SimulationWorkflow:
             indent=4,
         )
 
-        if pathlib.Path(job_dir, "production_trajectory.dcd").exists():
+        if False and pathlib.Path(job_dir, "production_trajectory.dcd").exists():
             logger.info(f"short-circuiting {job_id}!")
             # already done, skip
 
-            # maybe the short-circuiting should be within apps?
-            # otherwise don't know how to construct the ProductionFiles object ...
-            return job_id, None  # type:ignore[return-value]
+            # bit of a hack + assumes some file structure
+            files = ProductionFiles(
+                topology=File(f"{job_dir}/production_topology.pdb"),
+                dcd_trajectory=File(f"{job_dir}/production_trajectory.dcd"),
+                msgpack_trajectory=File(f"{job_dir}/production_trajectory.msgpack"),
+                log=File(f"{job_dir}/production.log"),
+                state_data=File(f"{job_dir}/production.csv"),
+                system=File(f"{job_dir}/production_system.xml"),
+                integrator=File(f"{job_dir}/production_integrator.xml"),
+                checkpoint=File(f"{job_dir}/production_checkpoint.chk"),
+            )
+
+            return {"job_id": job_id, "future": {"files": files}}
         else:
             logger.info(f"short-circuit check for job {job_id} failed, running full workflow")
 
@@ -222,7 +261,7 @@ class SimulationWorkflow:
             job_dir=job_dir,
         )
 
-        return job_id, production_future
+        return {"job_id": job_id, "future": production_future}
 
     def shutdown(self):
         parsl.clear()

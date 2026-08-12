@@ -36,7 +36,7 @@ def prepare_openmm_system(
 def minimize_energy(
     system_future: dict[str, PreparingFiles],
     job_dir: str,
-) -> dict[str, float | MinimizationFiles]:
+) -> dict[str, MinimizationFiles]:
     from dimsim.compute._minimize import _minimize_energy
 
     return _minimize_energy(system_future, job_dir)
@@ -67,10 +67,9 @@ def run_production(
 
 @python_app
 def run_density_analysis(
-    production_future: dict[str, ProductionFiles],
     job_dir: str,
 ) -> dict[str, float]:
     """Run a naive density analysis of production trajectories. For debugging only, not for tensor fitting."""
     from dimsim.compute._analyze import _run_density_analysis
 
-    return _run_density_analysis(production_future, job_dir)
+    return _run_density_analysis(job_dir)

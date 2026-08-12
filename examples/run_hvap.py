@@ -24,3 +24,5 @@ with SimulationWorkflow(base_dir, local_config(max_workers=10)) as workflow:
             n_molecules=500 + extra_molecules,
             n_replicates=1,
         )
+
+    print(workflow._target_compute_mapping)

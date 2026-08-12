@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import pathlib
 
 from parsl import File
 from smee.mm import TensorReporter
@@ -35,6 +36,24 @@ def _run_equilibration(
 
     minimized_files: MinimizationFiles = minimization_future["simulation_files"]  # type: ignore[assignment]
 
+    files = EquilibrationFiles(
+        topology=File(f"{job_dir}/equilibrated_topology.pdb"),
+        dcd_trajectory=File(f"{job_dir}/equilibration_trajectory.dcd"),
+        msgpack_trajectory=File(f"{job_dir}/equilibration_trajectory.msgpack"),
+        log=File(f"{job_dir}/equilibrate.log"),
+        state_data=File(f"{job_dir}/equilibration.csv"),
+        system=File(f"{job_dir}/equilibration_system.xml"),
+        integrator=File(f"{job_dir}/equilibration_integrator.xml"),
+        checkpoint=File(f"{job_dir}/equilibration_checkpoint.chk"),
+    )
+
+    if pathlib.Path(files["topology"].filepath).exists():
+        logger.info(f"File {files['topology'].filepath} already exists, skipping equilibration run.")
+
+        return {
+            "simulation_files": files,
+        }
+
     with open(minimized_files["topology"].filepath) as f:
         topology = openmm.app.PDBFile(f).getTopology()
 
@@ -66,17 +85,6 @@ def _run_equilibration(
 
     logger.info("Reinitializing context (in equilibration step)")
     simulation.context.reinitialize(preserveState=True)
-
-    files = EquilibrationFiles(
-        topology=File(f"{job_dir}/equilibrated_topology.pdb"),
-        dcd_trajectory=File(f"{job_dir}/equilibration_trajectory.dcd"),
-        msgpack_trajectory=File(f"{job_dir}/equilibration_trajectory.msgpack"),
-        log=File(f"{job_dir}/equilibrate.log"),
-        state_data=File(f"{job_dir}/equilibration.csv"),
-        system=File(f"{job_dir}/equilibration_system.xml"),
-        integrator=File(f"{job_dir}/equilibration_integrator.xml"),
-        checkpoint=File(f"{job_dir}/equilibration_checkpoint.chk"),
-    )
 
     simulation.reporters.append(
         openmm.app.StateDataReporter(

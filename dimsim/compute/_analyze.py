@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from dimsim.compute._files import ProductionFiles
-
 
 def _run_density_analysis(
-    production_future: dict[str, ProductionFiles],
     job_dir: str,
 ) -> dict[str, float]:
-
+    """Run a naive density analysis from recorded simulation data."""
     import pandas
 
     from dimsim.compute._logging import _set_up_logger
@@ -18,12 +15,10 @@ def _run_density_analysis(
 
     # TODO: Double check for equilibration/stability
     try:
-        production_files: ProductionFiles = production_future["simulation_files"]
+        dataframe = pandas.read_csv(f"{job_dir}/production.csv")
     except TypeError:
-        logger.error(f"Production files not found in future, we are in {job_dir=}")
+        logger.error(f"Production run CSV data file not found in future, we are in {job_dir=}")
         raise
-
-    dataframe = pandas.read_csv(production_files["state_data"].filepath)
 
     mean = dataframe["Density (g/mL)"].mean()
     std = dataframe["Density (g/mL)"].std()
