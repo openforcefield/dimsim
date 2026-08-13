@@ -16,6 +16,7 @@ from dimsim.compute.apps import (
     prepare_openmm_system,
     prepare_packed_topology,
     run_density_analysis,
+    run_dhvap_analysis,
     run_equilibration,
     run_production,
 )
@@ -102,13 +103,13 @@ class SimulationWorkflow:
 
         # track targets (+ other arg) mapped to compute runs (as job_id) so we can look up results later
         self._target_compute_mapping[(target_config["id"], force_field, n_molecules, n_replicates)] = list()
-        for tulple_ in compute_configs:
+        for this_targets_compute_configs in compute_configs:
             self._target_compute_mapping[(target_config["id"], force_field, n_molecules, n_replicates)].append(
-                tuple([make_job_id(compute_config) for compute_config in tulple_])
+                tuple([make_job_id(compute_config) for compute_config in this_targets_compute_configs])
             )
 
-        # run each compute job - can be >1 compute job per property
-        self.run(compute_configs=compute_configs)  # type: ignore[arg-type]
+            # run each compute job - can be >1 compute job per property
+            self.run(compute_configs=this_targets_compute_configs)
 
     def submit_target_batch(
         self,
@@ -154,7 +155,30 @@ class SimulationWorkflow:
             )
 
         elif target_config["tag"] == "enthalpy_of_vaporization":
-            print(self._target_compute_mapping[(target_config["id"], force_field, n_molecules, n_replicates)])
+            # pull job ids for all replicates of this target/force field/n_molecules combination
+            # TODO: other querying into jobs i.e. given a target and force field but any n_molecules
+            job_ids = self._target_compute_mapping[(target_config["id"], force_field, n_molecules, n_replicates)]
+
+            dhvap_futures = [
+                # this function should separate the two job ids into gas and liquid,
+                # then do dhvap = E_gas - E_liquid + RT
+                run_dhvap_analysis(
+                    job_dirs=[str(pathlib.Path(self.base_dir) / job_id) for job_id in tuple_],
+                )
+                for tuple_ in job_ids
+            ]
+
+            dhvap_results = [future.result()["dhvap"] for future in dhvap_futures]
+
+            print(
+                f"dHvap estimate for target with below ID, force field {force_field}, "
+                f"{n_molecules} molecules, and {n_replicates} replicates:\n"
+                f"\t(target ID: {target_config['id']})"
+                f"\n\t{numpy.mean(dhvap_results):.3f} ± {numpy.std(dhvap_results):.3f} kJ/mol"
+            )
+
+        else:
+            raise ValueError(f"Unknown target tag {target_config['tag']}")
 
     def run(self, compute_configs: Sequence[BaseComputeConfig]):
         """Submit a batch and block until all complete."""

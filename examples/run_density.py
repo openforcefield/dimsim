@@ -32,8 +32,6 @@ with SimulationWorkflow(base_dir, local_config(max_workers=10)) as workflow:
             n_replicates=5,
         )
 
-    print(f"{workflow._target_compute_mapping=}")
-
     for extra_molecules in range(2):
         workflow.estimate_target(
             density_target,
