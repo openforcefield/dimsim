@@ -74,11 +74,11 @@ ini_options.testpaths = [ "dimsim/_tests" ]
 ini_options.addopts = "-v --cov=dimsim --cov-report=xml --cov-report=term-missing"
 
 [tool.coverage]
+run.source = [ "dimsim" ]
 run.omit = [
   "*/__init__.py",
   "*/_tests/*",
 ]
-run.source = [ "dimsim" ]
 report.exclude_lines = [
   "if TYPE_CHECKING:",
   "pragma: no cover",
