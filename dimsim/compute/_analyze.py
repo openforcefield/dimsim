@@ -19,7 +19,7 @@ def _run_density_analysis(
     try:
         dataframe = pandas.read_csv(f"{job_dir}/production.csv")
     except TypeError:
-        logger.error(f"Production run CSV data file not found in future, we are in {job_dir=}")
+        logger.error(f"Production run CSV data file production.csv not found, we are in {job_dir=}")
         raise
 
     mean = dataframe["Density (g/mL)"].mean()

@@ -9,9 +9,11 @@ def test_density_and_dielectric_produce_same_compute_config(density_entry, diele
         n_molecules=600,
     )
 
+    # for each step
     assert len(compute_configs) == 6
 
     for this_config in compute_configs:
+        # these should be deduplicated
         assert len(this_config) == 1
 
     assert len(set(get_liquid_deduplication_key(val[0]) for val in compute_configs)) == 1
