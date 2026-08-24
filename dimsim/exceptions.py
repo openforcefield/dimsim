@@ -1,0 +1,2 @@
+class PressureNotDefinedError(Exception):
+    pass

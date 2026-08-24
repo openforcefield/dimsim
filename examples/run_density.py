@@ -9,8 +9,9 @@ from dimsim.compute.fetch import fetch_trajectory_paths_from_target
 from dimsim.compute.workflow import SimulationWorkflow
 from dimsim.datasets.thermoml import ThermoMLDataSet
 
-dataset = ThermoMLDataSet.from_xml(open("dimsim/_tests/data/thermoml/single_density.xml").read())
-density_target = dataset.properties[0]
+with open("dimsim/_tests/data/thermoml/single_density.xml") as f:
+    dataset = ThermoMLDataSet.from_xml(f.read())
+    density_target = dataset.properties[0]
 
 job_specs = list()
 
@@ -85,7 +86,7 @@ for target_paths in trajectory_paths:
 
         print(
             f"Density estimate for job {job_id}: "
-            f"{density_all_frames.mean():.3f} ± {density_all_frames.std():.3f} kg/m^3"
+            f"{density_all_frames.mean() * 0.001:.3f} ± {density_all_frames.std() * 0.001:.3f} g/mL"
         )
 """
 'Density estimate for job 5090adac8840d612600a2542c0236d47c2de3cdef6d6517961aa68e84f7ab8da:959.872 ± 11.103 kg/m^3'

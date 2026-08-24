@@ -36,9 +36,7 @@ def _run_density_analysis(
 def _run_dhvap_analysis(
     job_dirs: list[str],
 ) -> dict[str, float]:
-
-    # logger = _set_up_logger(f"{job_dir}/analyze.log")
-    # logger.info("Starting dhvap analysis")
+    from openff.units import unit
 
     configs = {job_dir: json.load(open(f"{job_dir}/compute_config.json")) for job_dir in job_dirs}
 
@@ -55,7 +53,8 @@ def _run_dhvap_analysis(
     e_gas = pandas.read_csv(f"{gas_dir}/production.csv")["Potential Energy (kJ/mole)"].mean()
     e_liquid = pandas.read_csv(f"{liquid_dir}/production.csv")["Potential Energy (kJ/mole)"].mean()
 
-    R = 8.31446261815324 * 0.001  # kJ/(mol*K)
+    R = (1 * unit.avogadro_number * unit.boltzmann_constant).m_as("kJ/K")
+
     dhvap = e_gas - e_liquid / n_molecules + R * gas_temperature  # kJ/mol
 
     return {

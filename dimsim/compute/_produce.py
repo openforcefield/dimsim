@@ -13,6 +13,7 @@ from dimsim.compute._files import (
     ProductionFiles,
 )
 from dimsim.configs.liquid import BulkLiquid
+from dimsim.exceptions import PressureNotDefinedError
 
 ProductionConfig = object
 
@@ -102,17 +103,15 @@ def _run_production(
     pressure = compute_config.get("pressure", None)
 
     if pressure is None:
-        # bit of a hack - assume liquid should be at 1 atm in the liquid part of dhvap calculations
-        pressure = 101.325  # kPa, same as what's defined in ThermoML-based models
+        raise PressureNotDefinedError("Trying to set up NPT simulation but no pressure defined.")
 
-    assert pressure is not None, f"Somehow we haven't set pressure ... we are in {job_dir=}"
-
-    smee_reporter = TensorReporter(
-        output_file=open(files["msgpack_trajectory"].filepath, "wb"),
-        report_interval=1000,
-        beta=1.0 / openmm.unit.kilocalories_per_mole,
-        pressure=pressure * openmm.unit.kilopascal,
-    )
+    with open(files["msgpack_trajectory"].filepath, "wb") as f:
+        smee_reporter = TensorReporter(
+            output_file=f,
+            report_interval=1000,
+            beta=1.0 / openmm.unit.kilocalories_per_mole,
+            pressure=pressure * openmm.unit.kilopascal,
+        )
 
     simulation.reporters.append(dcd_reporter)
     simulation.reporters.append(smee_reporter)

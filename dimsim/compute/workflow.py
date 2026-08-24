@@ -151,7 +151,7 @@ class SimulationWorkflow:
                 f"Density estimate for target with below ID, force field {force_field}, "
                 f"{n_molecules} molecules, and {n_replicates} replicates:\n"
                 f"\t(target ID: {target_config['id']})"
-                f"\n\t{numpy.mean(density_results):.3f} ± {numpy.std(density_results):.3f} kg/m^3"
+                f"\n\t{numpy.mean(density_results):.3f} ± {numpy.std(density_results):.3f} g/mL"
             )
 
         elif target_config["tag"] == "enthalpy_of_vaporization":
@@ -195,58 +195,9 @@ class SimulationWorkflow:
         return results
 
     def _run_liquid_workflow(self, compute_config: BaseComputeConfig) -> dict[str, str | dict[str, ProductionFiles]]:
-        job_id = make_job_id(compute_config)
-        job_dir = get_job_paths(self.base_dir, job_id)["root"]
-
-        pathlib.Path(job_dir).mkdir(exist_ok=True)
-
-        logger.info(f"Made job id (same as job dir) {job_id} for this compute config")
-
-        json.dump(
-            compute_config,
-            open(f"{job_dir}/compute_config.json", "w"),
-            indent=4,
+        return self._common_run(
+            compute_config=compute_config,
         )
-
-        if False and pathlib.Path(job_dir, "production_trajectory.dcd").exists():
-            logger.info(f"short-circuiting {job_id}!")
-            # already done, skip
-
-            # bit of a hack + assumes some file structure
-            files = ProductionFiles(
-                topology=File(f"{job_dir}/production_topology.pdb"),
-                dcd_trajectory=File(f"{job_dir}/production_trajectory.dcd"),
-                msgpack_trajectory=File(f"{job_dir}/production_trajectory.msgpack"),
-                log=File(f"{job_dir}/production.log"),
-                state_data=File(f"{job_dir}/production.csv"),
-                system=File(f"{job_dir}/production_system.xml"),
-                integrator=File(f"{job_dir}/production_integrator.xml"),
-                checkpoint=File(f"{job_dir}/production_checkpoint.chk"),
-            )
-
-            return {"job_id": job_id, "future": {"files": files}}
-        else:
-            logger.info(f"short-circuit check for job {job_id} failed, running full workflow")
-
-        pack_future = prepare_packed_topology(job_dir)
-
-        setup_future = prepare_openmm_system(pack_future, job_dir)
-
-        minimize_future = minimize_energy(setup_future, job_dir)
-
-        equilibration_future = run_equilibration(
-            equilibration_config=None,
-            minimization_future=minimize_future,
-            job_dir=job_dir,
-        )
-
-        production_future = run_production(
-            production_config=None,
-            equilibration_future=equilibration_future,
-            job_dir=job_dir,
-        )
-
-        return {"job_id": job_id, "future": production_future}
 
     def _run_gas_workflow(self, compute_config: BaseComputeConfig) -> dict[str, str | dict[str, ProductionFiles]]:
         assert compute_config["n_molecules"] == 1, (
@@ -254,6 +205,12 @@ class SimulationWorkflow:
             f"and, more generally, {compute_config=}"
         )
 
+        return self._common_run(
+            compute_config=compute_config,
+        )
+
+    def _common_run(self, compute_config: BaseComputeConfig) -> dict[str, str | dict[str, ProductionFiles]]:
+        """Common code in _run_liquid_workflow and _run_gas_workflow."""
         job_id = make_job_id(compute_config)
         job_dir = get_job_paths(self.base_dir, job_id)["root"]
 
@@ -261,13 +218,14 @@ class SimulationWorkflow:
 
         logger.info(f"Made job id (same as job dir) {job_id} for this compute config")
 
-        json.dump(
-            compute_config,
-            open(f"{job_dir}/compute_config.json", "w"),
-            indent=4,
-        )
+        with open(f"{job_dir}/compute_config.json", "w") as f:
+            json.dump(
+                compute_config,
+                f,
+                indent=4,
+            )
 
-        if False and pathlib.Path(job_dir, "production_trajectory.dcd").exists():
+        if pathlib.Path(job_dir, "production_trajectory.dcd").exists():
             logger.info(f"short-circuiting {job_id}!")
             # already done, skip
 

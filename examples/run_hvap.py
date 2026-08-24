@@ -2,8 +2,9 @@ from dimsim.compute.configs import local_config, slurm_config
 from dimsim.compute.workflow import SimulationWorkflow
 from dimsim.datasets.thermoml import ThermoMLDataSet
 
-dataset = ThermoMLDataSet.from_xml(open("dimsim/_tests/data/thermoml/single_dhvap.xml").read())
-dhvap_target = dataset.properties[0]
+with open("dimsim/_tests/data/thermoml/single_dhvap.xml") as f:
+    dataset = ThermoMLDataSet.from_xml(f.read())
+    dhvap_target = dataset.properties[0]
 
 job_specs = list()
 

@@ -102,7 +102,8 @@ def test_packing_with_altered_n_molecules(bulk_liquid, tmp_path):
 
 def test_short_circuit(bulk_liquid, tmp_path):
     """Test that the function short-circuits if the packed topology already exists"""
-    json.dump(bulk_liquid, open(f"{tmp_path}/compute_config.json", "w"))
+    with open(f"{tmp_path}/compute_config.json", "w") as f:
+        json.dump(bulk_liquid, f)
 
     for file in ["packed_topology.pdb"]:
         shutil.copy(

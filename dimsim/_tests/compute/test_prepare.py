@@ -30,13 +30,12 @@ def bulk_liquid():
 
 @pytest.fixture
 def packing_future() -> dict[str, BulkLiquid | Topology]:
-    compute_config = BulkLiquid(
-        json.load(
-            open(
-                files("dimsim") / "_tests/data/app_files/sample_density/compute_config.json",
-            ),
-        ),
-    )
+    with open(
+        files("dimsim") / "_tests/data/app_files/sample_density/compute_config.json",
+    ) as f:
+        compute_config = BulkLiquid(
+            json.load(f),
+        )
 
     return {
         "compute_config": compute_config,  # do we really need to return this?
@@ -47,10 +46,8 @@ def packing_future() -> dict[str, BulkLiquid | Topology]:
 
 
 def test_prepare_openmm_system(packing_future, tmp_path):
-    json.dump(
-        packing_future["compute_config"],
-        open(f"{tmp_path}/compute_config.json", "w"),
-    )
+    with open(f"{tmp_path}/packing_future.json", "w") as f:
+        json.dump(packing_future["compute_config"].dict(), f)
 
     prepare_result = _prepare_openmm_system(
         packing_future=packing_future,
@@ -65,9 +62,8 @@ def test_prepare_openmm_system(packing_future, tmp_path):
         unique_molecules=[Molecule.from_smiles(smiles) for smiles in packing_future["compute_config"]["smiles"]],
     )
 
-    openmm_system = openmm.XmlSerializer.deserialize(
-        open(prepare_result["prepared_files"]["openmm_system"].filepath).read()
-    )
+    with open(prepare_result["prepared_files"]["openmm_system"].filepath) as f:
+        openmm_system = openmm.XmlSerializer.deserialize(f.read())
 
     assert openmm_system.getNumParticles() == topology.n_atoms
 
