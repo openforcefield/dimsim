@@ -26,9 +26,23 @@ def test_minimize_basic(prepare_future, tmp_path):
             str(tmp_path / file),
         )
 
-    minimize_result = _minimize_energy(
+    _minimize_energy(
         system_future=prepare_future,
         job_dir=str(tmp_path),
     )
 
-    assert minimize_result["final"] < minimize_result["original"]
+    with open(str(tmp_path / "minimize.log")) as log_file:
+        for line in log_file.readlines():
+            if "Minimized energy" in line:
+                split = line.split()
+
+                index = split.index("to")
+
+                initial = float(split[index - 1])
+                final = float(split[index + 1])
+
+                assert final < initial
+
+                return
+
+    raise Exception("'Minimized energy' not found in log file")

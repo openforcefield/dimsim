@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import pathlib
 
 from parsl import File
 from smee.mm import TensorReporter
@@ -10,6 +11,7 @@ from dimsim.compute._files import (
     MinimizationFiles,
 )
 from dimsim.configs.liquid import BulkLiquid
+from dimsim.exceptions import PressureNotDefinedError
 
 EquilibrationConfig = object
 
@@ -35,6 +37,24 @@ def _run_equilibration(
 
     minimized_files: MinimizationFiles = minimization_future["simulation_files"]  # type: ignore[assignment]
 
+    files = EquilibrationFiles(
+        topology=File(f"{job_dir}/equilibrated_topology.pdb"),
+        dcd_trajectory=File(f"{job_dir}/equilibration_trajectory.dcd"),
+        msgpack_trajectory=File(f"{job_dir}/equilibration_trajectory.msgpack"),
+        log=File(f"{job_dir}/equilibrate.log"),
+        state_data=File(f"{job_dir}/equilibration.csv"),
+        system=File(f"{job_dir}/equilibration_system.xml"),
+        integrator=File(f"{job_dir}/equilibration_integrator.xml"),
+        checkpoint=File(f"{job_dir}/equilibration_checkpoint.chk"),
+    )
+
+    if pathlib.Path(files["topology"].filepath).exists():
+        logger.info(f"File {files['topology'].filepath} already exists, skipping equilibration run.")
+
+        return {
+            "simulation_files": files,
+        }
+
     with open(minimized_files["topology"].filepath) as f:
         topology = openmm.app.PDBFile(f).getTopology()
 
@@ -46,26 +66,23 @@ def _run_equilibration(
 
     simulation = openmm.app.Simulation(topology, system, integrator)
     simulation.loadCheckpoint(minimized_files["checkpoint"].filepath)
-    simulation.system.addForce(
-        openmm.MonteCarloBarostat(
-            compute_config["pressure"] * openmm.unit.kilopascal,
-            compute_config["temperature"] * openmm.unit.kelvin,
+
+    pressure = compute_config.get("pressure", None)
+
+    if pressure is None:
+        raise PressureNotDefinedError("Trying to set up NPT simulation but no pressure defined.")
+
+    # only set pressure in liquid NPT simulations, not in gas-phase NVT simulations
+    if compute_config["tag"] == "liquid":
+        barostat = openmm.MonteCarloBarostat(
+            (pressure * openmm.unit.kilopascal).value_in_unit(openmm.unit.bar),  # pressure in bar
+            compute_config["temperature"],  # temperature in kelvin
         )
-    )
+
+        simulation.system.addForce(barostat)
 
     logger.info("Reinitializing context (in equilibration step)")
     simulation.context.reinitialize(preserveState=True)
-
-    files = EquilibrationFiles(
-        topology=File(f"{job_dir}/equilibrated_topology.pdb"),
-        dcd_trajectory=File(f"{job_dir}/equilibration_trajectory.dcd"),
-        msgpack_trajectory=File(f"{job_dir}/equilibration_trajectory.msgpack"),
-        log=File(f"{job_dir}/equilibrate.log"),
-        state_data=File(f"{job_dir}/equilibration.csv"),
-        system=File(f"{job_dir}/equilibration_system.xml"),
-        integrator=File(f"{job_dir}/equilibration_integrator.xml"),
-        checkpoint=File(f"{job_dir}/equilibration_checkpoint.chk"),
-    )
 
     simulation.reporters.append(
         openmm.app.StateDataReporter(
@@ -87,18 +104,20 @@ def _run_equilibration(
         reportInterval=1000,
     )
 
-    smee_reporter = TensorReporter(
-        output_file=open(files["msgpack_trajectory"].filepath, "wb"),
-        report_interval=1000,
-        beta=1.0 / openmm.unit.kilocalories_per_mole,
-        pressure=compute_config["pressure"] * openmm.unit.kilopascal,
-    )
+    with open(files["msgpack_trajectory"].filepath, "wb") as f:
+        # type hints imply I can pass these in as openmm.unit.Quantity and let it deal with conversions
+        smee_reporter = TensorReporter(
+            output_file=f,
+            report_interval=1000,
+            beta=1.0 / openmm.unit.kilocalories_per_mole,
+            pressure=pressure * openmm.unit.kilopascal,
+        )
 
     simulation.reporters.append(dcd_reporter)
     simulation.reporters.append(smee_reporter)
 
     simulation.context.setVelocitiesToTemperature(
-        compute_config["temperature"] * openmm.unit.kelvin,
+        compute_config["temperature"],  # kelvin, but as float
         compute_config["replicate_index"] + 1,
     )
 

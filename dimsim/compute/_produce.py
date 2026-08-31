@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import pathlib
 
 import openmm
 import openmm.app
@@ -12,6 +13,7 @@ from dimsim.compute._files import (
     ProductionFiles,
 )
 from dimsim.configs.liquid import BulkLiquid
+from dimsim.exceptions import PressureNotDefinedError
 
 ProductionConfig = object
 
@@ -42,6 +44,13 @@ def _run_production(
 
     equilibrated_files: EquilibrationFiles = equilibration_future["simulation_files"]
 
+    if pathlib.Path(files["topology"].filepath).exists():
+        logger.info(f"File {files['topology'].filepath} already exists, skipping production run.")
+
+        return {
+            "simulation_files": files,
+        }
+
     with open(equilibrated_files["topology"].filepath) as f:
         topology = openmm.app.PDBFile(f).getTopology()
 
@@ -58,8 +67,16 @@ def _run_production(
     logger.info("Reinitializing context (in production step)")
     simulation.context.reinitialize(preserveState=True)
 
+    if compute_config["tag"] == "liquid":
+        # just double check pressure is loaded back in correctly from state
+        barostat = next(
+            force for force in simulation.system.getForces() if isinstance(force, openmm.MonteCarloBarostat)
+        )
+
+        assert barostat.getDefaultPressure() is not None
+
     simulation.context.setVelocitiesToTemperature(
-        compute_config["temperature"] * openmm.unit.kelvin,
+        compute_config["temperature"],  # kelvin, but as float
         compute_config["replicate_index"] + 1,
     )
 
@@ -83,12 +100,18 @@ def _run_production(
         reportInterval=1000,
     )
 
-    smee_reporter = TensorReporter(
-        output_file=open(files["msgpack_trajectory"].filepath, "wb"),
-        report_interval=1000,
-        beta=1.0 / openmm.unit.kilocalories_per_mole,
-        pressure=compute_config["pressure"] * openmm.unit.kilopascal,
-    )
+    pressure = compute_config.get("pressure", None)
+
+    if pressure is None:
+        raise PressureNotDefinedError("Trying to set up NPT simulation but no pressure defined.")
+
+    with open(files["msgpack_trajectory"].filepath, "wb") as f:
+        smee_reporter = TensorReporter(
+            output_file=f,
+            report_interval=1000,
+            beta=1.0 / openmm.unit.kilocalories_per_mole,
+            pressure=pressure * openmm.unit.kilopascal,
+        )
 
     simulation.reporters.append(dcd_reporter)
     simulation.reporters.append(smee_reporter)

@@ -5,7 +5,6 @@ import json
 from parsl import File
 
 from dimsim.compute._files import PackingFiles
-from dimsim.configs.liquid import BulkLiquid
 
 
 def _prepare_packed_topology(
@@ -23,7 +22,7 @@ def _prepare_packed_topology(
 
     logger.info("packing topology")
 
-    compute_config = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
+    compute_config = json.load(open(f"{job_dir}/compute_config.json"))
 
     files = PackingFiles(
         packed_topology=File(f"{job_dir}/packed_topology.pdb"),
@@ -46,8 +45,15 @@ def _prepare_packed_topology(
     n_copies = [int(n_molecules * x) for x in compute_config["x"]]
 
     density = compute_config.get("density")
+
     if density is None:
-        density = 1.0
+        if compute_config["tag"] == "liquid":
+            density = 1.0
+        elif compute_config["tag"] == "gas":
+            # probably cleaner to set a box instead of arbitrarily low density
+            density = 0.001
+        else:
+            raise ValueError(f"Unknown compute config tag {compute_config['tag']}")
 
     result = pack_box(
         molecules,
