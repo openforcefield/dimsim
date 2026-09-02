@@ -104,6 +104,8 @@ def _run_equilibration(
         reportInterval=1000,
     )
 
+    simulation.reporters.append(dcd_reporter)
+
     with open(files["msgpack_trajectory"].filepath, "wb") as f:
         # type hints imply I can pass these in as openmm.unit.Quantity and let it deal with conversions
         smee_reporter = TensorReporter(
@@ -113,17 +115,16 @@ def _run_equilibration(
             pressure=pressure * openmm.unit.kilopascal,
         )
 
-    simulation.reporters.append(dcd_reporter)
-    simulation.reporters.append(smee_reporter)
+        simulation.reporters.append(smee_reporter)
 
-    simulation.context.setVelocitiesToTemperature(
-        compute_config["temperature"],  # kelvin, but as float
-        compute_config["replicate_index"] + 1,
-    )
+        simulation.context.setVelocitiesToTemperature(
+            compute_config["temperature"],  # kelvin, but as float
+            compute_config["replicate_index"] + 1,
+        )
 
-    logger.info("Running 10,000 steps of MD")
+        logger.info("Running 10,000 steps of MD")
 
-    simulation.step(10_000)
+        simulation.step(10_000)
 
     with open(files["topology"].filepath, "w") as f:
         openmm.app.PDBFile.writeFile(

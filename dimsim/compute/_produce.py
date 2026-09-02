@@ -100,6 +100,8 @@ def _run_production(
         reportInterval=1000,
     )
 
+    simulation.reporters.append(dcd_reporter)
+
     pressure = compute_config.get("pressure", None)
 
     if pressure is None:
@@ -113,12 +115,11 @@ def _run_production(
             pressure=pressure * openmm.unit.kilopascal,
         )
 
-    simulation.reporters.append(dcd_reporter)
-    simulation.reporters.append(smee_reporter)
+        simulation.reporters.append(smee_reporter)
 
-    logger.info("Running 100,000 steps of MD")
+        logger.info("Running 100,000 steps of MD")
 
-    simulation.step(100_000)
+        simulation.step(100_000)
 
     with open(files["topology"].filepath, "w") as f:
         openmm.app.PDBFile.writeFile(
