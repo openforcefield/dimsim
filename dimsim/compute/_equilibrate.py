@@ -18,7 +18,7 @@ EquilibrationConfig = object
 
 def _run_equilibration(
     equilibration_config: EquilibrationConfig,
-    minimization_future: dict[str, float | MinimizationFiles],
+    minimization_future: dict[str, MinimizationFiles],
     job_dir: str,
 ) -> dict[str, EquilibrationFiles]:
     # TODO: Expose barostat (+ thermostat?) to user
