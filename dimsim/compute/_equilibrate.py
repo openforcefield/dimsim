@@ -35,7 +35,7 @@ def _run_equilibration(
 
     compute_config = BulkLiquid(**json.load(open(f"{job_dir}/compute_config.json")))  # type: ignore[typeddict-item]
 
-    minimized_files: MinimizationFiles = minimization_future["simulation_files"]  # type: ignore[assignment]
+    minimized_files: MinimizationFiles = minimization_future["simulation_files"]
 
     files = EquilibrationFiles(
         topology=File(f"{job_dir}/equilibrated_topology.pdb"),
