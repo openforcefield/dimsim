@@ -13,10 +13,8 @@ def equilibration_future() -> dict[str, EquilibrationFiles]:
     return {
         "simulation_files": EquilibrationFiles(
             topology=File(files("dimsim") / "_tests/data/app_files/sample_density/equilibrated_topology.pdb"),
-            dcd_trajectory=File(files("dimsim") / "_tests/data/app_files/sample_density/equilibrated_trajectory.dcd"),
-            msgpack_trajectory=File(
-                files("dimsim") / "_tests/data/app_files/sample_density/equilibrated_trajectory.msgpack"
-            ),
+            dcd_trajectory=File("foo.dcd"),
+            msgpack_trajectory=File("foo.msgpack"),
             log=File(files("dimsim") / "_tests/data/app_files/sample_density/equilibrate.log"),
             state_data=File(files("dimsim") / "_tests/data/app_files/sample_density/equilibration.csv"),
             system=File(files("dimsim") / "_tests/data/app_files/sample_density/equilibration_system.xml"),
