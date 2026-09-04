@@ -83,8 +83,9 @@ def _run_equilibration(
 
         # but we need to set positions and box vectors if we fail to load the checkpoint!
         simulation.context.setPositions(pdb_file.getPositions())
-        if pdb_file.getPeriodicBoxVectors() is not None:
-            simulation.context.setPeriodicBoxVectors(*pdb_file.getPeriodicBoxVectors())
+
+        if topology.getPeriodicBoxVectors() is not None:
+            simulation.context.setPeriodicBoxVectors(*topology.getPeriodicBoxVectors())
 
     pressure = compute_config.get("pressure", None)
 
