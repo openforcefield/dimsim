@@ -66,7 +66,11 @@ def _run_equilibration(
     with open(minimized_files["integrator"].filepath) as f:
         integrator = openmm.XmlSerializer.deserialize(f.read())
 
-    simulation = openmm.app.Simulation(topology, system, integrator)
+    simulation = openmm.app.Simulation(
+        topology,
+        system,
+        integrator,
+    )
 
     try:
         simulation.loadCheckpoint(minimized_files["checkpoint"].filepath)

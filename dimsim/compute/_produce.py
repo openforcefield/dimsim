@@ -62,7 +62,11 @@ def _run_production(
     with open(equilibrated_files["integrator"].filepath) as f:
         integrator = openmm.XmlSerializer.deserialize(f.read())
 
-    simulation = openmm.app.Simulation(topology, system, integrator)
+    simulation = openmm.app.Simulation(
+        topology,
+        system,
+        integrator,
+    )
 
     try:
         simulation.loadCheckpoint(equilibrated_files["checkpoint"].filepath)
@@ -138,9 +142,9 @@ def _run_production(
 
         logger.info("Running 100,000 steps of MD")
 
-        for index in range(1_000):
-            print(f"Index is {index}, running 100 more steps ...")
-            simulation.step(100)
+        for index in range(10):
+            logger.info(f"Running from step {index * 10_000} to step {(index + 1) * 10_000}")
+            simulation.step(10_000)
 
     with open(files["topology"].filepath, "w") as f:
         openmm.app.PDBFile.writeFile(

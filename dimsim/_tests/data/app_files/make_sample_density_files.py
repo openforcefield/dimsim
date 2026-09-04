@@ -40,7 +40,7 @@ compute = _make_liquid_density_compute_configs(
     data_entry=target,
     force_field="openff-2.3.0.offxml",
     n_molecules=200,
-)[0]
+)[0][0]
 
 with open("sample_density/compute_config.json", "w") as compute_config:
     json.dump(compute, compute_config, indent=4)
@@ -72,7 +72,6 @@ production_result = _run_production(
 )
 
 analysis_result = _run_density_analysis(
-    production_future=production_result,
     job_dir="sample_density",
 )
 
