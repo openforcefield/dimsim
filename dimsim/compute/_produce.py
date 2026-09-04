@@ -60,9 +60,20 @@ def _run_production(
     with open(equilibrated_files["integrator"].filepath) as f:
         integrator = openmm.XmlSerializer.deserialize(f.read())
 
-    with open(equilibrated_files["checkpoint"].filepath, "rb") as f:
-        simulation = openmm.app.Simulation(topology, system, integrator)
-        simulation.loadCheckpoint(f)
+    simulation = openmm.app.Simulation(topology, system, integrator)
+
+    try:
+        simulation.loadCheckpoint(equilibrated_files["checkpoint"].filepath)
+    except openmm.OpenMMException as error:
+        # loading checkpoint isn't so necessary when starting a new simulation since we are
+        # already loading the correct positions. The checkpoint also adds low-level stuff like
+        # RNG seeds, platform, hardware-specific stuff. It's nice to have these but I don't think
+        # they're **required** for things to run - this is not as true for restarting failed jobs
+        logger.warning(
+            f"Failed to load checkpoint from {equilibrated_files['checkpoint'].filepath} with below error, "
+            "starting from scratch."
+        )
+        logger.warning(f"{error}")
 
     logger.info("Reinitializing context (in production step)")
     simulation.context.reinitialize(preserveState=True)
