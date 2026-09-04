@@ -56,7 +56,9 @@ def _run_equilibration(
         }
 
     with open(minimized_files["topology"].filepath) as f:
-        topology = openmm.app.PDBFile(f).getTopology()
+        pdb_file = openmm.app.PDBFile(f)
+
+    topology = pdb_file.getTopology()
 
     with open(minimized_files["system"].filepath) as f:
         system = openmm.XmlSerializer.deserialize(f.read())
@@ -78,6 +80,11 @@ def _run_equilibration(
             "starting from scratch."
         )
         logger.warning(f"{error}")
+
+        # but we need to set positions and box vectors if we fail to load the checkpoint!
+        simulation.context.setPositions(pdb_file.getPositions())
+        if pdb_file.getPeriodicBoxVectors() is not None:
+            simulation.context.setPeriodicBoxVectors(*pdb_file.getPeriodicBoxVectors())
 
     pressure = compute_config.get("pressure", None)
 
