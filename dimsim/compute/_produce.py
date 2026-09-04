@@ -52,7 +52,9 @@ def _run_production(
         }
 
     with open(equilibrated_files["topology"].filepath) as f:
-        topology = openmm.app.PDBFile(f).getTopology()
+        pdb_file = openmm.app.PDBFile(f)
+
+    topology = pdb_file.getTopology()
 
     with open(equilibrated_files["system"].filepath) as f:
         system = openmm.XmlSerializer.deserialize(f.read())
@@ -74,6 +76,12 @@ def _run_production(
             "starting from scratch."
         )
         logger.warning(f"{error}")
+
+        # but we need to set positions and box vectors if we fail to load the checkpoint!
+        simulation.context.setPositions(pdb_file.getPositions())
+
+        if topology.getPeriodicBoxVectors() is not None:
+            simulation.context.setPeriodicBoxVectors(*topology.getPeriodicBoxVectors())
 
     logger.info("Reinitializing context (in production step)")
     simulation.context.reinitialize(preserveState=True)
