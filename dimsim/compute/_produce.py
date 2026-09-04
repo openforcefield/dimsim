@@ -138,7 +138,9 @@ def _run_production(
 
         logger.info("Running 100,000 steps of MD")
 
-        simulation.step(100_000)
+        for index in range(1_000):
+            print(f"Index is {index}, running 100 more steps ...")
+            simulation.step(100)
 
     with open(files["topology"].filepath, "w") as f:
         openmm.app.PDBFile.writeFile(
