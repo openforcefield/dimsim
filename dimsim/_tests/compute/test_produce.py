@@ -30,7 +30,6 @@ def test_basic(tmp_path, equilibration_future):
             str(files("dimsim") / f"_tests/data/app_files/sample_density/{file}"),
             str(tmp_path / file),
         )
-    pass
 
     _run_production(
         production_config=None,  # Replace with an actual ProductionConfig object

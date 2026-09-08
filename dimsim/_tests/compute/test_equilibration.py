@@ -26,7 +26,6 @@ def test_basic(tmp_path, minimization_future):
             str(files("dimsim") / f"_tests/data/app_files/sample_density/{file}"),
             str(tmp_path / file),
         )
-    pass
 
     _run_equilibration(
         equilibration_config=None,  # Replace with an actual EquilibrationConfig object

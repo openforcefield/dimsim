@@ -74,7 +74,7 @@ def _run_equilibration(
 
     try:
         simulation.loadCheckpoint(minimized_files["checkpoint"].filepath)
-    except openmm.OpenMMException as error:
+    except (openmm.OpenMMException, OSError) as error:
         # loading checkpoint isn't so necessary when starting a new simulation since we are
         # already loading the correct positions. The checkpoint also adds low-level stuff like
         # RNG seeds, platform, hardware-specific stuff. It's nice to have these but I don't think
