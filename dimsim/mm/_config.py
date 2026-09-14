@@ -14,8 +14,7 @@ class GenerateCoordsConfig(pydantic.BaseModel):
 
     target_density: OpenMMQuantity[_GRAMS_PER_ML] = pydantic.Field(
         0.95 * _GRAMS_PER_ML,
-        description="Target mass density for final system with units compatible with "
-        "g / mL.",
+        description="Target mass density for final system with units compatible with g / mL.",
     )
 
     scale_factor: float = pydantic.Field(
@@ -25,8 +24,7 @@ class GenerateCoordsConfig(pydantic.BaseModel):
     )
     padding: OpenMMQuantity[openmm.unit.angstrom] = pydantic.Field(
         2.0 * openmm.unit.angstrom,
-        description="The amount of padding to add to the final box size to help "
-        "alleviate PBC issues.",
+        description="The amount of padding to add to the final box size to help alleviate PBC issues.",
     )
 
     tolerance: OpenMMQuantity[openmm.unit.angstrom] = pydantic.Field(
@@ -34,9 +32,7 @@ class GenerateCoordsConfig(pydantic.BaseModel):
         description="The minimum spacing between molecules during packing.",
     )
 
-    seed: int | None = pydantic.Field(
-        None, description="The random seed to use when generating the coordinates."
-    )
+    seed: int | None = pydantic.Field(None, description="The random seed to use when generating the coordinates.")
 
 
 class MinimizationConfig(pydantic.BaseModel):
@@ -64,9 +60,7 @@ class SimulationConfig(pydantic.BaseModel):
         description="The pressure to simulate at, or none to run in NVT.",
     )
 
-    n_steps: int = pydantic.Field(
-        ..., description="The number of steps to simulate for."
-    )
+    n_steps: int = pydantic.Field(..., description="The number of steps to simulate for.")
 
     timestep: OpenMMQuantity[openmm.unit.femtoseconds] = pydantic.Field(
         2.0 * openmm.unit.femtoseconds,

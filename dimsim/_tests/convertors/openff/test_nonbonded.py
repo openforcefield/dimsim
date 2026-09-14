@@ -24,16 +24,12 @@ SMIRNOFF_PLUGINS_AVAILABLE = importlib.util.find_spec("smirnoff_plugins") is not
 def test_convert_electrostatics_am1bcc(ethanol, ethanol_interchange):
     charge_collection = ethanol_interchange.collections["Electrostatics"]
 
-    potential, parameter_maps = convert_electrostatics(
-        [charge_collection], [ethanol.to_topology()], [None]
-    )
+    potential, parameter_maps = convert_electrostatics([charge_collection], [ethanol.to_topology()], [None])
 
     assert potential.type == "Electrostatics"
     assert potential.fn == "coul"
 
-    expected_attributes = torch.tensor(
-        [0.0, 0.0, 5.0 / 6.0, 1.0, 9.0], dtype=torch.float64
-    )
+    expected_attributes = torch.tensor([0.0, 0.0, 5.0 / 6.0, 1.0, 9.0], dtype=torch.float64)
     assert torch.allclose(potential.attributes, expected_attributes)
     assert potential.attribute_cols == (
         "scale_12",
@@ -106,9 +102,7 @@ def test_convert_electrostatics_v_site(toolkit_registry_rdkit_first):
         [
             dimsim.VSiteMap(
                 keys=[*interchange.collections["VirtualSites"].key_map],
-                key_to_idx=interchange.collections[
-                    "VirtualSites"
-                ].virtual_site_key_topology_index_map,
+                key_to_idx=interchange.collections["VirtualSites"].virtual_site_key_topology_index_map,
                 parameter_idxs=torch.tensor([[0]]),
             )
         ],
@@ -116,12 +110,8 @@ def test_convert_electrostatics_v_site(toolkit_registry_rdkit_first):
 
     assert potential.parameter_cols == ("charge",)
     expected_keys = [
-        openff.interchange.models.PotentialKey(
-            id="[Cl:1]-[H:2]", mult=0, associated_handler="LibraryCharges"
-        ),
-        openff.interchange.models.PotentialKey(
-            id="[Cl:1]-[H:2]", mult=1, associated_handler="LibraryCharges"
-        ),
+        openff.interchange.models.PotentialKey(id="[Cl:1]-[H:2]", mult=0, associated_handler="LibraryCharges"),
+        openff.interchange.models.PotentialKey(id="[Cl:1]-[H:2]", mult=1, associated_handler="LibraryCharges"),
         openff.interchange.models.PotentialKey(
             id="[Cl:1]-[H:2] EP all_permutations",
             mult=0,
@@ -136,9 +126,7 @@ def test_convert_electrostatics_v_site(toolkit_registry_rdkit_first):
     assert potential.parameter_keys == expected_keys
     assert potential.parameters.shape == (4, 1)
 
-    expected_parameters = torch.tensor(
-        [[-0.75], [0.25], [-0.25], [0.5]], dtype=torch.float64
-    )
+    expected_parameters = torch.tensor([[-0.75], [0.25], [-0.25], [0.5]], dtype=torch.float64)
     assert torch.allclose(potential.parameters, expected_parameters)
 
     assert len(parameter_maps) == 1
@@ -155,9 +143,7 @@ def test_convert_electrostatics_v_site(toolkit_registry_rdkit_first):
         ],
         dtype=torch.float64,
     )
-    assert torch.allclose(
-        parameter_map.assignment_matrix.to_dense(), expected_assignment_matrix
-    )
+    assert torch.allclose(parameter_map.assignment_matrix.to_dense(), expected_assignment_matrix)
 
     n_expected_exclusions = 3
     assert parameter_map.exclusions.shape == (n_expected_exclusions, 2)
@@ -205,9 +191,7 @@ def test_convert_bci_and_vsite(toolkit_registry_rdkit_first):
 
     charge_handler = ff_off.get_parameter_handler("ChargeIncrementModel")
     charge_handler.partial_charge_method = "am1-mulliken"
-    charge_handler.add_parameter(
-        {"smirks": "[O:1]-[H:2]", "charge_increment1": -0.1 * openff.units.unit.e}
-    )
+    charge_handler.add_parameter({"smirks": "[O:1]-[H:2]", "charge_increment1": -0.1 * openff.units.unit.e})
     v_site_handler = ff_off.get_parameter_handler("VirtualSites")
     v_site_handler.add_parameter(
         {
@@ -230,9 +214,7 @@ def test_convert_bci_and_vsite(toolkit_registry_rdkit_first):
         toolkit_registry=toolkit_registry_rdkit_first,
     )
 
-    expected_charges = [
-        q.m_as("e") for q in interchange.collections["Electrostatics"].charges.values()
-    ]
+    expected_charges = [q.m_as("e") for q in interchange.collections["Electrostatics"].charges.values()]
 
     ff, [top] = dimsim.converters.convert_interchange(interchange)
 
@@ -252,9 +234,7 @@ def test_convert_bci_and_vsite(toolkit_registry_rdkit_first):
 
     assert charge_pot.parameter_cols == ("charge",)
 
-    found_keys = [
-        (key.associated_handler, key.id, key.mult) for key in charge_pot.parameter_keys
-    ]
+    found_keys = [(key.associated_handler, key.id, key.mult) for key in charge_pot.parameter_keys]
     expected_keys = [
         ("ChargeModel", "[O:1]([H:2])[H:3]", 0),
         ("ChargeModel", "[O:1]([H:2])[H:3]", 1),
@@ -266,9 +246,7 @@ def test_convert_bci_and_vsite(toolkit_registry_rdkit_first):
     ]
     assert found_keys == expected_keys
 
-    expected_charge_params = torch.tensor(
-        [*mol.partial_charges.m_as("e"), 0.0, 0.53, 0.53, -0.1]
-    ).reshape(-1, 1)
+    expected_charge_params = torch.tensor([*mol.partial_charges.m_as("e"), 0.0, 0.53, 0.53, -0.1]).reshape(-1, 1)
     assert torch.allclose(charge_pot.parameters, expected_charge_params)
 
     param_map = top.parameters["Electrostatics"]
@@ -298,9 +276,7 @@ def test_convert_bci_and_vsite(toolkit_registry_rdkit_first):
 def test_convert_vdw(ethanol, ethanol_interchange):
     vdw_collection = ethanol_interchange.collections["vdW"]
 
-    potential, parameter_maps = convert_vdw(
-        [vdw_collection], [ethanol.to_topology()], [None]
-    )
+    potential, _parameter_maps = convert_vdw([vdw_collection], [ethanol.to_topology()], [None])
 
     assert potential.type == "vdW"
     assert potential.fn == dimsim.EnergyFn.VDW_LJ
@@ -311,9 +287,7 @@ def test_convert_vdw(ethanol, ethanol_interchange):
     reason="Requires SMIRNOFF plugins to be installed.",
 )
 def test_convert_dexp(ethanol, test_data_dir, toolkit_registry_rdkit_first):
-    ff = openff.toolkit.ForceField(
-        str(test_data_dir / "de-ff.offxml"), load_plugins=True
-    )
+    ff = openff.toolkit.ForceField(str(test_data_dir / "de-ff.offxml"), load_plugins=True)
 
     interchange = ff.create_interchange(
         ethanol.to_topology(),
@@ -321,9 +295,7 @@ def test_convert_dexp(ethanol, test_data_dir, toolkit_registry_rdkit_first):
     )
     vdw_collection = interchange.collections["DoubleExponential"]
 
-    potential, parameter_maps = convert_dexp(
-        [vdw_collection], [ethanol.to_topology()], [None]
-    )
+    potential, _parameter_maps = convert_dexp([vdw_collection], [ethanol.to_topology()], [None])
 
     assert potential.attribute_cols[-2:] == ("alpha", "beta")
     assert potential.parameter_cols == ("epsilon", "r_min")

@@ -13,9 +13,7 @@ class TestTensorReporter:
         simulation = mocker.MagicMock()
         simulation.currentStep = 5
 
-        reporter = TensorReporter(
-            mocker.MagicMock(), 2, 1.0 / openmm.unit.kilocalories_per_mole, None
-        )
+        reporter = TensorReporter(mocker.MagicMock(), 2, 1.0 / openmm.unit.kilocalories_per_mole, None)
         assert reporter.describeNextReport(simulation) == (1, True, False, False, True)
 
     def test_report(self, tmp_path, mocker):
@@ -31,9 +29,7 @@ class TestTensorReporter:
         mock_state = mocker.MagicMock()
         mock_state.getPotentialEnergy.return_value = expected_potential
         mock_state.getKineticEnergy.return_value = expected_kinetic
-        mock_state.getPeriodicBoxVectors.return_value = (
-            expected_box_vectors * openmm.unit.angstrom
-        )
+        mock_state.getPeriodicBoxVectors.return_value = expected_box_vectors * openmm.unit.angstrom
         mock_state.getPeriodicBoxVolume.return_value = expected_volume
         mock_state.getPositions.return_value = expected_coords * openmm.unit.angstrom
 
@@ -53,8 +49,7 @@ class TestTensorReporter:
         coords, box_vectors, reduced_potential, kinetic = frames[0]
 
         expected_reduced_potential = beta * (
-            expected_potential
-            + pressure * expected_volume * openmm.unit.AVOGADRO_CONSTANT_NA
+            expected_potential + pressure * expected_volume * openmm.unit.AVOGADRO_CONSTANT_NA
         )
 
         assert coords == pytest.approx(expected_coords)
@@ -64,13 +59,9 @@ class TestTensorReporter:
         assert reduced_potential == pytest.approx(expected_reduced_potential)
 
         assert isinstance(kinetic, float)
-        assert kinetic == pytest.approx(
-            expected_kinetic.value_in_unit(openmm.unit.kilocalories_per_mole)
-        )
+        assert kinetic == pytest.approx(expected_kinetic.value_in_unit(openmm.unit.kilocalories_per_mole))
 
-    @pytest.mark.parametrize(
-        "potential, contains", [(numpy.nan, "nan"), (numpy.inf, "inf")]
-    )
+    @pytest.mark.parametrize("potential, contains", [(numpy.nan, "nan"), (numpy.inf, "inf")])
     def test_report_energy_check(self, potential, contains, mocker):
         potential = potential * openmm.unit.kilocalories_per_mole
         kinetic = 2.0 * openmm.unit.kilocalories_per_mole

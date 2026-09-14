@@ -23,20 +23,14 @@ def strip_constrained_bonds(
         constraints: The distanced constrained bonds to exclude for each parameter map.
     """
 
-    for parameter_map, bonds_to_exclude in zip(
-        parameter_maps, constraints, strict=True
-    ):
+    for parameter_map, bonds_to_exclude in zip(parameter_maps, constraints, strict=True):
         bonds_to_exclude = {tuple(sorted(idxs)) for idxs in bonds_to_exclude}
 
-        bond_idxs = [
-            tuple(sorted(idxs)) for idxs in parameter_map.particle_idxs.tolist()
-        ]
+        bond_idxs = [tuple(sorted(idxs)) for idxs in parameter_map.particle_idxs.tolist()]
         include = [idxs not in bonds_to_exclude for idxs in bond_idxs]
 
         parameter_map.particle_idxs = parameter_map.particle_idxs[include]
-        parameter_map.assignment_matrix = parameter_map.assignment_matrix.to_dense()[
-            include, :
-        ].to_sparse()
+        parameter_map.assignment_matrix = parameter_map.assignment_matrix.to_dense()[include, :].to_sparse()
 
 
 def strip_constrained_angles(
@@ -59,18 +53,14 @@ def strip_constrained_angles(
         }
         return len(bonds & excluded) == 3
 
-    for parameter_map, bonds_to_exclude in zip(
-        parameter_maps, constraints, strict=True
-    ):
+    for parameter_map, bonds_to_exclude in zip(parameter_maps, constraints, strict=True):
         bonds_to_exclude = {tuple(sorted(idxs)) for idxs in bonds_to_exclude}
 
         angle_idxs = parameter_map.particle_idxs.tolist()
         include = [not is_constrained(idxs, bonds_to_exclude) for idxs in angle_idxs]
 
         parameter_map.particle_idxs = parameter_map.particle_idxs[include]
-        parameter_map.assignment_matrix = parameter_map.assignment_matrix.to_dense()[
-            include, :
-        ].to_sparse()
+        parameter_map.assignment_matrix = parameter_map.assignment_matrix.to_dense()[include, :].to_sparse()
 
 
 def convert_valence_handlers(
@@ -93,58 +83,42 @@ def convert_valence_handlers(
         The potential containing tensors of the parameter values, and a list of
         parameter maps which map the parameters to the interactions they apply to.
     """
-    potential = dimsim.converters.openff._openff._handlers_to_potential(
-        handlers, handler_type, parameter_cols, None
-    )
+    potential = dimsim.converters.openff._openff._handlers_to_potential(handlers, handler_type, parameter_cols, None)
 
-    parameter_key_to_idx = {
-        parameter_key: i for i, parameter_key in enumerate(potential.parameter_keys)
-    }
+    parameter_key_to_idx = {parameter_key: i for i, parameter_key in enumerate(potential.parameter_keys)}
     parameter_maps = []
 
     for handler in handlers:
         particle_idxs = [topology_key.atom_indices for topology_key in handler.key_map]
 
-        assignment_matrix = torch.zeros(
-            (len(particle_idxs), len(potential.parameters)), dtype=torch.float64
-        )
+        assignment_matrix = torch.zeros((len(particle_idxs), len(potential.parameters)), dtype=torch.float64)
 
         for i, parameter_key in enumerate(handler.key_map.values()):
             assignment_matrix[i, parameter_key_to_idx[parameter_key]] += 1.0
 
-        parameter_map = dimsim.ValenceParameterMap(
-            torch.tensor(particle_idxs), assignment_matrix.to_sparse()
-        )
+        parameter_map = dimsim.ValenceParameterMap(torch.tensor(particle_idxs), assignment_matrix.to_sparse())
         parameter_maps.append(parameter_map)
 
     return potential, parameter_maps
 
 
-@dimsim.converters.smirnoff_parameter_converter(
-    "Bonds", {"k": _KCAL_PER_MOL / _ANGSTROM**2, "length": _ANGSTROM}
-)
+@dimsim.converters.smirnoff_parameter_converter("Bonds", {"k": _KCAL_PER_MOL / _ANGSTROM**2, "length": _ANGSTROM})
 def convert_bonds(
     handlers: list[openff.interchange.smirnoff.SMIRNOFFBondCollection],
     constraints: list[set[tuple[int, int]]],
 ) -> tuple[dimsim.TensorPotential, list[dimsim.ValenceParameterMap]]:
-    potential, parameter_maps = convert_valence_handlers(
-        handlers, "Bonds", ("k", "length")
-    )
+    potential, parameter_maps = convert_valence_handlers(handlers, "Bonds", ("k", "length"))
     strip_constrained_bonds(parameter_maps, constraints)
 
     return potential, parameter_maps
 
 
-@dimsim.converters.smirnoff_parameter_converter(
-    "Angles", {"k": _KCAL_PER_MOL / _RADIANS**2, "angle": _RADIANS}
-)
+@dimsim.converters.smirnoff_parameter_converter("Angles", {"k": _KCAL_PER_MOL / _RADIANS**2, "angle": _RADIANS})
 def convert_angles(
     handlers: list[openff.interchange.smirnoff.SMIRNOFFAngleCollection],
     constraints: list[set[tuple[int, int]]],
 ) -> tuple[dimsim.TensorPotential, list[dimsim.ValenceParameterMap]]:
-    potential, parameter_maps = convert_valence_handlers(
-        handlers, "Angles", ("k", "angle")
-    )
+    potential, parameter_maps = convert_valence_handlers(handlers, "Angles", ("k", "angle"))
     strip_constrained_angles(parameter_maps, constraints)
 
     return potential, parameter_maps
@@ -162,9 +136,7 @@ def convert_angles(
 def convert_propers(
     handlers: list[openff.interchange.smirnoff.SMIRNOFFProperTorsionCollection],
 ) -> tuple[dimsim.TensorPotential, list[dimsim.ValenceParameterMap]]:
-    return convert_valence_handlers(
-        handlers, "ProperTorsions", ("k", "periodicity", "phase", "idivf")
-    )
+    return convert_valence_handlers(handlers, "ProperTorsions", ("k", "periodicity", "phase", "idivf"))
 
 
 @dimsim.converters.smirnoff_parameter_converter(
@@ -179,6 +151,4 @@ def convert_propers(
 def convert_impropers(
     handlers: list[openff.interchange.smirnoff.SMIRNOFFImproperTorsionCollection],
 ) -> tuple[dimsim.TensorPotential, list[dimsim.ValenceParameterMap]]:
-    return convert_valence_handlers(
-        handlers, "ImproperTorsions", ("k", "periodicity", "phase", "idivf")
-    )
+    return convert_valence_handlers(handlers, "ImproperTorsions", ("k", "periodicity", "phase", "idivf"))

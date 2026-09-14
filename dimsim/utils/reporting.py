@@ -105,15 +105,11 @@ def print_potential_summary(potential: dimsim.TensorPotential):
 
     parameter_rows = []
 
-    for key, value in zip(
-        potential.parameter_keys, potential.parameters.detach(), strict=True
-    ):
+    for key, value in zip(potential.parameter_keys, potential.parameters.detach(), strict=True):
         row = {"ID": _format_parameter_id(key.id)}
         row.update(
             {
-                f"{col}{_format_unit(potential.parameter_units[idx])}": (
-                    f"{value[idx].item():.4f}"
-                )
+                f"{col}{_format_unit(potential.parameter_units[idx])}": (f"{value[idx].item():.4f}")
                 for idx, col in enumerate(potential.parameter_cols)
             }
         )
@@ -125,9 +121,7 @@ def print_potential_summary(potential: dimsim.TensorPotential):
     if potential.attributes is not None:
         attribute_rows = [
             {
-                f"{col}{_format_unit(potential.attribute_units[idx])}": (
-                    f"{potential.attributes[idx].item():.4f} "
-                )
+                f"{col}{_format_unit(potential.attribute_units[idx])}": (f"{potential.attributes[idx].item():.4f} ")
                 for idx, col in enumerate(potential.attribute_cols)
             }
         ]

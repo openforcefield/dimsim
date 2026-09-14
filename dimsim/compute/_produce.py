@@ -6,7 +6,6 @@ import pathlib
 import openmm
 import openmm.app
 from parsl import File
-from dimsim.mm import TensorReporter
 
 from dimsim.compute._files import (
     EquilibrationFiles,
@@ -14,6 +13,7 @@ from dimsim.compute._files import (
 )
 from dimsim.configs.liquid import BulkLiquid
 from dimsim.exceptions import PressureNotDefinedError
+from dimsim.mm import TensorReporter
 
 ProductionConfig = object
 

@@ -30,9 +30,7 @@ def mock_argon_ff(mock_argon_params) -> openff.toolkit.ForceField:
             "charge1": 0.0 * openff.units.unit.elementary_charge,
         }
     )
-    ff.get_parameter_handler("vdW").add_parameter(
-        {"smirks": "[Ar:1]", "epsilon": epsilon, "sigma": sigma}
-    )
+    ff.get_parameter_handler("vdW").add_parameter({"smirks": "[Ar:1]", "epsilon": epsilon, "sigma": sigma})
     return ff
 
 

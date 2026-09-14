@@ -16,9 +16,7 @@ import dimsim
 
 _CONVERTER_FUNCTIONS: dict[
     tuple[str, str],
-    typing.Callable[
-        [dimsim.TensorPotential, dimsim.TensorTopology, list[str]], ElementTree.Element
-    ],
+    typing.Callable[[dimsim.TensorPotential, dimsim.TensorTopology, list[str]], ElementTree.Element],
 ] = {}
 
 _ANGSTROM_TO_NM = 1.0 / 10.0
@@ -36,8 +34,7 @@ def ffxml_converter(potential_type: str, energy_expression: str):
     def _openmm_converter_inner(func):
         if (potential_type, energy_expression) in _CONVERTER_FUNCTIONS:
             raise KeyError(
-                f"An OpenMM converter function is already defined for "
-                f"handler={potential_type} fn={energy_expression}."
+                f"An OpenMM converter function is already defined for handler={potential_type} fn={energy_expression}."
             )
 
         _CONVERTER_FUNCTIONS[(str(potential_type), str(energy_expression))] = func
@@ -55,18 +52,12 @@ def _get_param_col(pot: dimsim.TensorPotential, param_name: str) -> tuple[int, f
     """Get the index of a parameter column."""
 
     param_col = pot.parameter_cols.index(param_name)
-    param_conv = (
-        (1.0 * pot.parameter_units[param_col])
-        .to_openmm()
-        .value_in_unit_system(openmm.unit.md_unit_system)
-    )
+    param_conv = (1.0 * pot.parameter_units[param_col]).to_openmm().value_in_unit_system(openmm.unit.md_unit_system)
 
     return param_col, param_conv
 
 
-def _to_atom_types(
-    omm_top: openmm.app.Topology, atom_name_to_type: dict[str, str]
-) -> ElementTree.Element:
+def _to_atom_types(omm_top: openmm.app.Topology, atom_name_to_type: dict[str, str]) -> ElementTree.Element:
     atom_types_xml = ElementTree.Element("AtomTypes")
 
     for atom in omm_top.atoms():
@@ -102,9 +93,7 @@ def _to_residue(
     residue_xml = ElementTree.SubElement(residues_xml, "Residue", name=name)
 
     for atom in omm_top.atoms():
-        ElementTree.SubElement(
-            residue_xml, "Atom", name=atom.name, type=atom_name_to_type[atom.name]
-        )
+        ElementTree.SubElement(residue_xml, "Atom", name=atom.name, type=atom_name_to_type[atom.name])
 
     for bond in omm_top.bonds():
         ElementTree.SubElement(
@@ -121,18 +110,12 @@ def _to_residue(
 
     for v_site_idx, param_idx in enumerate(top.v_sites.parameter_idxs.tolist()):
         local_frame_coords = (
-            dimsim.geometry.polar_to_cartesian_coords(
-                ff.v_sites.parameters[[param_idx], :].detach()
-            )
-            * _ANGSTROM_TO_NM
+            dimsim.geometry.polar_to_cartesian_coords(ff.v_sites.parameters[[param_idx], :].detach()) * _ANGSTROM_TO_NM
         )
         weight_origin, weight_x, weight_y = ff.v_sites.weights[param_idx]
 
         parent_idxs = top.v_sites.keys[v_site_idx].orientation_atom_indices
-        parent_names = {
-            f"atomName{i + 1}": atom_names[parent_idx]
-            for i, parent_idx in enumerate(parent_idxs)
-        }
+        parent_names = {f"atomName{i + 1}": atom_names[parent_idx] for i, parent_idx in enumerate(parent_idxs)}
 
         ElementTree.SubElement(
             residue_xml,
@@ -162,9 +145,7 @@ def default_valence_converter(
 
     force_xml = ElementTree.Element(force_type)
 
-    param_cols = {
-        param_name: _get_param_col(pot, param_name) for param_name in param_cols
-    }
+    param_cols = {param_name: _get_param_col(pot, param_name) for param_name in param_cols}
     params = (param_map.assignment_matrix @ pot.parameters).detach().cpu().tolist()
 
     for param_idx, (idxs) in enumerate(param_map.particle_idxs):
@@ -173,10 +154,7 @@ def default_valence_converter(
             force_tag,
             **{f"class{i + 1}": atom_types[idx] for i, idx in enumerate(idxs)},
             **{
-                param_name: str(
-                    params[param_idx][param_cols[param_name][0]]
-                    * param_cols[param_name][1]
-                )
+                param_name: str(params[param_idx][param_cols[param_name][0]] * param_cols[param_name][1])
                 for param_name in param_cols
             },
             **(extra_attrs if extra_attrs is not None else {}),
@@ -203,9 +181,7 @@ def convert_lj_force(
 
     scale_14 = pot.attributes[pot.attribute_cols.index("scale_14")].detach().item()
 
-    force_xml = ElementTree.Element(
-        "NonbondedForce", attrib={"lj14scale": str(scale_14)}
-    )
+    force_xml = ElementTree.Element("NonbondedForce", attrib={"lj14scale": str(scale_14)})
 
     params = (param_map.assignment_matrix @ pot.parameters).detach().cpu().tolist()
 
@@ -245,9 +221,7 @@ def convert_electrostatics_force(
 
     scale_14 = pot.attributes[pot.attribute_cols.index("scale_14")].detach().item()
 
-    force_xml = ElementTree.Element(
-        "NonbondedForce", attrib={"coulomb14scale": str(scale_14)}
-    )
+    force_xml = ElementTree.Element("NonbondedForce", attrib={"coulomb14scale": str(scale_14)})
 
     params = (param_map.assignment_matrix @ pot.parameters).detach().cpu().tolist()
 
@@ -256,44 +230,30 @@ def convert_electrostatics_force(
     for atom_idx in range(len(params)):
         charge = float(params[atom_idx][charge_col] * charge_scale)
 
-        ElementTree.SubElement(
-            force_xml, "Atom", charge=str(charge), **{"class": types[atom_idx]}
-        )
+        ElementTree.SubElement(force_xml, "Atom", charge=str(charge), **{"class": types[atom_idx]})
 
     return force_xml
 
 
 @ffxml_converter(dimsim.PotentialType.BONDS, dimsim.EnergyFn.BOND_HARMONIC)
-def convert_bond_potential(
-    pot: dimsim.TensorPotential, param_map: dimsim.ValenceParameterMap, types: list[str]
-):
-    return default_valence_converter(
-        pot, param_map, types, ("k", "length"), "HarmonicBondForce", "Bond"
-    )
+def convert_bond_potential(pot: dimsim.TensorPotential, param_map: dimsim.ValenceParameterMap, types: list[str]):
+    return default_valence_converter(pot, param_map, types, ("k", "length"), "HarmonicBondForce", "Bond")
 
 
 @ffxml_converter(dimsim.PotentialType.ANGLES, dimsim.EnergyFn.ANGLE_HARMONIC)
-def convert_angle_potential(
-    pot: dimsim.TensorPotential, param_map: dimsim.ValenceParameterMap, types: list[str]
-):
-    return default_valence_converter(
-        pot, param_map, types, ("k", "angle"), "HarmonicAngleForce", "Angle"
-    )
+def convert_angle_potential(pot: dimsim.TensorPotential, param_map: dimsim.ValenceParameterMap, types: list[str]):
+    return default_valence_converter(pot, param_map, types, ("k", "angle"), "HarmonicAngleForce", "Angle")
 
 
 @ffxml_converter(dimsim.PotentialType.PROPER_TORSIONS, dimsim.EnergyFn.TORSION_COSINE)
 @ffxml_converter(dimsim.PotentialType.IMPROPER_TORSIONS, dimsim.EnergyFn.TORSION_COSINE)
-def convert_torsion_potential(
-    pot: dimsim.TensorPotential, param_map: dimsim.ValenceParameterMap, types: list[str]
-):
+def convert_torsion_potential(pot: dimsim.TensorPotential, param_map: dimsim.ValenceParameterMap, types: list[str]):
     is_proper = pot.type == dimsim.PotentialType.PROPER_TORSIONS
 
     params = (param_map.assignment_matrix @ pot.parameters).detach().cpu().tolist()
 
     param_names = ("k", "periodicity", "phase", "idivf")
-    param_scales = {
-        param_name: _get_param_col(pot, param_name) for param_name in param_names
-    }
+    param_scales = {param_name: _get_param_col(pot, param_name) for param_name in param_names}
     param_idx_by_particle_idxs = collections.defaultdict(list)
 
     for param_idx, idxs in enumerate(param_map.particle_idxs.tolist()):
@@ -314,19 +274,13 @@ def convert_torsion_potential(
 
         for i, param_idx in enumerate(param_idxs):
             param_vals = {
-                param_name: params[param_idx][param_scales[param_name][0]]
-                * param_scales[param_name][1]
+                param_name: params[param_idx][param_scales[param_name][0]] * param_scales[param_name][1]
                 for param_name in param_names
             }
             param_vals["k"] /= param_vals.pop("idivf")
             param_vals["periodicity"] = int(param_vals["periodicity"])
 
-            attrib.update(
-                {
-                    f"{param_name}{i + 1}": str(param_val)
-                    for param_name, param_val in param_vals.items()
-                }
-            )
+            attrib.update({f"{param_name}{i + 1}": str(param_val) for param_name, param_val in param_vals.items()})
 
         ElementTree.SubElement(force_xml, tag, attrib=attrib)
 
@@ -339,7 +293,7 @@ def _add_constraints(
     bond_xml: ElementTree.Element,
     angle_xml: ElementTree.Element,
 ):
-    bonds = set((idx_a, idx_b) for idx_a, idx_b in top.bond_idxs.tolist())  # noqa: C401
+    bonds = set((idx_a, idx_b) for idx_a, idx_b in top.bond_idxs.tolist())
 
     def has_bond(i, j):
         return (i, j) in bonds or (j, i) in bonds
@@ -360,9 +314,7 @@ def _add_constraints(
 
     constraints = {
         (int(idx_a), int(idx_b)): dist.item() * _ANGSTROM_TO_NM
-        for (idx_a, idx_b), dist in zip(
-            top.constraints.idxs, top.constraints.distances, strict=True
-        )
+        for (idx_a, idx_b), dist in zip(top.constraints.idxs, top.constraints.distances, strict=True)
     }
 
     def get_constraint(i, j):
@@ -385,9 +337,7 @@ def _add_constraints(
             dist_bc = get_constraint(angle_idxs[1], angle_idxs[2])
             dist_ac = get_constraint(angle_idxs[0], angle_idxs[2])
 
-            angle = math.acos(
-                -(dist_ac**2 - dist_ab**2 - dist_bc**2) / (2 * dist_ab * dist_bc)
-            )
+            angle = math.acos(-(dist_ac**2 - dist_ab**2 - dist_bc**2) / (2 * dist_ab * dist_bc))
 
             ElementTree.SubElement(
                 angle_xml,
@@ -399,9 +349,7 @@ def _add_constraints(
                 k="0.0",
             )
         else:
-            raise NotImplementedError(
-                f"cannot convert constraint between atoms {idx_a} and {idx_b}."
-            )
+            raise NotImplementedError(f"cannot convert constraint between atoms {idx_a} and {idx_b}.")
 
 
 def _convert_to_openmm_ffxml(
@@ -442,8 +390,7 @@ def _convert_to_openmm_ffxml(
 
         if converter_key not in _CONVERTER_FUNCTIONS:
             raise NotImplementedError(
-                f"cannot convert type={potential_type} fn={potential.fn} to an "
-                f"OpenMM FFXML file."
+                f"cannot convert type={potential_type} fn={potential.fn} to an OpenMM FFXML file."
             )
 
         converter = _CONVERTER_FUNCTIONS[converter_key]
@@ -471,9 +418,7 @@ def _convert_to_openmm_ffxml(
         if not xml_by_tag["HarmonicBondForce"]:
             xml_by_tag["HarmonicBondForce"] = [ElementTree.Element("HarmonicBondForce")]
         if not xml_by_tag["HarmonicAngleForce"]:
-            xml_by_tag["HarmonicAngleForce"] = [
-                ElementTree.Element("HarmonicAngleForce")
-            ]
+            xml_by_tag["HarmonicAngleForce"] = [ElementTree.Element("HarmonicAngleForce")]
 
         _add_constraints(
             top,

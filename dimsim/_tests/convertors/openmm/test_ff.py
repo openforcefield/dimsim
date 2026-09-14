@@ -13,6 +13,9 @@ import dimsim
 import dimsim.converters
 import dimsim.converters.openmm
 
+RNG = numpy.random.default_rng(13337)
+RNG.normal()
+
 
 def compute_energy(system: openmm.System, coords: numpy.ndarray) -> float:
     ctx = openmm.Context(system, openmm.VerletIntegrator(0.01))
@@ -22,9 +25,7 @@ def compute_energy(system: openmm.System, coords: numpy.ndarray) -> float:
     return state.getPotentialEnergy().value_in_unit(openmm.unit.kilojoule_per_mole)
 
 
-def compute_v_site_coords(
-    system: openmm.System, coords: numpy.ndarray
-) -> numpy.ndarray:
+def compute_v_site_coords(system: openmm.System, coords: numpy.ndarray) -> numpy.ndarray:
     ctx = openmm.Context(system, openmm.VerletIntegrator(0.01))
     ctx.setPositions(coords * openmm.unit.angstrom)
     ctx.computeVirtualSites()
@@ -37,9 +38,7 @@ def compute_v_site_coords(
 @pytest.mark.parametrize("smiles", ["CO", "C=O", "Oc1ccccc1"])
 def test_convert_to_openmm_ffxml(tmp_cwd, with_constraints, smiles):
     off_ff = openff.toolkit.ForceField(
-        "openff-2.0.0.offxml"
-        if with_constraints
-        else "openff_unconstrained-2.0.0.offxml"
+        "openff-2.0.0.offxml" if with_constraints else "openff_unconstrained-2.0.0.offxml"
     )
 
     off_mol = openff.toolkit.Molecule.from_smiles(smiles)
@@ -70,16 +69,8 @@ def test_convert_to_openmm_ffxml(tmp_cwd, with_constraints, smiles):
     # Compare number of forces, excluding CMMotionRemover, as the default
     # behavior of OpenFF Interchange changed in 0.4.1 to include it
     # (https://github.com/openforcefield/openff-interchange/pull/1133)
-    forces_xml = [
-        f
-        for f in system_from_xml.getForces()
-        if not isinstance(f, openmm.CMMotionRemover)
-    ]
-    forces_off = [
-        f
-        for f in system_from_off.getForces()
-        if not isinstance(f, openmm.CMMotionRemover)
-    ]
+    forces_xml = [f for f in system_from_xml.getForces() if not isinstance(f, openmm.CMMotionRemover)]
+    forces_off = [f for f in system_from_off.getForces() if not isinstance(f, openmm.CMMotionRemover)]
     assert len(forces_xml) == len(forces_off)
 
     assert system_from_xml.getNumConstraints() == system_from_off.getNumConstraints()
@@ -102,7 +93,7 @@ def test_convert_to_openmm_ffxml(tmp_cwd, with_constraints, smiles):
     coords = off_mol.conformers[0].m_as("angstrom")
 
     for _ in range(5):
-        coords_rand = coords + numpy.random.randn(*coords.shape) * 0.1
+        coords_rand = coords + RNG.standard_normal(*coords.shape) * 0.1
 
         energy_off = compute_energy(system_from_off, coords_rand)
         energy_xml = compute_energy(system_from_xml, coords_rand)
@@ -150,11 +141,7 @@ def test_convert_to_openmm_ffxml_v_sites(tmp_cwd):
     assert numpy.allclose(coords_from_xml, coords_from_off, atol=1.0e-3)
 
     params_from_xml = {}
-    [nb_force_from_xml] = [
-        force
-        for force in system_from_xml.getForces()
-        if isinstance(force, openmm.NonbondedForce)
-    ]
+    [nb_force_from_xml] = [force for force in system_from_xml.getForces() if isinstance(force, openmm.NonbondedForce)]
 
     for i in range(nb_force_from_xml.getNumParticles()):
         charge, sigma, epsilon = nb_force_from_xml.getParticleParameters(i)
@@ -165,11 +152,7 @@ def test_convert_to_openmm_ffxml_v_sites(tmp_cwd):
         )
 
     params_from_off = {}
-    [nb_force_from_off] = [
-        force
-        for force in system_from_off.getForces()
-        if isinstance(force, openmm.NonbondedForce)
-    ]
+    [nb_force_from_off] = [force for force in system_from_off.getForces() if isinstance(force, openmm.NonbondedForce)]
 
     for i in range(nb_force_from_off.getNumParticles()):
         charge, sigma, epsilon = nb_force_from_off.getParticleParameters(i)

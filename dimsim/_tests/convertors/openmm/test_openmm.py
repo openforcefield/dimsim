@@ -22,6 +22,10 @@ from dimsim.converters.openmm import (
     create_openmm_system,
 )
 
+RNG = numpy.random.default_rng(13337)
+RNG.normal()
+
+
 SMIRNOFF_PLUGINS_AVAILABLE = importlib.util.find_spec("smirnoff_plugins") is not None
 
 
@@ -34,9 +38,7 @@ def _compute_energy(
         system.setDefaultPeriodicBoxVectors(*box_vectors)
 
     integrator = openmm.VerletIntegrator(1.0 * openmm.unit.femtoseconds)
-    context = openmm.Context(
-        system, integrator, openmm.Platform.getPlatformByName("Reference")
-    )
+    context = openmm.Context(system, integrator, openmm.Platform.getPlatformByName("Reference"))
 
     if box_vectors is not None:
         context.setPeriodicBoxVectors(*box_vectors)
@@ -59,7 +61,7 @@ def _compare_dimsim_and_interchange(
     assert isinstance(system_dimsim, openmm.System)
     system_interchange = interchange.to_openmm(False, False)
 
-    coords += (numpy.random.randn(*coords.shape) * 0.1) * openmm.unit.angstrom
+    coords += (RNG.standard_normal(*coords.shape) * 0.1) * openmm.unit.angstrom
 
     energy_dimsim = _compute_energy(system_dimsim, coords, box_vectors)
     energy_interchange = _compute_energy(system_interchange, coords, box_vectors)
@@ -100,11 +102,7 @@ def test_create_openmm_system_v_sites(v_site_force_field):
     )
 
     expected_v_site_idxs = [4, 9, 13, 14, 19]
-    actual_v_site_idxs = [
-        i
-        for i in range(system_dimsim.getNumParticles())
-        if system_dimsim.isVirtualSite(i)
-    ]
+    actual_v_site_idxs = [i for i in range(system_dimsim.getNumParticles()) if system_dimsim.isVirtualSite(i)]
     assert actual_v_site_idxs == expected_v_site_idxs
 
     v_sites_interchange = [
@@ -130,28 +128,16 @@ def test_create_openmm_system_v_sites(v_site_force_field):
         [15, 16, 17, 18],
     ]
 
-    for i, (v_site_interchange, v_site_dimsim) in enumerate(
-        zip(v_sites_interchange, v_sites_dimsim, strict=True)
-    ):
+    for i, (v_site_interchange, v_site_dimsim) in enumerate(zip(v_sites_interchange, v_sites_dimsim, strict=True)):
         assert v_site_dimsim.getNumParticles() == v_site_interchange.getNumParticles()
 
-        particles_dimsim = [
-            v_site_dimsim.getParticle(i) for i in range(v_site_dimsim.getNumParticles())
-        ]
+        particles_dimsim = [v_site_dimsim.getParticle(i) for i in range(v_site_dimsim.getNumParticles())]
         assert particles_dimsim == expected_particle_idxs[i]
 
-        compare_vec3(
-            v_site_dimsim.getLocalPosition(), v_site_interchange.getLocalPosition()
-        )
-        assert v_site_dimsim.getOriginWeights() == pytest.approx(
-            v_site_interchange.getOriginWeights()
-        )
-        assert v_site_dimsim.getXWeights() == pytest.approx(
-            v_site_interchange.getXWeights()
-        )
-        assert v_site_dimsim.getYWeights() == pytest.approx(
-            v_site_interchange.getYWeights()
-        )
+        compare_vec3(v_site_dimsim.getLocalPosition(), v_site_interchange.getLocalPosition())
+        assert v_site_dimsim.getOriginWeights() == pytest.approx(v_site_interchange.getOriginWeights())
+        assert v_site_dimsim.getXWeights() == pytest.approx(v_site_interchange.getXWeights())
+        assert v_site_dimsim.getYWeights() == pytest.approx(v_site_interchange.getYWeights())
 
 
 @pytest.mark.parametrize("with_constraints", [True, False])
@@ -164,13 +150,9 @@ def test_convert_to_openmm_system_vacuum(with_constraints):
     coords = coords * openmm.unit.angstrom
 
     force_field = openff.toolkit.ForceField(
-        "openff-2.0.0.offxml"
-        if with_constraints
-        else "openff_unconstrained-2.0.0.offxml"
+        "openff-2.0.0.offxml" if with_constraints else "openff_unconstrained-2.0.0.offxml"
     )
-    interchange = openff.interchange.Interchange.from_smirnoff(
-        force_field, mol.to_topology()
-    )
+    interchange = openff.interchange.Interchange.from_smirnoff(force_field, mol.to_topology())
 
     tensor_ff, [tensor_top] = dimsim.converters.convert_interchange(interchange)
 
@@ -179,11 +161,7 @@ def test_convert_to_openmm_system_vacuum(with_constraints):
 
 @pytest.mark.parametrize("with_constraints", [True, False])
 def test_convert_to_openmm_system_periodic(with_constraints):
-    ff = openff.toolkit.ForceField(
-        "openff-2.0.0.offxml"
-        if with_constraints
-        else "openff_unconstrained-2.0.0.offxml"
-    )
+    ff = openff.toolkit.ForceField("openff-2.0.0.offxml" if with_constraints else "openff_unconstrained-2.0.0.offxml")
     top = openff.toolkit.Topology()
 
     interchanges = []
@@ -195,9 +173,7 @@ def test_convert_to_openmm_system_periodic(with_constraints):
         mol = openff.toolkit.Molecule.from_smiles(smiles)
         mol.generate_conformers(n_conformers=1)
 
-        interchange = openff.interchange.Interchange.from_smirnoff(
-            ff, mol.to_topology()
-        )
+        interchange = openff.interchange.Interchange.from_smirnoff(ff, mol.to_topology())
         interchanges.append(interchange)
 
         for _ in range(n_copies):
@@ -206,18 +182,14 @@ def test_convert_to_openmm_system_periodic(with_constraints):
     tensor_ff, tensor_tops = dimsim.converters.convert_interchange(interchanges)
     tensor_system = dimsim.TensorSystem(tensor_tops, n_copies_per_mol, True)
 
-    coords, _ = dimsim.mm.generate_system_coords(
-        tensor_system, None, dimsim.mm.GenerateCoordsConfig()
-    )
+    coords, _ = dimsim.mm.generate_system_coords(tensor_system, None, dimsim.mm.GenerateCoordsConfig())
     box_vectors = numpy.eye(3) * 20.0 * openmm.unit.angstrom
 
     top.box_vectors = box_vectors
 
     interchange_top = openff.interchange.Interchange.from_smirnoff(ff, top)
 
-    _compare_dimsim_and_interchange(
-        tensor_ff, tensor_system, interchange_top, coords, box_vectors
-    )
+    _compare_dimsim_and_interchange(tensor_ff, tensor_system, interchange_top, coords, box_vectors)
 
 
 @pytest.mark.parametrize("with_exception", [True, False])
@@ -233,9 +205,7 @@ def test_convert_lj_potential_with_exceptions(with_exception):
     assert isinstance(forces[0], openmm.CustomNonbondedForce)
     assert isinstance(forces[1], openmm.CustomBondForce)
 
-    coords = torch.tensor(
-        [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0]]
-    )
+    coords = torch.tensor([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0]])
     expected_energy = dimsim.compute_energy_potential(system, vdw_potential, coords)
 
     omm_system = openmm.System()
@@ -251,14 +221,8 @@ def test_convert_lj_potential_with_exceptions(with_exception):
     )
     context.setPositions(coords.numpy() * openmm.unit.angstrom)
 
-    energy = (
-        context.getState(getEnergy=True)
-        .getPotentialEnergy()
-        .value_in_unit(openmm.unit.kilocalorie_per_mole)
-    )
-    assert torch.isclose(
-        torch.tensor(energy, dtype=expected_energy.dtype), expected_energy
-    )
+    energy = context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(openmm.unit.kilocalorie_per_mole)
+    assert torch.isclose(torch.tensor(energy, dtype=expected_energy.dtype), expected_energy)
 
 
 @pytest.mark.skipif(
@@ -266,9 +230,7 @@ def test_convert_lj_potential_with_exceptions(with_exception):
     reason="Requires SMIRNOFF plugins to be installed.",
 )
 def test_convert_to_openmm_system_dexp_periodic(test_data_dir):
-    ff = openff.toolkit.ForceField(
-        str(test_data_dir / "de-ff.offxml"), load_plugins=True
-    )
+    ff = openff.toolkit.ForceField(str(test_data_dir / "de-ff.offxml"), load_plugins=True)
     top = openff.toolkit.Topology()
 
     interchanges = []
@@ -279,9 +241,7 @@ def test_convert_to_openmm_system_dexp_periodic(test_data_dir):
         mol = openff.toolkit.Molecule.from_smiles(smiles)
         mol.generate_conformers(n_conformers=1)
 
-        interchange = openff.interchange.Interchange.from_smirnoff(
-            ff, mol.to_topology()
-        )
+        interchange = openff.interchange.Interchange.from_smirnoff(ff, mol.to_topology())
         interchanges.append(interchange)
 
         for _ in range(n_copies):
@@ -290,18 +250,14 @@ def test_convert_to_openmm_system_dexp_periodic(test_data_dir):
     tensor_ff, tensor_tops = dimsim.converters.convert_interchange(interchanges)
     tensor_system = dimsim.TensorSystem(tensor_tops, n_copies_per_mol, True)
 
-    coords, _ = dimsim.mm.generate_system_coords(
-        tensor_system, None, dimsim.mm.GenerateCoordsConfig()
-    )
+    coords, _ = dimsim.mm.generate_system_coords(tensor_system, None, dimsim.mm.GenerateCoordsConfig())
     box_vectors = numpy.eye(3) * 20.0 * openmm.unit.angstrom
 
     top.box_vectors = box_vectors
 
     interchange_top = openff.interchange.Interchange.from_smirnoff(ff, top)
 
-    _compare_dimsim_and_interchange(
-        tensor_ff, tensor_system, interchange_top, coords, box_vectors
-    )
+    _compare_dimsim_and_interchange(tensor_ff, tensor_system, interchange_top, coords, box_vectors)
 
 
 def test_convert_to_openmm_topology():
@@ -314,7 +270,7 @@ def test_convert_to_openmm_topology():
         openff.toolkit.Molecule.from_smiles("O").to_topology(),
     )
 
-    tensor_ff, [methane_top, water_top] = dimsim.converters.convert_interchange(
+    _tensor_ff, [methane_top, water_top] = dimsim.converters.convert_interchange(
         [formaldehyde_interchange, water_interchange]
     )
     tensor_system = dimsim.TensorSystem([methane_top, water_top], [1, 2], True)
@@ -342,10 +298,7 @@ def test_convert_to_openmm_topology():
     ]
     assert atom_names == expected_atom_names
 
-    bond_idxs = [
-        (bond.atom1.index, bond.atom2.index, bond.order)
-        for bond in openmm_topology.bonds()
-    ]
+    bond_idxs = [(bond.atom1.index, bond.atom2.index, bond.order) for bond in openmm_topology.bonds()]
     expected_bond_idxs = [
         (0, 1, 2),
         (0, 2, 1),

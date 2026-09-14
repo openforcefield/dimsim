@@ -135,7 +135,7 @@ class Substance(BaseModel):
         Substance
             Substance object
         """
-        return cls(molecule_species=MoleculeSpecies.from_string(s, flatten=False))  # type: ignore[arg-type]
+        return cls(molecule_species=MoleculeSpecies.from_string(s, flatten=False))
 
     @property
     def n_molecules(self) -> int:
@@ -192,7 +192,7 @@ class Substance(BaseModel):
 
         return cls(molecule_species=molecule_species)
 
-    def is_equivalent_to(self, other: "Substance") -> bool:  # type: ignore[return]
+    def is_equivalent_to(self, other: "Substance") -> bool:
         """
         Check if this substance is equivalent to another substance.
         This is done by comparing the composition keys.
@@ -370,10 +370,10 @@ class BoxCoordinates(BaseModel):
         if box_vectors is not None:
             box_vectors = box_vectors.m_as(unit.angstrom)
 
-        return cls(substance=substance, coordinates=coordinates, box_vectors=box_vectors)  # type: ignore[call-arg]
+        return cls(substance=substance, coordinates=coordinates, box_vectors=box_vectors)
 
     @requires_package("openmm")
-    def get_energy_for_system(self, system: "openmm.System") -> float:  # type: ignore[empty-body]
+    def get_energy_for_system(self, system: "openmm.System") -> float:
         """
         Get the potential energy of the box.
 

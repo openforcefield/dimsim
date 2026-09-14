@@ -53,9 +53,7 @@ def mock_omm_system() -> openmm.System:
     force = openmm.NonbondedForce()
 
     for _ in range(2):
-        force.addParticle(
-            0.0, 3.0 * openmm.unit.angstrom, 1.0 * openmm.unit.kilojoule_per_mole
-        )
+        force.addParticle(0.0, 3.0 * openmm.unit.angstrom, 1.0 * openmm.unit.kilojoule_per_mole)
 
     system.addForce(force)
 
@@ -71,18 +69,14 @@ def test_apply_hmr():
         for smiles in ["O", "CO"]
     ]
 
-    force_field, [topology_water, topology_meoh] = (
-        dimsim.converters.convert_interchange(interchanges)
-    )
+    force_field, [topology_water, topology_meoh] = dimsim.converters.convert_interchange(interchanges)
 
     system_dimsim = dimsim.TensorSystem(
         [topology_water, topology_meoh, topology_water],
         [1, 2, 1],
         False,
     )
-    system_openmm = dimsim.converters.convert_to_openmm_system(
-        force_field, system_dimsim
-    )
+    system_openmm = dimsim.converters.convert_to_openmm_system(force_field, system_dimsim)
 
     for i in range(system_openmm.getNumParticles()):
         # Round the masses to the nearest integer to make comparisons easier.
@@ -93,8 +87,7 @@ def test_apply_hmr():
     _apply_hmr(system_openmm, system_dimsim)
 
     masses = [
-        system_openmm.getParticleMass(i).value_in_unit(openmm.unit.amu)
-        for i in range(system_openmm.getNumParticles())
+        system_openmm.getParticleMass(i).value_in_unit(openmm.unit.amu) for i in range(system_openmm.getNumParticles())
     ]
 
     expected_masses = [
@@ -182,9 +175,7 @@ def test_topology_to_xyz(mocker):
 
 
 def test_approximate_box_size():
-    system = dimsim.TensorSystem(
-        [dimsim._tests.utils.topology_from_smiles("O")], [256], True
-    )
+    system = dimsim.TensorSystem([dimsim._tests.utils.topology_from_smiles("O")], [256], True)
 
     config = dimsim.mm.GenerateCoordsConfig(scale_factor=2.0)
 
@@ -204,13 +195,9 @@ def test_generate_packmol_input():
     expected_tolerance = 0.1 * openmm.unit.nanometer
     expected_seed = 42
 
-    config = dimsim.mm.GenerateCoordsConfig(
-        tolerance=expected_tolerance, seed=expected_seed
-    )
+    config = dimsim.mm.GenerateCoordsConfig(tolerance=expected_tolerance, seed=expected_seed)
 
-    actual_input_file = _generate_packmol_input(
-        [1, 2, 3], 1.0 * openmm.unit.angstrom, config
-    )
+    actual_input_file = _generate_packmol_input([1, 2, 3], 1.0 * openmm.unit.angstrom, config)
 
     expected_input_file = "\n".join(
         [
@@ -271,7 +258,7 @@ def test_generate_system_coords_with_v_sites():
     force_field, [topology] = dimsim.converters.convert_interchange(interchange)
     system = dimsim.TensorSystem([topology], [1], False)
 
-    coords, box_vectors = generate_system_coords(system, force_field)
+    coords, _box_vectors = generate_system_coords(system, force_field)
     assert isinstance(coords, openmm.unit.Quantity)
     coords = coords.value_in_unit(openmm.unit.angstrom)
     assert isinstance(coords, numpy.ndarray)
@@ -367,13 +354,9 @@ def test_simulate(mocker, mock_argon_tensors):
         mock_box,
         [
             dimsim.mm.MinimizationConfig(),
-            dimsim.mm.SimulationConfig(
-                temperature=86.0 * openmm.unit.kelvin, pressure=None, n_steps=1
-            ),
+            dimsim.mm.SimulationConfig(temperature=86.0 * openmm.unit.kelvin, pressure=None, n_steps=1),
         ],
-        dimsim.mm.SimulationConfig(
-            temperature=86.0 * openmm.unit.kelvin, pressure=None, n_steps=2
-        ),
+        dimsim.mm.SimulationConfig(temperature=86.0 * openmm.unit.kelvin, pressure=None, n_steps=2),
         [reporter],
         True,
     )
@@ -387,9 +370,7 @@ def test_simulate(mocker, mock_argon_tensors):
 def test_simulate_invalid_pressure(mock_argon_tensors):
     tensor_ff, tensor_top = mock_argon_tensors
 
-    with pytest.raises(
-        ValueError, match="pressure cannot be specified for a non-periodic"
-    ):
+    with pytest.raises(ValueError, match="pressure cannot be specified for a non-periodic"):
         simulate(
             tensor_top,
             tensor_ff,

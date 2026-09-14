@@ -16,9 +16,7 @@ _ANGSTROM_TO_NM = 1.0 / 10.0
 
 _CONVERTER_FUNCTIONS: dict[
     tuple[str, str],
-    typing.Callable[
-        [dimsim.TensorPotential, dimsim.TensorSystem], openmm.Force | list[openmm.Force]
-    ],
+    typing.Callable[[dimsim.TensorPotential, dimsim.TensorSystem], openmm.Force | list[openmm.Force]],
 ] = {}
 
 
@@ -30,8 +28,7 @@ def potential_converter(handler_type: str, energy_expression: str):
     def _openmm_converter_inner(func):
         if (handler_type, energy_expression) in _CONVERTER_FUNCTIONS:
             raise KeyError(
-                f"An OpenMM converter function is already defined for "
-                f"handler={handler_type} fn={energy_expression}."
+                f"An OpenMM converter function is already defined for handler={handler_type} fn={energy_expression}."
             )
 
         _CONVERTER_FUNCTIONS[(str(handler_type), str(energy_expression))] = func
@@ -74,9 +71,7 @@ def _combine_nonbonded(
     return force
 
 
-def create_openmm_system(
-    system: dimsim.TensorSystem, v_sites: dimsim.TensorVSites | None
-) -> openmm.System:
+def create_openmm_system(system: dimsim.TensorSystem, v_sites: dimsim.TensorVSites | None) -> openmm.System:
     """Create an empty OpenMM system from a ``dimsim`` system."""
     v_sites = None if v_sites is None else v_sites.to("cpu")
     system = system.to("cpu")
@@ -97,9 +92,7 @@ def create_openmm_system(
             for _ in range(topology.n_v_sites):
                 omm_system.addParticle(0.0)
 
-            for key, parameter_idx in zip(
-                topology.v_sites.keys, topology.v_sites.parameter_idxs, strict=True
-            ):
+            for key, parameter_idx in zip(topology.v_sites.keys, topology.v_sites.parameter_idxs, strict=True):
                 system_idx = start_idx + topology.v_sites.key_to_idx[key]
                 assert system_idx >= start_idx
 
@@ -133,17 +126,13 @@ def _apply_constraints(omm_system: openmm.System, system: dimsim.TensorSystem):
         for _ in range(n_copies):
             atom_idxs = topology.constraints.idxs + idx_offset
 
-            for (i, j), distance in zip(
-                atom_idxs, topology.constraints.distances, strict=True
-            ):
+            for (i, j), distance in zip(atom_idxs, topology.constraints.distances, strict=True):
                 omm_system.addConstraint(i, j, distance * _ANGSTROM)
 
             idx_offset += topology.n_particles
 
 
-def convert_to_openmm_force(
-    potential: dimsim.TensorPotential, system: dimsim.TensorSystem
-) -> list[openmm.Force]:
+def convert_to_openmm_force(potential: dimsim.TensorPotential, system: dimsim.TensorSystem) -> list[openmm.Force]:
     """Convert a ``dimsim`` potential to OpenMM forces.
 
     Some potentials may return multiple forces, e.g. a vdW potential may return one
@@ -173,9 +162,7 @@ def convert_to_openmm_force(
     converter_key = (str(potential.type), str(potential.fn))
 
     if converter_key not in _CONVERTER_FUNCTIONS:
-        raise NotImplementedError(
-            f"cannot convert type={potential.type} fn={potential.fn} to an OpenMM force"
-        )
+        raise NotImplementedError(f"cannot convert type={potential.type} fn={potential.fn} to an OpenMM force")
 
     forces = _CONVERTER_FUNCTIONS[converter_key](potential, system)
     return forces if isinstance(forces, (list, tuple)) else [forces]
@@ -196,9 +183,7 @@ def convert_to_openmm_system(
     """
 
     system: dimsim.TensorSystem = (
-        system
-        if isinstance(system, dimsim.TensorSystem)
-        else dimsim.TensorSystem([system], [1], False)
+        system if isinstance(system, dimsim.TensorSystem) else dimsim.TensorSystem([system], [1], False)
     )
 
     force_field = force_field.to("cpu")
@@ -246,9 +231,7 @@ def convert_to_openmm_topology(
         The OpenMM topology.
     """
     system: dimsim.TensorSystem = (
-        system
-        if isinstance(system, dimsim.TensorSystem)
-        else dimsim.TensorSystem([system], [1], False)
+        system if isinstance(system, dimsim.TensorSystem) else dimsim.TensorSystem([system], [1], False)
     )
 
     omm_topology = openmm.app.Topology()
@@ -256,9 +239,7 @@ def convert_to_openmm_topology(
     for topology, n_copies in zip(system.topologies, system.n_copies, strict=True):
         chain = omm_topology.addChain()
 
-        is_water = topology.n_atoms == 3 and sorted(
-            int(v) for v in topology.atomic_nums
-        ) == [1, 1, 8]
+        is_water = topology.n_atoms == 3 and sorted(int(v) for v in topology.atomic_nums) == [1, 1, 8]
 
         residue_name = "HOH" if is_water else "UNK"
 
@@ -282,9 +263,7 @@ def convert_to_openmm_topology(
             for i in range(topology.n_v_sites):
                 omm_topology.addAtom(f"X{i + 1}", None, residue)
 
-            for bond_idxs, bond_order in zip(
-                topology.bond_idxs, topology.bond_orders, strict=True
-            ):
+            for bond_idxs, bond_order in zip(topology.bond_idxs, topology.bond_orders, strict=True):
                 idx_a, idx_b = int(bond_idxs[0]), int(bond_idxs[1])
 
                 bond_order = int(bond_order)

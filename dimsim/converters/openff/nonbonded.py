@@ -73,21 +73,15 @@ def convert_nonbonded_handlers(
         attribute_cols,
     )
 
-    parameter_key_to_idx = {
-        parameter_key: i for i, parameter_key in enumerate(potential.parameter_keys)
-    }
+    parameter_key_to_idx = {parameter_key: i for i, parameter_key in enumerate(potential.parameter_keys)}
     attribute_to_idx = {column: i for i, column in enumerate(potential.attribute_cols)}
 
     parameter_maps = []
 
-    for handler, topology, v_site_map in zip(
-        handlers, topologies, v_site_maps, strict=True
-    ):
+    for handler, topology, v_site_map in zip(handlers, topologies, v_site_maps, strict=True):
         assignment_map = collections.defaultdict(lambda: collections.defaultdict(float))
 
-        n_particles = topology.n_atoms + (
-            0 if v_site_map is None else len(v_site_map.keys)
-        )
+        n_particles = topology.n_atoms + (0 if v_site_map is None else len(v_site_map.keys))
 
         for topology_key, parameter_key in handler.key_map.items():
             if isinstance(topology_key, openff.interchange.models.VirtualSiteKey):
@@ -112,9 +106,7 @@ def convert_nonbonded_handlers(
                     assignment_map[atom_idx][parameter_key_to_idx[mult_key]] += 1.0
                     assignment_map[v_site_idx][parameter_key_to_idx[mult_key]] += -1.0
 
-        assignment_matrix = torch.zeros(
-            (n_particles, len(potential.parameters)), dtype=torch.float64
-        )
+        assignment_matrix = torch.zeros((n_particles, len(potential.parameters)), dtype=torch.float64)
 
         for particle_idx in assignment_map:
             for parameter_idx, count in assignment_map[particle_idx].items():
@@ -192,9 +184,7 @@ def convert_vdw(
     },
 )
 def convert_dexp(
-    handlers: list[
-        "smirnoff_plugins.collections.nonbonded.SMIRNOFFDoubleExponentialCollection"
-    ],
+    handlers: list["smirnoff_plugins.collections.nonbonded.SMIRNOFFDoubleExponentialCollection"],
     topologies: list[openff.toolkit.Topology],
     v_site_maps: list[dimsim.VSiteMap | None],
 ) -> tuple[dimsim.TensorPotential, list[dimsim.NonbondedParameterMap]]:
@@ -228,9 +218,7 @@ def _make_v_site_electrostatics_compatible(
         handlers: The list of SMIRNOFF electrostatic handlers to make compatible.
     """
     for handler_idx, handler in enumerate(handlers):
-        if not any(
-            key.associated_handler == "Electrostatics" for key in handler.potentials
-        ):
+        if not any(key.associated_handler == "Electrostatics" for key in handler.potentials):
             continue
 
         handler = copy.deepcopy(handler)
@@ -249,9 +237,7 @@ def _make_v_site_electrostatics_compatible(
                 mult_key.mult = i
 
                 mult_potential = copy.deepcopy(potential)
-                mult_potential.parameters = {
-                    "charge": potential.parameters["charge_increments"][i]
-                }
+                mult_potential.parameters = {"charge": potential.parameters["charge_increments"][i]}
                 assert mult_key not in potentials
                 potentials[mult_key] = mult_potential
 
@@ -312,13 +298,9 @@ def _convert_charge_increment_handlers(
         raise NotImplementedError("exceptions are not supported for charge increments")
 
     potential.parameter_keys.extend(potential_bci.parameter_keys)
-    potential.parameters = torch.vstack(
-        [potential.parameters, potential_bci.parameters]
-    )
+    potential.parameters = torch.vstack([potential.parameters, potential_bci.parameters])
 
-    parameter_key_to_idx = {
-        parameter_key: i for i, parameter_key in enumerate(potential.parameter_keys)
-    }
+    parameter_key_to_idx = {parameter_key: i for i, parameter_key in enumerate(potential.parameter_keys)}
 
     for handler_bci, parameter_map in zip(handlers_bci, parameter_maps, strict=True):
         assignment_matrix = torch.zeros(
@@ -330,9 +312,7 @@ def _convert_charge_increment_handlers(
         assignment_matrix[:, :n_charges] += parameter_map.assignment_matrix.to_dense()
 
         for topology_key, parameter_key in handler_bci.key_map.items():
-            if not isinstance(
-                topology_key, openff.interchange.models.ChargeIncrementTopologyKey
-            ):
+            if not isinstance(topology_key, openff.interchange.models.ChargeIncrementTopologyKey):
                 raise NotImplementedError("only charge increment keys are supported")
             if len(topology_key.other_atom_indices) != 1:
                 raise NotImplementedError("only 1-1 charge increments are supported")
@@ -371,14 +351,10 @@ def convert_electrostatics(
     _make_v_site_electrostatics_compatible(handlers)
 
     has_charge_increment = any(
-        key.associated_handler == "ChargeIncrementModel"
-        for handler in handlers
-        for key in handler.potentials
+        key.associated_handler == "ChargeIncrementModel" for handler in handlers for key in handler.potentials
     )
 
     if has_charge_increment:
         return _convert_charge_increment_handlers(handlers, topologies, v_site_maps)
 
-    return convert_nonbonded_handlers(
-        handlers, "Electrostatics", topologies, v_site_maps, ("charge",), ("cutoff",)
-    )
+    return convert_nonbonded_handlers(handlers, "Electrostatics", topologies, v_site_maps, ("charge",), ("cutoff",))

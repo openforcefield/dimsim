@@ -23,9 +23,7 @@ from dimsim.converters.openff._openff import (
 
 
 def test_parameter_converter():
-    smirnoff_parameter_converter("Dummy", {"parm-a": openff.units.unit.angstrom})(
-        lambda x: None
-    )
+    smirnoff_parameter_converter("Dummy", {"parm-a": openff.units.unit.angstrom})(lambda x: None)
     assert "Dummy" in _CONVERTERS
     assert "parm-a" in _CONVERTERS["Dummy"].units
 
@@ -58,9 +56,7 @@ def test_convert_handler(ethanol, ethanol_interchange, mocker):
         match="once",
         name="EP",
     )
-    v_site_maps = [
-        dimsim.VSiteMap([v_site], {v_site: ethanol.n_atoms}, torch.tensor([[0]]))
-    ]
+    v_site_maps = [dimsim.VSiteMap([v_site], {v_site: ethanol.n_atoms}, torch.tensor([[0]]))]
 
     result = convert_handlers(handlers, topologies, v_site_maps, mock_deps)
 
@@ -124,9 +120,7 @@ def test_convert_interchange():
     force_field.get_parameter_handler("vdW")
 
     constraint_handler = force_field.get_parameter_handler("Constraints")
-    constraint_handler.add_parameter(
-        {"smirks": "[Cl:1]-[H:2]", "distance": 0.2 * openff.units.unit.nanometer}
-    )
+    constraint_handler.add_parameter({"smirks": "[Cl:1]-[H:2]", "distance": 0.2 * openff.units.unit.nanometer})
 
     charge_handler = force_field.get_parameter_handler("LibraryCharges")
     charge_handler.add_parameter(
@@ -179,13 +173,8 @@ def test_convert_interchange():
     assert torch.allclose(tensor_topology.constraints.idxs, expected_constraint_idxs)
 
     expected_constraint_distances = torch.tensor([2.0])
-    assert (
-        tensor_topology.constraints.distances.shape
-        == expected_constraint_distances.shape
-    )
-    assert torch.allclose(
-        tensor_topology.constraints.distances, expected_constraint_distances
-    )
+    assert tensor_topology.constraints.distances.shape == expected_constraint_distances.shape
+    assert torch.allclose(tensor_topology.constraints.distances, expected_constraint_distances)
 
 
 def test_convert_interchange_multiple(
@@ -196,9 +185,7 @@ def test_convert_interchange_multiple(
     toolkit_registry_rdkit_first,
 ):
     with toolkit_registry_manager(toolkit_registry_rdkit_first):
-        force_field, topologies = convert_interchange(
-            [ethanol_interchange, formaldehyde_interchange]
-        )
+        force_field, topologies = convert_interchange([ethanol_interchange, formaldehyde_interchange])
         assert len(topologies) == 2
     expected_potentials = {
         "Angles",
@@ -222,10 +209,7 @@ def test_convert_interchange_multiple(
             associated_handler="ToolkitAM1BCCHandler",
         ),
     ]
-    assert all(
-        key in force_field.potentials_by_type["Electrostatics"].parameter_keys
-        for key in expected_charge_keys
-    )
+    assert all(key in force_field.potentials_by_type["Electrostatics"].parameter_keys for key in expected_charge_keys)
 
     expected_improper_keys = [
         openff.interchange.models.PotentialKey(
@@ -234,7 +218,4 @@ def test_convert_interchange_multiple(
             associated_handler="ImproperTorsions",
         ),
     ]
-    assert (
-        force_field.potentials_by_type["ImproperTorsions"].parameter_keys
-        == expected_improper_keys
-    )
+    assert force_field.potentials_by_type["ImproperTorsions"].parameter_keys == expected_improper_keys

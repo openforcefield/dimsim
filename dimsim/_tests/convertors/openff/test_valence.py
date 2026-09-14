@@ -45,9 +45,7 @@ def test_convert_bonds(ethanol, ethanol_interchange):
 
     actual_parameters = {
         tuple(particle_idxs.tolist()): parameter_keys[parameter_idxs.nonzero()]
-        for parameter_idxs, particle_idxs in zip(
-            assignment_matrix, parameter_map.particle_idxs, strict=True
-        )
+        for parameter_idxs, particle_idxs in zip(assignment_matrix, parameter_map.particle_idxs, strict=True)
     }
     expected_parameters = {
         (0, 2): "[#6:1]-[#8:2]",
@@ -84,9 +82,7 @@ def test_convert_bonds_with_constraints(ethanol):
 
     actual_parameters = {
         tuple(particle_idxs.tolist()): parameter_keys[parameter_idxs.nonzero()]
-        for parameter_idxs, particle_idxs in zip(
-            assignment_matrix, parameter_map.particle_idxs, strict=True
-        )
+        for parameter_idxs, particle_idxs in zip(assignment_matrix, parameter_map.particle_idxs, strict=True)
     }
     expected_parameters = {(0, 2): "[#6:1]-[#8:2]", (1, 2): "[#6X4:1]-[#6X4:2]"}
 
@@ -132,9 +128,7 @@ def test_convert_angles_etoh(ethanol, ethanol_interchange, with_constraints):
 
     actual_parameters = {
         tuple(particle_idxs.tolist()): parameter_keys[parameter_idxs.nonzero()]
-        for parameter_idxs, particle_idxs in zip(
-            assignment_matrix, parameter_map.particle_idxs, strict=True
-        )
+        for parameter_idxs, particle_idxs in zip(assignment_matrix, parameter_map.particle_idxs, strict=True)
     }
     expected_parameters = {
         (0, 2, 1): "[*:1]~[#6X4:2]-[*:3]",
@@ -174,9 +168,7 @@ def test_convert_angle_water(with_constraints):
 
     actual_parameters = {
         tuple(particle_idxs.tolist()): parameter_keys[parameter_idxs.nonzero()]
-        for parameter_idxs, particle_idxs in zip(
-            assignment_matrix, parameter_map.particle_idxs, strict=True
-        )
+        for parameter_idxs, particle_idxs in zip(assignment_matrix, parameter_map.particle_idxs, strict=True)
     }
     expected_parameters = {} if with_constraints else {(1, 0, 2): "[*:1]-[#8:2]-[*:3]"}
 
@@ -208,9 +200,7 @@ def test_convert_propers(ethanol, ethanol_interchange):
             potential.parameter_keys[parameter_idxs.nonzero()].id,
             potential.parameter_keys[parameter_idxs.nonzero()].mult,
         )
-        for parameter_idxs, particle_idxs in zip(
-            assignment_matrix, parameter_map.particle_idxs, strict=True
-        )
+        for parameter_idxs, particle_idxs in zip(assignment_matrix, parameter_map.particle_idxs, strict=True)
     }
     expected_parameters = {
         ((0, 2, 1, 4), hcco_smirks, 1),
@@ -236,7 +226,7 @@ def test_convert_propers(ethanol, ethanol_interchange):
 def test_convert_impropers(formaldehyde, formaldehyde_interchange):
     improper_collection = formaldehyde_interchange.collections["ImproperTorsions"]
 
-    potential, parameter_maps = convert_impropers([improper_collection])
+    potential, _parameter_maps = convert_impropers([improper_collection])
 
     assert potential.type == "ImproperTorsions"
     assert potential.fn == "k*(1+cos(periodicity*theta-phase))"

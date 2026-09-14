@@ -41,9 +41,7 @@ def _apply_hmr(
 
     idx_offset = 0
 
-    for topology, n_copies in zip(
-        system_dimsim.topologies, system_dimsim.n_copies, strict=True
-    ):
+    for topology, n_copies in zip(system_dimsim.topologies, system_dimsim.n_copies, strict=True):
         for _ in range(n_copies):
             for idx_a, idx_b in topology.bond_idxs:
                 if topology.atomic_nums[idx_a] == 1:
@@ -59,9 +57,7 @@ def _apply_hmr(
                 if elements == [1, 1, 8]:
                     continue
 
-                mass_delta = hydrogen_mass - system_openmm.getParticleMass(
-                    idx_b + idx_offset
-                )
+                mass_delta = hydrogen_mass - system_openmm.getParticleMass(idx_b + idx_offset)
 
                 system_openmm.setParticleMass(idx_b + idx_offset, hydrogen_mass)
                 system_openmm.setParticleMass(
@@ -72,9 +68,7 @@ def _apply_hmr(
             idx_offset += topology.n_particles
 
 
-def _topology_to_xyz(
-    topology: dimsim.TensorTopology, force_field: dimsim.TensorForceField | None
-) -> str:
+def _topology_to_xyz(topology: dimsim.TensorTopology, force_field: dimsim.TensorForceField | None) -> str:
     """Convert a topology to an RDKit molecule."""
     mol = dimsim.mm._utils.topology_to_rdkit(topology)
 
@@ -85,19 +79,14 @@ def _topology_to_xyz(
         assert force_field is not None, "v-sites require a force field"
         coords = coords.to(force_field.v_sites.weights[0].dtype)
 
-        coords = dimsim.geometry.add_v_site_coords(
-            topology.v_sites, coords, force_field
-        )
+        coords = dimsim.geometry.add_v_site_coords(topology.v_sites, coords, force_field)
         elements += ["X"] * topology.n_v_sites
 
     return "\n".join(
         [
             f"{len(elements)}",
             "",
-            *[
-                f"{element} {x:f} {y:f} {z:f}"
-                for (element, (x, y, z)) in zip(elements, coords, strict=True)
-            ],
+            *[f"{element} {x:f} {y:f} {z:f}" for (element, (x, y, z)) in zip(elements, coords, strict=True)],
         ]
     )
 
@@ -120,10 +109,7 @@ def _approximate_box_size(
     sum_fn = functools.partial(sum, start=0.0 * openmm.unit.dalton)
 
     weight = sum_fn(
-        sum_fn(
-            openmm.app.Element.getByAtomicNumber(int(atomic_num)).mass
-            for atomic_num in topology.atomic_nums
-        )
+        sum_fn(openmm.app.Element.getByAtomicNumber(int(atomic_num)).mass for atomic_num in topology.atomic_nums)
         * n_copies
         for topology, n_copies in zip(system.topologies, system.n_copies, strict=True)
     )
@@ -204,14 +190,10 @@ def generate_system_coords(
             (tmp_dir / f"{i}.xyz").write_text(xyz)
 
         input_file = tmp_dir / "input.txt"
-        input_file.write_text(
-            _generate_packmol_input(system.n_copies, box_size, config)
-        )
+        input_file.write_text(_generate_packmol_input(system.n_copies, box_size, config))
 
         with input_file.open("r") as file:
-            result = subprocess.run(
-                "packmol", stdin=file, capture_output=True, text=True, cwd=tmp_dir
-            )
+            result = subprocess.run("packmol", stdin=file, capture_output=True, text=True, cwd=tmp_dir)
 
         if result.returncode != 0 or not result.stdout.find("Success!") > 0:
             raise PACKMOLRuntimeError(result.stdout)
@@ -256,9 +238,7 @@ def _get_platform(is_periodic: bool) -> openmm.Platform:
     if not is_periodic:
         return openmm.Platform.getPlatformByName("Reference")
 
-    platforms = [
-        openmm.Platform.getPlatform(i) for i in range(openmm.Platform.getNumPlatforms())
-    ]
+    platforms = [openmm.Platform.getPlatform(i) for i in range(openmm.Platform.getNumPlatforms())]
     return max(platforms, key=lambda platform: platform.getSpeed())
 
 
@@ -305,9 +285,7 @@ def _run_simulation(
         barostat = openmm.MonteCarloBarostat(config.pressure, config.temperature)
         omm_system.addForce(barostat)
 
-    integrator = openmm.LangevinIntegrator(
-        config.temperature, config.friction_coeff, config.timestep
-    )
+    integrator = openmm.LangevinIntegrator(config.temperature, config.friction_coeff, config.timestep)
 
     simulation = openmm.app.Simulation(omm_topology, omm_system, integrator, platform)
 
@@ -331,9 +309,7 @@ def simulate(
     force_field: dimsim.TensorForceField,
     coords: openmm.unit.Quantity,
     box_vectors: openmm.unit.Quantity | None,
-    equilibrate_configs: list[
-        typing.Union["dimsim.mm.MinimizationConfig", "dimsim.mm.SimulationConfig"]
-    ],
+    equilibrate_configs: list[typing.Union["dimsim.mm.MinimizationConfig", "dimsim.mm.SimulationConfig"]],
     production_config: "dimsim.mm.SimulationConfig",
     production_reporters: list[typing.Any] | None = None,
     apply_hmr: bool = False,
@@ -362,14 +338,12 @@ def simulate(
     force_field = force_field.to("cpu")
 
     system: dimsim.TensorSystem = (
-        system
-        if isinstance(system, dimsim.TensorSystem)
-        else dimsim.TensorSystem([system], [1], False)
+        system if isinstance(system, dimsim.TensorSystem) else dimsim.TensorSystem([system], [1], False)
     ).to("cpu")
 
     requires_pbc = any(
         config.pressure is not None
-        for config in equilibrate_configs + [production_config]
+        for config in [*equilibrate_configs, production_config]
         if isinstance(config, dimsim.mm.SimulationConfig)
     )
 
@@ -393,9 +367,7 @@ def simulate(
             omm_state = _energy_minimize(omm_system, omm_state, platform, config)
 
         elif isinstance(config, dimsim.mm.SimulationConfig):
-            omm_state = _run_simulation(
-                omm_system, omm_topology, omm_state, platform, config, None
-            )
+            omm_state = _run_simulation(omm_system, omm_topology, omm_state, platform, config, None)
         else:
             raise NotImplementedError
 

@@ -10,21 +10,15 @@ _ANGSTROM = openmm.unit.angstrom
 _RADIANS = openmm.unit.radians
 
 
-@dimsim.converters.openmm.potential_converter(
-    dimsim.PotentialType.BONDS, dimsim.EnergyFn.BOND_HARMONIC
-)
-def convert_bond_potential(
-    potential: dimsim.TensorPotential, system: dimsim.TensorSystem
-) -> openmm.HarmonicBondForce:
+@dimsim.converters.openmm.potential_converter(dimsim.PotentialType.BONDS, dimsim.EnergyFn.BOND_HARMONIC)
+def convert_bond_potential(potential: dimsim.TensorPotential, system: dimsim.TensorSystem) -> openmm.HarmonicBondForce:
     """Convert a harmonic bond potential to a corresponding OpenMM force."""
     force = openmm.HarmonicBondForce()
 
     idx_offset = 0
 
     for topology, n_copies in zip(system.topologies, system.n_copies, strict=True):
-        parameters = (
-            topology.parameters[potential.type].assignment_matrix @ potential.parameters
-        ).detach()
+        parameters = (topology.parameters[potential.type].assignment_matrix @ potential.parameters).detach()
 
         for _ in range(n_copies):
             atom_idxs = topology.parameters[potential.type].particle_idxs + idx_offset
@@ -42,9 +36,7 @@ def convert_bond_potential(
     return force
 
 
-@dimsim.converters.openmm.potential_converter(
-    dimsim.PotentialType.ANGLES, dimsim.EnergyFn.ANGLE_HARMONIC
-)
+@dimsim.converters.openmm.potential_converter(dimsim.PotentialType.ANGLES, dimsim.EnergyFn.ANGLE_HARMONIC)
 def _convert_angle_potential(
     potential: dimsim.TensorPotential, system: dimsim.TensorSystem
 ) -> openmm.HarmonicAngleForce:
@@ -54,9 +46,7 @@ def _convert_angle_potential(
     idx_offset = 0
 
     for topology, n_copies in zip(system.topologies, system.n_copies, strict=True):
-        parameters = (
-            topology.parameters[potential.type].assignment_matrix @ potential.parameters
-        ).detach()
+        parameters = (topology.parameters[potential.type].assignment_matrix @ potential.parameters).detach()
 
         for _ in range(n_copies):
             atom_idxs = topology.parameters[potential.type].particle_idxs + idx_offset
@@ -75,12 +65,8 @@ def _convert_angle_potential(
     return force
 
 
-@dimsim.converters.openmm.potential_converter(
-    dimsim.PotentialType.PROPER_TORSIONS, dimsim.EnergyFn.TORSION_COSINE
-)
-@dimsim.converters.openmm.potential_converter(
-    dimsim.PotentialType.IMPROPER_TORSIONS, dimsim.EnergyFn.TORSION_COSINE
-)
+@dimsim.converters.openmm.potential_converter(dimsim.PotentialType.PROPER_TORSIONS, dimsim.EnergyFn.TORSION_COSINE)
+@dimsim.converters.openmm.potential_converter(dimsim.PotentialType.IMPROPER_TORSIONS, dimsim.EnergyFn.TORSION_COSINE)
 def convert_torsion_potential(
     potential: dimsim.TensorPotential, system: dimsim.TensorSystem
 ) -> openmm.PeriodicTorsionForce:
@@ -90,9 +76,7 @@ def convert_torsion_potential(
     idx_offset = 0
 
     for topology, n_copies in zip(system.topologies, system.n_copies, strict=True):
-        parameters = (
-            topology.parameters[potential.type].assignment_matrix @ potential.parameters
-        ).detach()
+        parameters = (topology.parameters[potential.type].assignment_matrix @ potential.parameters).detach()
 
         for _ in range(n_copies):
             atom_idxs = topology.parameters[potential.type].particle_idxs + idx_offset

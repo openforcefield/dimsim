@@ -86,9 +86,7 @@ def _handlers_to_potential(
     potential_fn = next(iter(potential_fns))
 
     parameters_by_key = {
-        parameter_key: parameter
-        for handler in handlers
-        for parameter_key, parameter in handler.potentials.items()
+        parameter_key: parameter for handler in handlers for parameter_key, parameter in handler.potentials.items()
     }
 
     parameter_keys = [*parameters_by_key]
@@ -115,10 +113,7 @@ def _handlers_to_potential(
             for column in attribute_cols
             for handler in handlers
         }
-        attributes_by_column = {
-            k: v.m_as(_CONVERTERS[handler_type].units[k])
-            for k, v in attributes_by_column.items()
-        }
+        attributes_by_column = {k: v.m_as(_CONVERTERS[handler_type].units[k]) for k, v in attributes_by_column.items()}
         attributes = torch.tensor(
             [attributes_by_column[column] for column in attribute_cols],
             dtype=torch.float64,
@@ -130,17 +125,13 @@ def _handlers_to_potential(
         parameters=parameters,
         parameter_keys=parameter_keys,
         parameter_cols=parameter_cols,
-        parameter_units=tuple(
-            _CONVERTERS[handler_type].units[column] for column in parameter_cols
-        ),
+        parameter_units=tuple(_CONVERTERS[handler_type].units[column] for column in parameter_cols),
         attributes=attributes,
         attribute_cols=attribute_cols,
         attribute_units=(
             None
             if attribute_cols is None
-            else tuple(
-                _CONVERTERS[handler_type].units[column] for column in attribute_cols
-            )
+            else tuple(_CONVERTERS[handler_type].units[column] for column in attribute_cols)
         ),
     )
     return potential
@@ -188,12 +179,9 @@ def _convert_v_sites(
     ]
 
     v_site_frames = [
-        dimsim.geometry.V_SITE_TYPE_TO_FRAME[parameter_key_to_type[parameter_key]]
-        for parameter_key in parameter_keys
+        dimsim.geometry.V_SITE_TYPE_TO_FRAME[parameter_key_to_type[parameter_key]] for parameter_key in parameter_keys
     ]
-    v_sites = dimsim.TensorVSites(
-        keys=parameter_keys, weights=v_site_frames, parameters=torch.tensor(parameters)
-    )
+    v_sites = dimsim.TensorVSites(keys=parameter_keys, weights=v_site_frames, parameters=torch.tensor(parameters))
 
     v_site_maps = []
 
@@ -206,10 +194,7 @@ def _convert_v_sites(
             handler.key_map,
             key=lambda k: handler.virtual_site_key_topology_index_map[k],
         )
-        parameter_idxs = [
-            parameter_keys.index(handler.key_map[v_site_key])
-            for v_site_key in v_site_keys
-        ]
+        parameter_idxs = [parameter_keys.index(handler.key_map[v_site_key]) for v_site_key in v_site_keys]
 
         # check v-sites aren't interleaved between atoms, which isn't supported yet
         # TODO: interchange (#812) means we can't safely do this check currently
@@ -250,13 +235,10 @@ def _convert_constraints(
         units = {"distance": _ANGSTROM}
 
         constraint_distances = [
-            _get_value(handler.potentials[handler.key_map[key]], "distance", units)
-            for key in topology_keys
+            _get_value(handler.potentials[handler.key_map[key]], "distance", units) for key in topology_keys
         ]
 
-        constraint = dimsim.TensorConstraints(
-            idxs=constraint_idxs, distances=torch.tensor(constraint_distances)
-        )
+        constraint = dimsim.TensorConstraints(idxs=constraint_idxs, distances=torch.tensor(constraint_distances))
         constraints.append(constraint)
 
     return constraints
@@ -266,9 +248,7 @@ def convert_handlers(
     handlers: list[openff.interchange.smirnoff.SMIRNOFFCollection],
     topologies: list[openff.toolkit.Topology],
     v_site_maps: list[dimsim.VSiteMap | None] | None = None,
-    potentials: (
-        list[tuple[dimsim.TensorPotential, list[dimsim.ParameterMap]]] | None
-    ) = None,
+    potentials: (list[tuple[dimsim.TensorPotential, list[dimsim.ParameterMap]]] | None) = None,
     constraints: list[dimsim.TensorConstraints | None] | None = None,
 ) -> list[tuple[dimsim.TensorPotential, list[dimsim.ParameterMap]]]:
     """Convert a set of SMIRNOFF parameter handlers into a set of tensor potentials.
@@ -335,9 +315,7 @@ def convert_handlers(
         converter_kwargs["constraints"] = unique_idxs
 
     potentials_by_type = (
-        {}
-        if potentials is None
-        else {potential.type: (potential, maps) for potential, maps in potentials}
+        {} if potentials is None else {potential.type: (potential, maps) for potential, maps in potentials}
     )
 
     dependencies = {}
@@ -356,17 +334,14 @@ def convert_handlers(
     converted = converter.fn(handlers, **converter_kwargs)
     converted = [converted] if not isinstance(converted, list) else converted
 
-    converted_by_type = {
-        potential.type: (potential, maps) for potential, maps in converted
-    }
+    converted_by_type = {potential.type: (potential, maps) for potential, maps in converted}
     assert len(converted_by_type) == len(converted), "duplicate potentials found"
 
     potentials_by_type = {
         **{
             potential.type: (potential, maps)
             for potential, maps in potentials_by_type.values()
-            if potential.type not in depends_on
-            and potential.type not in converted_by_type
+            if potential.type not in depends_on and potential.type not in converted_by_type
         },
         **converted_by_type,
     }
@@ -393,15 +368,10 @@ def _convert_topology(
 
     atomic_nums = torch.tensor([atom.atomic_number for atom in topology.atoms])
 
-    formal_charges = torch.tensor(
-        [atom.formal_charge.m_as(openff.units.unit.e) for atom in topology.atoms]
-    )
+    formal_charges = torch.tensor([atom.formal_charge.m_as(openff.units.unit.e) for atom in topology.atoms])
 
     bond_idxs = torch.tensor(
-        [
-            (topology.atom_index(bond.atom1), topology.atom_index(bond.atom2))
-            for bond in topology.bonds
-        ]
+        [(topology.atom_index(bond.atom1), topology.atom_index(bond.atom2)) for bond in topology.bonds]
     )
     bond_orders = torch.tensor([bond.bond_order for bond in topology.bonds])
 
@@ -468,27 +438,15 @@ def convert_interchange(
     importlib.import_module("dimsim.converters.openff.nonbonded")
     importlib.import_module("dimsim.converters.openff.valence")
 
-    interchanges = (
-        [interchange]
-        if isinstance(interchange, openff.interchange.Interchange)
-        else interchange
-    )
+    interchanges = [interchange] if isinstance(interchange, openff.interchange.Interchange) else interchange
     topologies = []
 
-    handler_types = {
-        handler_type
-        for interchange in interchanges
-        for handler_type in interchange.collections
-    }
+    handler_types = {handler_type for interchange in interchanges for handler_type in interchange.collections}
     handlers_by_type = {handler_type: [] for handler_type in sorted(handler_types)}
 
     for interchange in interchanges:
         for handler_type in handlers_by_type:
-            handler = (
-                None
-                if handler_type not in interchange.collections
-                else interchange.collections[handler_type]
-            )
+            handler = None if handler_type not in interchange.collections else interchange.collections[handler_type]
             handlers_by_type[handler_type].append(handler)
 
         topologies.append(interchange.topology)
@@ -496,9 +454,7 @@ def convert_interchange(
     v_sites, v_site_maps = None, [None] * len(topologies)
 
     if "VirtualSites" in handlers_by_type:
-        v_sites, v_site_maps = _convert_v_sites(
-            handlers_by_type.pop("VirtualSites"), topologies
-        )
+        v_sites, v_site_maps = _convert_v_sites(handlers_by_type.pop("VirtualSites"), topologies)
 
     constraints = [None] * len(topologies)
 
@@ -511,15 +467,10 @@ def convert_interchange(
     for handler_type in conversion_order:
         handlers = handlers_by_type[handler_type]
 
-        if (
-            sum(len(handler.potentials) for handler in handlers if handler is not None)
-            == 0
-        ):
+        if sum(len(handler.potentials) for handler in handlers if handler is not None) == 0:
             continue
 
-        converted = convert_handlers(
-            handlers, topologies, v_site_maps, converted, constraints
-        )
+        converted = convert_handlers(handlers, topologies, v_site_maps, converted, constraints)
 
     # handlers may either return multiple potentials, or condense multiple already
     # converted potentials into a single one (e.g. electrostatics into some polarizable
@@ -534,10 +485,7 @@ def convert_interchange(
     tensor_topologies = [
         _convert_topology(
             topology,
-            {
-                potential.type: parameter_maps_by_handler[potential.type][i]
-                for potential in potentials
-            },
+            {potential.type: parameter_maps_by_handler[potential.type][i] for potential in potentials},
             v_site_maps[i],
             constraints[i],
         )

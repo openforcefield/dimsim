@@ -7,19 +7,13 @@ import torch
 import dimsim.utils
 
 if typing.TYPE_CHECKING:
-    import dimsim 
+    import dimsim
 
 
 V_SITE_TYPE_TO_FRAME = {
-    "BondCharge": torch.tensor(
-        [[1.0, 0.0], [-1.0, 1.0], [-1.0, 1.0]], dtype=torch.float64
-    ),
-    "MonovalentLonePair": torch.tensor(
-        [[1.0, 0.0, 0.0], [-1.0, 1.0, 0.0], [-1.0, 0.0, 1.0]], dtype=torch.float64
-    ),
-    "DivalentLonePair": torch.tensor(
-        [[1.0, 0.0, 0.0], [-1.0, 0.5, 0.5], [-1.0, 1.0, 0.0]], dtype=torch.float64
-    ),
+    "BondCharge": torch.tensor([[1.0, 0.0], [-1.0, 1.0], [-1.0, 1.0]], dtype=torch.float64),
+    "MonovalentLonePair": torch.tensor([[1.0, 0.0, 0.0], [-1.0, 1.0, 0.0], [-1.0, 0.0, 1.0]], dtype=torch.float64),
+    "DivalentLonePair": torch.tensor([[1.0, 0.0, 0.0], [-1.0, 0.5, 0.5], [-1.0, 1.0, 0.0]], dtype=torch.float64),
     "TrivalentLonePair": torch.tensor(
         [
             [1.0, 0.0, 0.0, 0.0],
@@ -31,9 +25,7 @@ V_SITE_TYPE_TO_FRAME = {
 }
 
 
-def compute_bond_vectors(
-    conformer: torch.Tensor, atom_indices: torch.Tensor
-) -> tuple[torch.Tensor, torch.Tensor]:
+def compute_bond_vectors(conformer: torch.Tensor, atom_indices: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     """Computes the vectors between each atom pair specified by the ``atom_indices`` as
     well as their norms.
 
@@ -110,9 +102,7 @@ def compute_angles(conformer: torch.Tensor, atom_indices: torch.Tensor) -> torch
     return angles
 
 
-def compute_dihedrals(
-    conformer: torch.Tensor, atom_indices: torch.Tensor
-) -> torch.Tensor:
+def compute_dihedrals(conformer: torch.Tensor, atom_indices: torch.Tensor) -> torch.Tensor:
     """Computes the dihedral angles [rad] between each atom quartet specified by the
     ``atom_indices``.
 
@@ -144,11 +134,7 @@ def compute_dihedrals(
 
     vector_cb_norm = torch.norm(vector_cb, dim=-1).unsqueeze(-1)
 
-    y = (
-        torch.cross(vector_ab_cross_cb, vector_cb_cross_cd, dim=-1)
-        * vector_cb
-        / vector_cb_norm
-    ).sum(axis=-1)
+    y = (torch.cross(vector_ab_cross_cb, vector_cb_cross_cd, dim=-1) * vector_cb / vector_cb_norm).sum(axis=-1)
 
     x = (vector_ab_cross_cb * vector_cb_cross_cd).sum(axis=-1)
 
@@ -192,9 +178,7 @@ def _build_v_site_coord_frames(
 
     for key, weight in zip(v_sites.keys, weights, strict=True):
         parent_coords = conformer[:, key.orientation_atom_indices, :]
-        weighted_coords = torch.transpose(
-            (torch.transpose(parent_coords, 1, 2) @ weight.T), 1, 2
-        )
+        weighted_coords = torch.transpose((torch.transpose(parent_coords, 1, 2) @ weight.T), 1, 2)
 
         origin = weighted_coords[:, 0, :]
 
@@ -226,9 +210,7 @@ def _build_v_site_coord_frames(
         stacked_frames[2].append(y_hat)
         stacked_frames[3].append(z_hat)
 
-    local_frames = torch.stack(
-        [torch.stack(weights, dim=1) for weights in stacked_frames], dim=1
-    )
+    local_frames = torch.stack([torch.stack(weights, dim=1) for weights in stacked_frames], dim=1)
 
     return local_frames
 
@@ -257,15 +239,11 @@ def polar_to_cartesian_coords(polar_coords: torch.Tensor) -> torch.Tensor:
     # Here we use cos(phi) in place of sin(phi) and sin(phi) in place of cos(phi)
     # this is because we want phi=0 to represent a 0 degree angle from the x-y plane
     # rather than 0 degrees from the z-axis.
-    coords = torch.stack(
-        [d * cos_theta * cos_phi, d * sin_theta * cos_phi, d * sin_phi], dim=-1
-    )
+    coords = torch.stack([d * cos_theta * cos_phi, d * sin_theta * cos_phi, d * sin_phi], dim=-1)
     return coords
 
 
-def _convert_v_site_coords(
-    local_frame_coords: torch.Tensor, local_coord_frames: torch.Tensor
-) -> torch.Tensor:
+def _convert_v_site_coords(local_frame_coords: torch.Tensor, local_coord_frames: torch.Tensor) -> torch.Tensor:
     """Converts a set of local virtual site coordinates defined in a spherical
     coordinate system into a full set of cartesian coordinates.
 

@@ -34,10 +34,7 @@ def find_exclusions(
     """
 
     graph = networkx.from_edgelist(
-        tuple(
-            sorted((topology.atom_index(bond.atom1), topology.atom_index(bond.atom2)))
-        )
-        for bond in topology.bonds
+        tuple(sorted((topology.atom_index(bond.atom1), topology.atom_index(bond.atom2)))) for bond in topology.bonds
     )
 
     if v_sites is not None:
@@ -157,9 +154,7 @@ def logsumexp(
         return ln_exp_sum
 
 
-def to_upper_tri_idx(
-    i: torch.Tensor, j: torch.Tensor, n: int, include_diag: bool = False
-) -> torch.Tensor:
+def to_upper_tri_idx(i: torch.Tensor, j: torch.Tensor, n: int, include_diag: bool = False) -> torch.Tensor:
     """Converts pairs of 2D indices to 1D indices in an upper triangular matrix that
     excludes the diagonal.
 

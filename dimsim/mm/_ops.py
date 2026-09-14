@@ -11,9 +11,7 @@ import dimsim.converters
 import dimsim.converters.openmm
 import dimsim.utils
 
-_DENSITY_CONVERSION = 1.0e24 / openmm.unit.AVOGADRO_CONSTANT_NA.value_in_unit(
-    openmm.unit.mole**-1
-)
+_DENSITY_CONVERSION = 1.0e24 / openmm.unit.AVOGADRO_CONSTANT_NA.value_in_unit(openmm.unit.mole**-1)
 """Convert from g / mol / Å**3 to g / mL"""
 
 
@@ -69,13 +67,8 @@ def _pack_force_field(
 
     tensors = tuple(parameters + attributes + v_sites)
 
-    parameter_lookup = {
-        potential_type: i for i, potential_type in enumerate(potential_types)
-    }
-    attribute_lookup = {
-        potential_type: i + len(parameters)
-        for i, potential_type in enumerate(potential_types)
-    }
+    parameter_lookup = {potential_type: i for i, potential_type in enumerate(potential_types)}
+    attribute_lookup = {potential_type: i + len(parameters) for i, potential_type in enumerate(potential_types)}
 
     return tensors, parameter_lookup, attribute_lookup, has_v_sites
 
@@ -122,9 +115,7 @@ def _unpack_force_field(
     v_sites = None
 
     if has_v_sites:
-        v_sites = dimsim.TensorVSites(
-            force_field.v_sites.keys, force_field.v_sites.weights, tensors[-1]
-        )
+        v_sites = dimsim.TensorVSites(force_field.v_sites.keys, force_field.v_sites.weights, tensors[-1])
 
     return dimsim.TensorForceField(potentials, v_sites)
 
@@ -133,9 +124,7 @@ def _compute_mass(system: dimsim.TensorSystem) -> float:
     """Compute the total mass of a system."""
 
     def _get_mass(v: int) -> float:
-        return openmm.app.Element.getByAtomicNumber(int(v)).mass.value_in_unit(
-            openmm.unit.daltons
-        )
+        return openmm.app.Element.getByAtomicNumber(int(v)).mass.value_in_unit(openmm.unit.daltons)
 
     return sum(
         sum(_get_mass(atomic_num) for atomic_num in topology.atomic_nums) * n_copies
@@ -239,9 +228,7 @@ def _compute_observables(
     values = []
     columns = None
 
-    for coords, box_vectors, _, kinetic in dimsim.mm._reporters.unpack_frames(
-        frames_file
-    ):
+    for coords, box_vectors, _, kinetic in dimsim.mm._reporters.unpack_frames(frames_file):
         coords = coords.to(theta[0].device)
         box_vectors = box_vectors.to(theta[0].device)
 
@@ -262,9 +249,7 @@ def _compute_observables(
         for idx, i in enumerate(needs_grad):
             du_d_theta[i].append(du_d_theta_subset[idx].float())
 
-        frame = _compute_frame_observables(
-            system, box_vectors, potential.detach(), kinetic, beta, pressure
-        )
+        frame = _compute_frame_observables(system, box_vectors, potential.detach(), kinetic, beta, pressure)
 
         reduced_potentials.append(frame.pop("reduced_potential"))
 
@@ -321,10 +306,7 @@ class _EnsembleAverageOp(torch.autograd.Function):
         du_d_theta = ctx.saved_tensors[ctx.n_theta : 2 * ctx.n_theta]
 
         # attributes are flat, so we need the extra dim
-        du_d_theta = [
-            None if v is None else (v if v.ndim == 3 else v.unsqueeze(0))
-            for v in du_d_theta
-        ]
+        du_d_theta = [None if v is None else (v if v.ndim == 3 else v.unsqueeze(0)) for v in du_d_theta]
 
         grad_outputs = torch.stack(grad_outputs[: (len(grad_outputs) - 1) // 2])
 
@@ -334,16 +316,8 @@ class _EnsembleAverageOp(torch.autograd.Function):
         grads = [None] * len(theta)
 
         energy = values[:, ctx.columns.index("potential_energy")]
-        volume = (
-            None
-            if "volume" not in ctx.columns
-            else values[:, ctx.columns.index("volume")]
-        )
-        enthalpy = (
-            None
-            if "enthalpy" not in ctx.columns
-            else values[:, ctx.columns.index("enthalpy")]
-        )
+        volume = None if "volume" not in ctx.columns else values[:, ctx.columns.index("volume")]
+        enthalpy = None if "enthalpy" not in ctx.columns else values[:, ctx.columns.index("enthalpy")]
 
         for i in range(len(du_d_theta)):
             if du_d_theta[i] is None:
@@ -358,25 +332,13 @@ class _EnsembleAverageOp(torch.autograd.Function):
                 "volume^2": torch.zeros_like(avg_du_d_theta_i),
                 "density": torch.zeros_like(avg_du_d_theta_i),
                 "enthalpy": avg_du_d_theta_i,
-                "enthalpy^2": (
-                    None
-                    if enthalpy is None
-                    else (2 * enthalpy * du_d_theta[i]).mean(dim=-1)
-                ),
-                "enthalpy_volume": (
-                    None if volume is None else (volume * du_d_theta[i]).mean(dim=-1)
-                ),
+                "enthalpy^2": (None if enthalpy is None else (2 * enthalpy * du_d_theta[i]).mean(dim=-1)),
+                "enthalpy_volume": (None if volume is None else (volume * du_d_theta[i]).mean(dim=-1)),
             }
 
-            avg_d_output_d_theta_i = torch.stack(
-                [avg_d_output_d_theta_i[column] for column in ctx.columns], dim=-1
-            )
-            avg_output_du_d_theta_i = torch.mean(
-                du_d_theta[i][:, :, None, :] * values.T[None, None, :, :], dim=-1
-            )
-            avg_du_d_theta_i_avg_output = (
-                avg_du_d_theta_i[:, :, None] * avg_values[None, None, :]
-            )
+            avg_d_output_d_theta_i = torch.stack([avg_d_output_d_theta_i[column] for column in ctx.columns], dim=-1)
+            avg_output_du_d_theta_i = torch.mean(du_d_theta[i][:, :, None, :] * values.T[None, None, :, :], dim=-1)
+            avg_du_d_theta_i_avg_output = avg_du_d_theta_i[:, :, None] * avg_values[None, None, :]
             d_avg_output_d_theta_i = avg_d_output_d_theta_i - ctx.beta * (
                 avg_output_du_d_theta_i - avg_du_d_theta_i_avg_output
             )
@@ -384,12 +346,11 @@ class _EnsembleAverageOp(torch.autograd.Function):
             grads[i] = d_avg_output_d_theta_i @ grad_outputs
 
         grads = [
-            None if v is None else (v if t.ndim == 2 else v.squeeze(0))
-            for t, v in zip(theta, grads, strict=True)
+            None if v is None else (v if t.ndim == 2 else v.squeeze(0)) for t, v in zip(theta, grads, strict=True)
         ]
 
         # we need to return one extra 'gradient' for kwargs.
-        return tuple([None] + grads)
+        return tuple([None, *grads])
 
 
 class _ReweightAverageOp(torch.autograd.Function):
@@ -450,16 +411,8 @@ class _ReweightAverageOp(torch.autograd.Function):
         grads = [None] * len(theta)
 
         energy = values[:, ctx.columns.index("potential_energy")]
-        volume = (
-            None
-            if "volume" not in ctx.columns
-            else values[:, ctx.columns.index("volume")]
-        )
-        enthalpy = (
-            None
-            if "enthalpy" not in ctx.columns
-            else values[:, ctx.columns.index("enthalpy")]
-        )
+        volume = None if "volume" not in ctx.columns else values[:, ctx.columns.index("volume")]
+        enthalpy = None if "enthalpy" not in ctx.columns else values[:, ctx.columns.index("enthalpy")]
 
         for i in range(len(du_d_theta)):
             if du_d_theta[i] is None:
@@ -468,13 +421,9 @@ class _ReweightAverageOp(torch.autograd.Function):
             log_exp_sum, log_exp_sign = dimsim.utils.logsumexp(
                 delta[None, None, :], -1, b=d_reduced_d_theta[i], return_sign=True
             )
-            avg_d_reduced_d_theta_i = log_exp_sign * torch.exp(
-                log_exp_sum - torch.logsumexp(delta, 0)
-            )
+            avg_d_reduced_d_theta_i = log_exp_sign * torch.exp(log_exp_sum - torch.logsumexp(delta, 0))
 
-            d_ln_weight_d_theta_i = (
-                -d_reduced_d_theta[i] + avg_d_reduced_d_theta_i[:, :, None]
-            )
+            d_ln_weight_d_theta_i = -d_reduced_d_theta[i] + avg_d_reduced_d_theta_i[:, :, None]
             d_weight_d_theta_i = weights[None, None, :] * d_ln_weight_d_theta_i
 
             d_output_d_theta_i = {
@@ -484,14 +433,10 @@ class _ReweightAverageOp(torch.autograd.Function):
                 "volume^2": torch.zeros_like(du_d_theta[i]),
                 "density": torch.zeros_like(du_d_theta[i]),
                 "enthalpy": du_d_theta[i],
-                "enthalpy^2": (
-                    None if enthalpy is None else 2 * enthalpy * du_d_theta[i]
-                ),
+                "enthalpy^2": (None if enthalpy is None else 2 * enthalpy * du_d_theta[i]),
                 "enthalpy_volume": (None if volume is None else volume * du_d_theta[i]),
             }
-            d_output_d_theta_i = torch.stack(
-                [d_output_d_theta_i[column] for column in ctx.columns], dim=-1
-            )
+            d_output_d_theta_i = torch.stack([d_output_d_theta_i[column] for column in ctx.columns], dim=-1)
 
             grads[i] = (
                 d_weight_d_theta_i[:, :, :, None] * values[None, None, :, :]
@@ -499,7 +444,7 @@ class _ReweightAverageOp(torch.autograd.Function):
             ).sum(-2) @ torch.stack(grad_outputs[:-1])
 
         # we need to return one extra 'gradient' for kwargs.
-        return tuple([None] + grads + [None])
+        return tuple([None, *grads, None])
 
 
 def compute_ensemble_averages(
@@ -524,9 +469,7 @@ def compute_ensemble_averages(
         [kcal/mol], volume [Å^3], density [g/mL], and enthalpy [kcal/mol],
         and a dictionary containing their standard deviations.
     """
-    tensors, parameter_lookup, attribute_lookup, has_v_sites = _pack_force_field(
-        force_field
-    )
+    tensors, parameter_lookup, attribute_lookup, has_v_sites = _pack_force_field(force_field)
 
     beta = 1.0 / (openmm.unit.MOLAR_GAS_CONSTANT_R * temperature)
     beta = beta.value_in_unit(openmm.unit.kilocalorie_per_mole**-1)
@@ -585,9 +528,7 @@ def reweight_ensemble_averages(
         A dictionary containing the ensemble averages of the potential energy
         [kcal/mol], volume [Å^3], density [g/mL], and enthalpy [kcal/mol].
     """
-    tensors, parameter_lookup, attribute_lookup, has_v_sites = _pack_force_field(
-        force_field
-    )
+    tensors, parameter_lookup, attribute_lookup, has_v_sites = _pack_force_field(force_field)
 
     beta = 1.0 / (openmm.unit.MOLAR_GAS_CONSTANT_R * temperature)
     beta = beta.value_in_unit(openmm.unit.kilocalorie_per_mole**-1)

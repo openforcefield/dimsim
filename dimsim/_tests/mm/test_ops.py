@@ -29,10 +29,7 @@ def _mock_potential(type_, parameters, attributes) -> dimsim.TensorPotential:
         type_,
         f"{type_}-fn",
         parameters,
-        [
-            openff.interchange.models.PotentialKey(id=f"[#{i}:1]")
-            for i in range(len(parameters))
-        ],
+        [openff.interchange.models.PotentialKey(id=f"[#{i}:1]") for i in range(len(parameters))],
         tuple(f"param{i}" for i in range(parameters.shape[1])),
         tuple(openff.units.unit.angstrom for _ in range(parameters.shape[1])),
         attributes,
@@ -79,9 +76,7 @@ def test_pack_unpack_force_field(mocker):
 
     updated_tensors = tuple(v + 1.0 for v in tensors)
 
-    unpacked_force_field = _unpack_force_field(
-        updated_tensors, param_lookup, attr_lookup, has_v_sites, force_field
-    )
+    unpacked_force_field = _unpack_force_field(updated_tensors, param_lookup, attr_lookup, has_v_sites, force_field)
 
     assert len(unpacked_force_field.potentials) == 2
 
@@ -135,17 +130,13 @@ def test_compute_mass():
 
 
 def test_compute_frame_observables_non_periodic(mocker):
-    system = dimsim.TensorSystem(
-        [dimsim._tests.utils.topology_from_smiles("[Ar]")], [1], False
-    )
+    system = dimsim.TensorSystem([dimsim._tests.utils.topology_from_smiles("[Ar]")], [1], False)
 
     beta = 2.0
 
     expected_potential = 1.2345
 
-    values = _compute_frame_observables(
-        system, mocker.MagicMock(), expected_potential, mocker.MagicMock(), beta, None
-    )
+    values = _compute_frame_observables(system, mocker.MagicMock(), expected_potential, mocker.MagicMock(), beta, None)
     assert values == {
         "potential_energy": expected_potential,
         "potential_energy^2": expected_potential**2,
@@ -154,9 +145,7 @@ def test_compute_frame_observables_non_periodic(mocker):
 
 
 def test_compute_frame_observables():
-    system = dimsim.TensorSystem(
-        [dimsim._tests.utils.topology_from_smiles("[Ar]")], [1], True
-    )
+    system = dimsim.TensorSystem([dimsim._tests.utils.topology_from_smiles("[Ar]")], [1], True)
 
     box_length = 20.0
     expected_volume = box_length**3
@@ -170,23 +159,19 @@ def test_compute_frame_observables():
     pressure = 1.0 * openmm.unit.bar
 
     mass_ar = 39.9481 * openmm.unit.daltons
-    expected_density = (
-        mass_ar / (expected_volume * openmm.unit.angstrom**3)
-    ).value_in_unit(openmm.unit.gram / openmm.unit.item / openmm.unit.milliliter)
+    expected_density = (mass_ar / (expected_volume * openmm.unit.angstrom**3)).value_in_unit(
+        openmm.unit.gram / openmm.unit.item / openmm.unit.milliliter
+    )
 
     expected_enthalpy = (
         expected_potential * openmm.unit.kilocalorie_per_mole
         + expected_kinetic * openmm.unit.kilocalorie_per_mole
-        + pressure
-        * (expected_volume * openmm.unit.angstrom**3)
-        * openmm.unit.AVOGADRO_CONSTANT_NA
+        + pressure * (expected_volume * openmm.unit.angstrom**3) * openmm.unit.AVOGADRO_CONSTANT_NA
     ).value_in_unit(openmm.unit.kilocalorie_per_mole)
 
     expected_reduced_potential = beta * (
         expected_potential * openmm.unit.kilocalorie_per_mole
-        + pressure
-        * (expected_volume * openmm.unit.angstrom**3)
-        * openmm.unit.AVOGADRO_CONSTANT_NA
+        + pressure * (expected_volume * openmm.unit.angstrom**3) * openmm.unit.AVOGADRO_CONSTANT_NA
     )
 
     values = _compute_frame_observables(
@@ -208,9 +193,7 @@ def test_compute_frame_observables():
         "enthalpy": pytest.approx(torch.tensor(expected_enthalpy)),
         "enthalpy^2": pytest.approx(torch.tensor(expected_enthalpy**2)),
         "reduced_potential": pytest.approx(torch.tensor(expected_reduced_potential)),
-        "enthalpy_volume": pytest.approx(
-            torch.tensor(expected_enthalpy * expected_volume)
-        ),
+        "enthalpy_volume": pytest.approx(torch.tensor(expected_enthalpy * expected_volume)),
     }
 
 
@@ -256,9 +239,7 @@ def test_compute_observables(tmp_path, mock_argon_tensors, mock_argon_params):
     beta = 2.0
 
     expected_du_d_eps = 4.0 * ((sig / distances) ** 12 - (sig / distances) ** 6)
-    expected_du_d_sig = (eps * (sig**5) * (48.0 * (sig**6) - 24.0 * distances**6)) / (
-        distances**12
-    )
+    expected_du_d_sig = (eps * (sig**5) * (48.0 * (sig**6) - 24.0 * distances**6)) / (distances**12)
 
     expected_potential = eps * expected_du_d_eps
 
@@ -281,12 +262,8 @@ def test_compute_observables(tmp_path, mock_argon_tensors, mock_argon_params):
     assert len(du_d_theta) == 2
     assert du_d_theta[1] is None
 
-    assert numpy.allclose(
-        du_d_theta[0][0, 0, :].numpy(), expected_du_d_eps, atol=1.0e-4
-    )
-    assert numpy.allclose(
-        du_d_theta[0][0, 1, :].numpy(), expected_du_d_sig, atol=1.0e-4
-    )
+    assert numpy.allclose(du_d_theta[0][0, 0, :].numpy(), expected_du_d_eps, atol=1.0e-4)
+    assert numpy.allclose(du_d_theta[0][0, 1, :].numpy(), expected_du_d_sig, atol=1.0e-4)
 
 
 def test_compute_ensemble_averages(mocker, tmp_path, mock_argon_tensors):
@@ -321,16 +298,12 @@ def test_compute_ensemble_averages(mocker, tmp_path, mock_argon_tensors):
 
     tensor_ff.potentials_by_type["vdW"].parameters.requires_grad = True
 
-    ensemble_avgs, ensemble_stds = compute_ensemble_averages(
-        tensor_system, tensor_ff, output_path, temperature, None
-    )
+    ensemble_avgs, ensemble_stds = compute_ensemble_averages(tensor_system, tensor_ff, output_path, temperature, None)
 
     assert mock_compute_observables.call_count == 1
 
     assert ensemble_stds["potential_energy"].grad_fn is None
-    assert torch.isclose(
-        ensemble_stds["potential_energy"], torch.std(torch.tensor([1.0, 5.0]))
-    )
+    assert torch.isclose(ensemble_stds["potential_energy"], torch.std(torch.tensor([1.0, 5.0])))
 
     ensemble_avgs["potential_energy"].backward(retain_graph=True)
     energy_grad = tensor_ff.potentials_by_type["vdW"].parameters.grad
@@ -365,12 +338,8 @@ def test_compute_ensemble_averages(mocker, tmp_path, mock_argon_tensors):
     expected_d_avg_energy_d_eps = du_d_eps.mean(-1) - beta * (
         (energy * du_d_eps).mean(-1) - energy.mean() * du_d_eps.mean(-1)
     )
-    expected_d_avg_volume_d_eps = -beta * (
-        (volume * du_d_eps).mean(-1) - volume.mean() * du_d_eps.mean(-1)
-    )
-    expected_d_avg_density_d_eps = -beta * (
-        (density * du_d_eps).mean(-1) - density.mean() * du_d_eps.mean(-1)
-    )
+    expected_d_avg_volume_d_eps = -beta * ((volume * du_d_eps).mean(-1) - volume.mean() * du_d_eps.mean(-1))
+    expected_d_avg_density_d_eps = -beta * ((density * du_d_eps).mean(-1) - density.mean() * du_d_eps.mean(-1))
 
     assert torch.isclose(expected_d_avg_energy_d_eps.double(), energy_grad[0, 0])
     assert torch.isclose(expected_d_avg_volume_d_eps.double(), volume_grad[0, 0])
@@ -390,9 +359,7 @@ def test_reweight_ensemble_averages(mocker, tmp_path, mock_argon_tensors):
             torch.tensor([5.0, 25.0, 6.0, 36.0, 20.0]),
         ]
     )
-    mock_reduced = (
-        beta.value_in_unit(openmm.unit.kilocalories_per_mole**-1) * mock_outputs[:, 0]
-    )
+    mock_reduced = beta.value_in_unit(openmm.unit.kilocalories_per_mole**-1) * mock_outputs[:, 0]
 
     mock_columns = [
         "potential_energy",
@@ -420,20 +387,12 @@ def test_reweight_ensemble_averages(mocker, tmp_path, mock_argon_tensors):
     vdw_parameters = tensor_ff.potentials_by_type["vdW"].parameters
     vdw_parameters.requires_grad = True
 
-    ensemble_averages, _ = compute_ensemble_averages(
-        tensor_system, tensor_ff, output_path, temperature, None
-    )
-    reweight_averages = reweight_ensemble_averages(
-        tensor_system, tensor_ff, output_path, temperature, None, 0
-    )
+    ensemble_averages, _ = compute_ensemble_averages(tensor_system, tensor_ff, output_path, temperature, None)
+    reweight_averages = reweight_ensemble_averages(tensor_system, tensor_ff, output_path, temperature, None, 0)
 
     for observable in ensemble_averages:
-        (ensemble_grad,) = torch.autograd.grad(
-            ensemble_averages[observable], vdw_parameters, retain_graph=True
-        )
-        (reweight_grad,) = torch.autograd.grad(
-            reweight_averages[observable], vdw_parameters, retain_graph=True
-        )
+        (ensemble_grad,) = torch.autograd.grad(ensemble_averages[observable], vdw_parameters, retain_graph=True)
+        (reweight_grad,) = torch.autograd.grad(reweight_averages[observable], vdw_parameters, retain_graph=True)
 
         assert reweight_grad.shape == ensemble_grad.shape
         assert torch.allclose(reweight_grad, ensemble_grad)

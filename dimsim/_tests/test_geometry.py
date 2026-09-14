@@ -24,16 +24,12 @@ from dimsim.geometry import (
 )
 
 
-def compute_openmm_v_sites(
-    conformer: torch.Tensor, interchange: openff.interchange.Interchange
-) -> torch.Tensor:
+def compute_openmm_v_sites(conformer: torch.Tensor, interchange: openff.interchange.Interchange) -> torch.Tensor:
     conformer = conformer.numpy()
 
     n_v_sites = len(interchange.collections["VirtualSites"].key_map)
 
-    conformer = (
-        numpy.vstack([conformer, numpy.zeros((n_v_sites, 3))]) * openmm.unit.angstrom
-    )
+    conformer = numpy.vstack([conformer, numpy.zeros((n_v_sites, 3))]) * openmm.unit.angstrom
 
     openmm_system = interchange.to_openmm()
     openmm_context = openmm.Context(
@@ -43,17 +39,13 @@ def compute_openmm_v_sites(
     )
     openmm_context.setPositions(conformer)
     openmm_context.computeVirtualSites()
-    conformer_with_v_sites = openmm_context.getState(getPositions=True).getPositions(
-        asNumpy=True
-    )
+    conformer_with_v_sites = openmm_context.getState(getPositions=True).getPositions(asNumpy=True)
 
     v_site_coords = conformer_with_v_sites[(len(conformer) - n_v_sites) :, :]
     return torch.tensor(v_site_coords.value_in_unit(openmm.unit.angstrom))
 
 
-@pytest.mark.parametrize(
-    "geometry_function", [compute_angles, compute_dihedrals, compute_bond_vectors]
-)
+@pytest.mark.parametrize("geometry_function", [compute_angles, compute_dihedrals, compute_bond_vectors])
 def test_compute_geometry_no_atoms(geometry_function):
     valence_terms = geometry_function(torch.tensor([]), torch.tensor([]))
 
@@ -72,9 +64,7 @@ def test_compute_bond_vectors():
     assert bond_vectors.shape == (2, 3)
     assert bond_norms.shape == (2,)
 
-    assert torch.allclose(
-        bond_vectors, torch.tensor([[0.0, -3.0, 0.0], [2.0, 0.0, 0.0]])
-    )
+    assert torch.allclose(bond_vectors, torch.tensor([[0.0, -3.0, 0.0], [2.0, 0.0, 0.0]]))
     assert torch.allclose(bond_norms, torch.tensor([3.0, 2.0]))
 
 
@@ -106,9 +96,7 @@ def test_compute_bond_vectors_batched():
 
 
 def test_compute_angles():
-    conformer = torch.tensor(
-        [[1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]]
-    )
+    conformer = torch.tensor([[1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]])
     atom_indices = torch.tensor([[0, 1, 2], [1, 0, 2], [0, 1, 3]])
 
     angles = compute_angles(conformer, atom_indices)
@@ -117,9 +105,7 @@ def test_compute_angles():
     assert torch.allclose(angles, torch.tensor([numpy.pi / 2, numpy.pi / 4, numpy.pi]))
 
     # Make sure there are no singularities in the gradients.
-    gradients = torch.autograd.functional.jacobian(
-        lambda x: compute_angles(x, atom_indices), conformer
-    )
+    gradients = torch.autograd.functional.jacobian(lambda x: compute_angles(x, atom_indices), conformer)
     assert not torch.isnan(gradients).any() and not torch.isinf(gradients).any()
 
 
@@ -140,9 +126,7 @@ def test_compute_angles_batched():
 
 @pytest.mark.parametrize("phi_sign", [-1.0, 1.0])
 def test_compute_dihedrals(phi_sign):
-    conformer = torch.tensor(
-        [[-1.0, 1.0, 0.0], [0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 1.0, phi_sign]]
-    )
+    conformer = torch.tensor([[-1.0, 1.0, 0.0], [0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 1.0, phi_sign]])
     atom_indices = torch.tensor([[0, 1, 2, 3]])
 
     dihedrals = compute_dihedrals(conformer, atom_indices)
@@ -151,9 +135,7 @@ def test_compute_dihedrals(phi_sign):
     assert torch.allclose(dihedrals, torch.tensor([phi_sign * numpy.pi / 4.0]))
 
     # Make sure there are no singularities in the gradients.
-    gradients = torch.autograd.functional.jacobian(
-        lambda x: compute_dihedrals(x, atom_indices), conformer
-    )
+    gradients = torch.autograd.functional.jacobian(lambda x: compute_dihedrals(x, atom_indices), conformer)
     assert not torch.isnan(gradients).any() and not torch.isinf(gradients).any()
 
 
@@ -172,9 +154,7 @@ def test_compute_dihedrals_batched():
     assert torch.allclose(dihedrals, torch.tensor([[0.0], [numpy.pi / 4.0]]))
 
     # Make sure there are no singularities in the gradients.
-    gradients = torch.autograd.functional.jacobian(
-        lambda x: compute_dihedrals(x, atom_indices), conformer
-    )
+    gradients = torch.autograd.functional.jacobian(lambda x: compute_dihedrals(x, atom_indices), conformer)
     assert not torch.isnan(gradients).any() and not torch.isinf(gradients).any()
 
 
@@ -242,9 +222,7 @@ def test_convert_v_site_coords():
     ).unsqueeze(0)
 
     actual_coords = _convert_v_site_coords(local_frame_coords, local_coord_frames)
-    expected_coords = torch.tensor(
-        [[0.5, 0.5, 1.0 / torch.sqrt(torch.tensor(2.0))]], dtype=torch.float64
-    ).unsqueeze(0)
+    expected_coords = torch.tensor([[0.5, 0.5, 1.0 / torch.sqrt(torch.tensor(2.0))]], dtype=torch.float64).unsqueeze(0)
 
     assert actual_coords.shape == expected_coords.shape
     assert torch.allclose(actual_coords, expected_coords)
@@ -265,9 +243,7 @@ def test_compute_v_site_coords(smiles, v_site_force_field):
 
     conformer = torch.tensor(molecule.conformers[0].m_as(unit.angstrom))
 
-    interchange = openff.interchange.Interchange.from_smirnoff(
-        v_site_force_field, molecule.to_topology()
-    )
+    interchange = openff.interchange.Interchange.from_smirnoff(v_site_force_field, molecule.to_topology())
     force_field, [topology] = dimsim.converters.convert_interchange(interchange)
 
     assert topology.v_sites is not None
@@ -286,9 +262,7 @@ def test_compute_v_site_coords_empty(v_site_force_field):
 
     conformer = torch.tensor(molecule.conformers[0].m_as(unit.angstrom))
 
-    interchange = openff.interchange.Interchange.from_smirnoff(
-        v_site_force_field, molecule.to_topology()
-    )
+    interchange = openff.interchange.Interchange.from_smirnoff(v_site_force_field, molecule.to_topology())
     force_field, [topology] = dimsim.converters.convert_interchange(interchange)
 
     assert topology.v_sites is not None
@@ -309,9 +283,7 @@ def test_compute_v_site_coords_batched(v_site_force_field):
         dtype=torch.float64,
     )
 
-    interchange = openff.interchange.Interchange.from_smirnoff(
-        v_site_force_field, molecule.to_topology()
-    )
+    interchange = openff.interchange.Interchange.from_smirnoff(v_site_force_field, molecule.to_topology())
     force_field, [topology] = dimsim.converters.convert_interchange(interchange)
 
     assert topology.v_sites is not None
@@ -319,9 +291,7 @@ def test_compute_v_site_coords_batched(v_site_force_field):
 
     openmm_v_site_coords_0 = compute_openmm_v_sites(conformers[0], interchange)
 
-    interchange = openff.interchange.Interchange.from_smirnoff(
-        v_site_force_field, molecule.to_topology()
-    )
+    interchange = openff.interchange.Interchange.from_smirnoff(v_site_force_field, molecule.to_topology())
     openmm_v_site_coords_1 = compute_openmm_v_sites(conformers[1], interchange)
 
     openmm_v_site_coords = torch.stack([openmm_v_site_coords_0, openmm_v_site_coords_1])
@@ -344,9 +314,7 @@ def test_add_v_site_coords(conformer, v_site_coords, cat_dim, mocker):
     v_sites = mocker.MagicMock()
     force_field = mocker.MagicMock()
 
-    mock_compute_coords_fn = mocker.patch(
-        "dimsim.geometry.compute_v_site_coords", return_value=v_site_coords
-    )
+    mock_compute_coords_fn = mocker.patch("dimsim.geometry.compute_v_site_coords", return_value=v_site_coords)
 
     coordinates = add_v_site_coords(v_sites, conformer, force_field)
     mock_compute_coords_fn.assert_called_once_with(v_sites, conformer, force_field)
@@ -367,9 +335,7 @@ def test_add_v_site_coords_grad(v_site_force_field):
     conformer = torch.tensor(molecule.conformers[0].m_as(unit.angstrom))
     conformer.requires_grad_(True)
 
-    interchange = openff.interchange.Interchange.from_smirnoff(
-        v_site_force_field, molecule.to_topology()
-    )
+    interchange = openff.interchange.Interchange.from_smirnoff(v_site_force_field, molecule.to_topology())
     force_field, [topology] = dimsim.converters.convert_interchange(interchange)
 
     assert topology.v_sites is not None

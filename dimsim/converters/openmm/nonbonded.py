@@ -21,11 +21,11 @@ _INTRA_SCALE_VAR = "scale_excl"
 _T = typing.TypeVar("_T", bound=openmm.NonbondedForce | openmm.CustomNonbondedForce)
 
 
-def _create_nonbonded_force(
+def _create_nonbonded_force[T: openmm.NonbondedForce | openmm.CustomNonbondedForce](
     potential: dimsim.TensorPotential,
     system: dimsim.TensorSystem,
-    cls: typing.Type[_T] = openmm.NonbondedForce,
-) -> _T:
+    cls: type[T] = openmm.NonbondedForce,
+) -> T:
     """Create a non-bonded force for a given potential and system, making sure to set
     the appropriate method and cutoffs."""
     if cls == openmm.NonbondedForce:
@@ -51,9 +51,7 @@ def _create_nonbonded_force(
         cutoff = float(potential.attributes[cutoff_idx]) * _ANGSTROM
 
         method = (
-            openmm.NonbondedForce.PME
-            if cls == openmm.NonbondedForce
-            else openmm.CustomNonbondedForce.CutoffPeriodic
+            openmm.NonbondedForce.PME if cls == openmm.NonbondedForce else openmm.CustomNonbondedForce.CutoffPeriodic
         )
 
         force.setNonbondedMethod(method)
@@ -136,9 +134,7 @@ def _build_vdw_lookup(
         }
 
         for col in parameter_col_to_idx:
-            parameter_lookup[col][i + j * n_params] = float(
-                parameters[col] * unit_conversion[col]
-            )
+            parameter_lookup[col][i + j * n_params] = float(parameters[col] * unit_conversion[col])
 
     return parameter_lookup
 
@@ -208,9 +204,7 @@ def _detect_parameters(
     return sorted(required_parameters), sorted(required_attributes)
 
 
-def _extract_parameters(
-    potential: dimsim.TensorPotential, parameter: torch.Tensor, cols: list[str]
-) -> list[float]:
+def _extract_parameters(potential: dimsim.TensorPotential, parameter: torch.Tensor, cols: list[str]) -> list[float]:
     """Extract the values of a subset of parameters from a parameter tensor."""
 
     values = []
@@ -219,9 +213,7 @@ def _extract_parameters(
         col_idx = potential.parameter_cols.index(col)
 
         unit_conversion = (
-            (1.0 * potential.parameter_units[col_idx])
-            .to_openmm()
-            .value_in_unit_system(openmm.unit.md_unit_system)
+            (1.0 * potential.parameter_units[col_idx]).to_openmm().value_in_unit_system(openmm.unit.md_unit_system)
         )
 
         values.append(parameter[col_idx] * unit_conversion)
@@ -241,8 +233,7 @@ def _add_parameters_to_vdw_without_lookup(
     """Add parameters to a vdW force directly, i.e. without using a lookup table."""
 
     energy_fn = ";".join(
-        [energy_fn.strip().strip(";")]
-        + [f"{var}={rule.strip().strip(';')}" for var, rule in mixing_fn.items()]
+        [energy_fn.strip().strip(";")] + [f"{var}={rule.strip().strip(';')}" for var, rule in mixing_fn.items()]
     )
 
     inter_force_energy_fn = energy_fn
@@ -270,12 +261,8 @@ def _add_parameters_to_vdw_without_lookup(
                 inter_force.addParticle(values)
 
             for index, (i, j) in enumerate(parameter_map.exclusions):
-                values_i = _extract_parameters(
-                    potential, parameters[i, :], used_parameters
-                )
-                values_j = _extract_parameters(
-                    potential, parameters[j, :], used_parameters
-                )
+                values_i = _extract_parameters(potential, parameters[i, :], used_parameters)
+                values_j = _extract_parameters(potential, parameters[j, :], used_parameters)
 
                 scale = potential.attributes[parameter_map.exclusion_scale_idxs[index]]
 
@@ -284,9 +271,7 @@ def _add_parameters_to_vdw_without_lookup(
                 if torch.isclose(scale, dimsim.utils.tensor_like(0.0, scale)):
                     continue
 
-                intra_force.addBond(
-                    i + idx_offset, j + idx_offset, [float(scale), *values_i, *values_j]
-                )
+                intra_force.addBond(i + idx_offset, j + idx_offset, [float(scale), *values_i, *values_j])
 
             idx_offset += topology.n_particles
 
@@ -328,8 +313,7 @@ def _add_parameters_to_vdw_with_lookup(
 
         if not (assignment_dense.abs().sum(axis=-1) == 1).all():
             raise NotImplementedError(
-                f"exceptions can only be used when each particle is assigned exactly "
-                f"one {potential.type} parameter"
+                f"exceptions can only be used when each particle is assigned exactly one {potential.type} parameter"
             )
 
         for _ in range(n_copies):
@@ -345,12 +329,9 @@ def _add_parameters_to_vdw_with_lookup(
                     continue
 
                 intra_parameters = [scale] + [
-                    vals[assigned_idxs[i] + assigned_idxs[j] * n_params]
-                    for col, vals in parameter_lookup.items()
+                    vals[assigned_idxs[i] + assigned_idxs[j] * n_params] for col, vals in parameter_lookup.items()
                 ]
-                intra_force.addBond(
-                    int(i + idx_offset), int(j + idx_offset), intra_parameters
-                )
+                intra_force.addBond(int(i + idx_offset), int(j + idx_offset), intra_parameters)
 
             idx_offset += topology.n_particles
 
@@ -393,39 +374,27 @@ def convert_custom_vdw_potential(
     energy_fn = re.sub(r"\s+", "", energy_fn)
     mixing_fn = {k: re.sub(r"\s+", "", v) for k, v in mixing_fn.items()}
 
-    used_parameters, used_attributes = _detect_parameters(
-        potential, energy_fn, mixing_fn
-    )
+    used_parameters, used_attributes = _detect_parameters(potential, energy_fn, mixing_fn)
     requires_lookup = potential.exceptions is not None
 
-    inter_force = _create_nonbonded_force(
-        potential, system, openmm.CustomNonbondedForce
-    )
+    inter_force = _create_nonbonded_force(potential, system, openmm.CustomNonbondedForce)
     inter_force.setEnergyFunction(energy_fn)
 
-    intra_force = openmm.CustomBondForce(
-        _prepend_scale_to_energy_fn(energy_fn, _INTRA_SCALE_VAR)
-    )
+    intra_force = openmm.CustomBondForce(_prepend_scale_to_energy_fn(energy_fn, _INTRA_SCALE_VAR))
     intra_force.addPerBondParameter(_INTRA_SCALE_VAR)
     intra_force.setUsesPeriodicBoundaryConditions(system.is_periodic)
 
     for force in [inter_force, intra_force]:
         for attr in used_attributes:
             attr_unit = potential.attribute_units[potential.attribute_cols.index(attr)]
-            attr_conv = (
-                (1.0 * attr_unit)
-                .to_openmm()
-                .value_in_unit_system(openmm.unit.md_unit_system)
-            )
+            attr_conv = (1.0 * attr_unit).to_openmm().value_in_unit_system(openmm.unit.md_unit_system)
             attr_idx = potential.attribute_cols.index(attr)
             attr_val = float(potential.attributes[attr_idx]) * attr_conv
 
             force.addGlobalParameter(attr, attr_val)
 
     if requires_lookup:
-        _add_parameters_to_vdw_with_lookup(
-            potential, system, energy_fn, mixing_fn, inter_force, intra_force
-        )
+        _add_parameters_to_vdw_with_lookup(potential, system, energy_fn, mixing_fn, inter_force, intra_force)
     else:
         _add_parameters_to_vdw_without_lookup(
             potential,
@@ -440,9 +409,7 @@ def convert_custom_vdw_potential(
     return inter_force, intra_force
 
 
-@dimsim.converters.openmm.potential_converter(
-    dimsim.PotentialType.VDW, dimsim.EnergyFn.VDW_LJ
-)
+@dimsim.converters.openmm.potential_converter(dimsim.PotentialType.VDW, dimsim.EnergyFn.VDW_LJ)
 def convert_lj_potential(
     potential: dimsim.TensorPotential, system: dimsim.TensorSystem
 ) -> openmm.NonbondedForce | list[openmm.CustomNonbondedForce | openmm.CustomBondForce]:
@@ -458,9 +425,7 @@ def convert_lj_potential(
     }
 
     if potential.exceptions is not None:
-        return list(
-            convert_custom_vdw_potential(potential, system, energy_fn, mixing_fn)
-        )
+        return list(convert_custom_vdw_potential(potential, system, energy_fn, mixing_fn))
 
     force = _create_nonbonded_force(potential, system)
 
@@ -480,9 +445,7 @@ def convert_lj_potential(
                 eps_i, sig_i = parameters[i, :]
                 eps_j, sig_j = parameters[j, :]
 
-                eps, sig = dimsim.potentials.nonbonded.lorentz_berthelot(
-                    eps_i, eps_j, sig_i, sig_j
-                )
+                eps, sig = dimsim.potentials.nonbonded.lorentz_berthelot(eps_i, eps_j, sig_i, sig_j)
 
                 force.addException(
                     i + idx_offset,
@@ -497,9 +460,7 @@ def convert_lj_potential(
     return force
 
 
-@dimsim.converters.openmm.potential_converter(
-    dimsim.PotentialType.VDW, dimsim.EnergyFn.VDW_DEXP
-)
+@dimsim.converters.openmm.potential_converter(dimsim.PotentialType.VDW, dimsim.EnergyFn.VDW_DEXP)
 def convert_dexp_potential(
     potential: dimsim.TensorPotential, system: dimsim.TensorSystem
 ) -> tuple[openmm.CustomNonbondedForce, openmm.CustomBondForce]:
@@ -526,12 +487,8 @@ def convert_dexp_potential(
     return convert_custom_vdw_potential(potential, system, energy_fn, mixing_fn)
 
 
-@dimsim.converters.openmm.potential_converter(
-    dimsim.PotentialType.ELECTROSTATICS, dimsim.EnergyFn.COULOMB
-)
-def convert_coulomb_potential(
-    potential: dimsim.TensorPotential, system: dimsim.TensorSystem
-) -> openmm.NonbondedForce:
+@dimsim.converters.openmm.potential_converter(dimsim.PotentialType.ELECTROSTATICS, dimsim.EnergyFn.COULOMB)
+def convert_coulomb_potential(potential: dimsim.TensorPotential, system: dimsim.TensorSystem) -> openmm.NonbondedForce:
     """Convert a Coulomb potential to an OpenMM force."""
     force = _create_nonbonded_force(potential, system)
 

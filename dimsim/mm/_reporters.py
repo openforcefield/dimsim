@@ -27,9 +27,7 @@ def _decoder(obj, chain=None):
     """msgpack decoder for tensors"""
     try:
         if b"torch" in obj:
-            array = numpy.ndarray(
-                buffer=obj[b"data"], dtype=numpy.float32, shape=obj[b"shape"]
-            )
+            array = numpy.ndarray(buffer=obj[b"data"], dtype=numpy.float32, shape=obj[b"shape"])
             return torch.from_numpy(array.copy())
         else:
             return obj if chain is None else chain(obj)
@@ -61,9 +59,7 @@ class TensorReporter:
         self._report_interval = report_interval
 
         self._beta = beta
-        self._pressure = (
-            None if pressure is None else pressure * openmm.unit.AVOGADRO_CONSTANT_NA
-        )
+        self._pressure = None if pressure is None else pressure * openmm.unit.AVOGADRO_CONSTANT_NA
 
     def describeNextReport(self, simulation: openmm.app.Simulation):
         steps = self._report_interval - simulation.currentStep % self._report_interval
@@ -112,8 +108,7 @@ def unpack_frames(
 
     unpacker = msgpack.Unpacker(file, object_hook=_decoder)
 
-    for frame in unpacker:
-        yield frame
+    yield from unpacker
 
 
 @contextlib.contextmanager

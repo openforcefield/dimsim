@@ -241,9 +241,7 @@ def test_logsumexp(a, b, dim, keepdim):
     from scipy.special import logsumexp
 
     actual = dimsim.utils.logsumexp(a, dim, keepdim, b)
-    expected = torch.tensor(
-        logsumexp(a.numpy(), dim, b if b is None else b.numpy(), keepdim)
-    )
+    expected = torch.tensor(logsumexp(a.numpy(), dim, b if b is None else b.numpy(), keepdim))
 
     # scipy.logsumexp returns shape (1,) for 0-d inputs with keepdim=True
     # but we expect shape () for 0-d inputs regardless of keepdim
@@ -261,9 +259,7 @@ def test_logsumexp_with_sign():
     b = torch.tensor(-2.0)
 
     actual, actual_sign = dimsim.utils.logsumexp(a, -1, True, b, return_sign=True)
-    expected, expected_sign = torch.tensor(
-        logsumexp(a.numpy(), -1, b.numpy(), True, return_sign=True)
-    )
+    expected, expected_sign = torch.tensor(logsumexp(a.numpy(), -1, b.numpy(), True, return_sign=True))
 
     assert actual.shape == expected.shape
     assert torch.allclose(actual.double(), expected.double())

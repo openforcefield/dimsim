@@ -15,7 +15,7 @@ P = typing.ParamSpec("P")
 _LOGGER = logging.getLogger(__name__)
 
 
-def to_closure(
+def to_closure[**P](
     loss_fn: typing.Callable[typing.Concatenate[torch.Tensor, P], torch.Tensor],
     *args: P.args,
     **kwargs: P.kwargs,
@@ -91,9 +91,7 @@ def combine_closures(
         verbose_rows = []
 
         for name, closure_fn in closures.items():
-            local_loss, local_grad, local_hess = closure_fn(
-                x, compute_gradient, compute_hessian
-            )
+            local_loss, local_grad, local_hess = closure_fn(x, compute_gradient, compute_hessian)
 
             local_loss_: torch.Tensor = local_loss
             local_grad_: torch.Tensor = local_grad
@@ -107,9 +105,7 @@ def combine_closures(
                 hess.append(weights[name] * local_hess_)
 
             if verbose:
-                verbose_rows.append(
-                    {"target": name, "loss": float(f"{local_loss:.5f}")}
-                )
+                verbose_rows.append({"target": name, "loss": float(f"{local_loss:.5f}")})
 
         loss = sum(loss[1:], loss[0])
 
@@ -121,10 +117,7 @@ def combine_closures(
         if verbose:
             import pandas
 
-            _LOGGER.info(
-                "loss breakdown:\n"
-                + pandas.DataFrame(verbose_rows).to_string(index=False)
-            )
+            _LOGGER.info("loss breakdown:\n" + pandas.DataFrame(verbose_rows).to_string(index=False))
 
         return loss.detach(), grad, hess
 
@@ -146,6 +139,4 @@ def approximate_hessian(x: torch.Tensor, y_pred: torch.Tensor):
     y_pred_grad = [torch.autograd.grad(y, x, retain_graph=True)[0] for y in y_pred]
     y_pred_grad = torch.stack(y_pred_grad, dim=0)
 
-    return (
-        2.0 * torch.einsum("bi,bj->bij", y_pred_grad, y_pred_grad).sum(dim=0)
-    ).detach()
+    return (2.0 * torch.einsum("bi,bj->bij", y_pred_grad, y_pred_grad).sum(dim=0)).detach()
