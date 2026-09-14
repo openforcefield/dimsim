@@ -45,7 +45,7 @@ def minimize_energy(
 @python_app
 def run_equilibration(
     equilibration_config: EquilibrationConfig,
-    minimization_future: dict[str, float | MinimizationFiles],
+    minimization_future: dict[str, MinimizationFiles],
     job_dir: str,
 ) -> dict[str, EquilibrationFiles]:
     from dimsim.compute._equilibrate import _run_equilibration

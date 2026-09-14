@@ -6,7 +6,6 @@ import pathlib
 import openmm
 import openmm.app
 from parsl import File
-from smee.mm import TensorReporter
 
 from dimsim.compute._files import (
     EquilibrationFiles,
@@ -52,7 +51,9 @@ def _run_production(
         }
 
     with open(equilibrated_files["topology"].filepath) as f:
-        topology = openmm.app.PDBFile(f).getTopology()
+        pdb_file = openmm.app.PDBFile(f)
+
+    topology = pdb_file.getTopology()
 
     with open(equilibrated_files["system"].filepath) as f:
         system = openmm.XmlSerializer.deserialize(f.read())
@@ -60,9 +61,30 @@ def _run_production(
     with open(equilibrated_files["integrator"].filepath) as f:
         integrator = openmm.XmlSerializer.deserialize(f.read())
 
-    with open(equilibrated_files["checkpoint"].filepath, "rb") as f:
-        simulation = openmm.app.Simulation(topology, system, integrator)
-        simulation.loadCheckpoint(f)
+    simulation = openmm.app.Simulation(
+        topology,
+        system,
+        integrator,
+    )
+
+    try:
+        simulation.loadCheckpoint(equilibrated_files["checkpoint"].filepath)
+    except (openmm.OpenMMException, OSError) as error:
+        # loading checkpoint isn't so necessary when starting a new simulation since we are
+        # already loading the correct positions. The checkpoint also adds low-level stuff like
+        # RNG seeds, platform, hardware-specific stuff. It's nice to have these but I don't think
+        # they're **required** for things to run - this is not as true for restarting failed jobs
+        logger.warning(
+            f"Failed to load checkpoint from {equilibrated_files['checkpoint'].filepath} with below error, "
+            "starting from scratch."
+        )
+        logger.warning(f"{error}")
+
+        # but we need to set positions and box vectors if we fail to load the checkpoint!
+        simulation.context.setPositions(pdb_file.getPositions())
+
+        if topology.getPeriodicBoxVectors() is not None:
+            simulation.context.setPeriodicBoxVectors(*topology.getPeriodicBoxVectors())
 
     logger.info("Reinitializing context (in production step)")
     simulation.context.reinitialize(preserveState=True)
@@ -100,25 +122,18 @@ def _run_production(
         reportInterval=1000,
     )
 
+    simulation.reporters.append(dcd_reporter)
+
     pressure = compute_config.get("pressure", None)
 
     if pressure is None:
         raise PressureNotDefinedError("Trying to set up NPT simulation but no pressure defined.")
 
-    with open(files["msgpack_trajectory"].filepath, "wb") as f:
-        smee_reporter = TensorReporter(
-            output_file=f,
-            report_interval=1000,
-            beta=1.0 / openmm.unit.kilocalories_per_mole,
-            pressure=pressure * openmm.unit.kilopascal,
-        )
-
-    simulation.reporters.append(dcd_reporter)
-    simulation.reporters.append(smee_reporter)
-
     logger.info("Running 100,000 steps of MD")
 
-    simulation.step(100_000)
+    for index in range(10):
+        logger.info(f"Running from step {index * 10_000} to step {(index + 1) * 10_000}")
+        simulation.step(10_000)
 
     with open(files["topology"].filepath, "w") as f:
         openmm.app.PDBFile.writeFile(
