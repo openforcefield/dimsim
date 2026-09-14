@@ -9,10 +9,10 @@ else:
 
     _S = typing.TypeVar("_S", bound="_StrEnum")
 
-    class _StrEnum(str, enum.Enum):
+    class _StrEnum(enum.StrEnum):
         """TODO: remove when python 3.10 support is dropped."""
 
-        def __new__(cls: typing.Type[_S], *values: str) -> _S:
+        def __new__(cls: type[_S], *values: str) -> _S:
             value = str(*values)
 
             member = str.__new__(cls, value)
@@ -45,11 +45,7 @@ class EnergyFn(_StrEnum):
     COULOMB = "coul"
 
     VDW_LJ = "4*epsilon*((sigma/r)**12-(sigma/r)**6)"
-    VDW_DEXP = (
-        "epsilon*("
-        "beta/(alpha-beta)*exp(alpha*(1-r/r_min))-"
-        "alpha/(alpha-beta)*exp(beta*(1-r/r_min)))"
-    )
+    VDW_DEXP = "epsilon*(beta/(alpha-beta)*exp(alpha*(1-r/r_min))-alpha/(alpha-beta)*exp(beta*(1-r/r_min)))"
     # VDW_BUCKINGHAM = "a*exp(-b*r)-c*r^-6"
 
     BOND_HARMONIC = "k/2*(r-length)**2"
