@@ -4,7 +4,7 @@ import json
 import pathlib
 
 from parsl import File
-from smee.mm import TensorReporter
+from dimsim.mm import TensorReporter
 
 from dimsim.compute._files import (
     EquilibrationFiles,
@@ -106,7 +106,7 @@ def _run_equilibration(
 
     with open(files["msgpack_trajectory"].filepath, "wb") as f:
         # type hints imply I can pass these in as openmm.unit.Quantity and let it deal with conversions
-        smee_reporter = TensorReporter(
+        tensor_reporter = TensorReporter(
             output_file=f,
             report_interval=1000,
             beta=1.0 / openmm.unit.kilocalories_per_mole,
@@ -114,7 +114,7 @@ def _run_equilibration(
         )
 
     simulation.reporters.append(dcd_reporter)
-    simulation.reporters.append(smee_reporter)
+    simulation.reporters.append(tensor_reporter)
 
     simulation.context.setVelocitiesToTemperature(
         compute_config["temperature"],  # kelvin, but as float

@@ -71,7 +71,7 @@ warn_unused_configs = true
 [tool.pytest]
 ini_options.minversion = "6.0"
 ini_options.testpaths = [ "dimsim/_tests" ]
-ini_options.addopts = "-v --cov=dimsim --cov-report=xml --cov-report=term-missing"
+ini_options.addopts = "-v --durations=10 --cov=dimsim --cov-report=xml --cov-append --cov-report=term-missing --color=yes"
 
 [tool.coverage]
 run.source = [ "dimsim" ]

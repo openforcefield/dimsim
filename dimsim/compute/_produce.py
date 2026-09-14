@@ -6,7 +6,7 @@ import pathlib
 import openmm
 import openmm.app
 from parsl import File
-from smee.mm import TensorReporter
+from dimsim.mm import TensorReporter
 
 from dimsim.compute._files import (
     EquilibrationFiles,
@@ -106,7 +106,7 @@ def _run_production(
         raise PressureNotDefinedError("Trying to set up NPT simulation but no pressure defined.")
 
     with open(files["msgpack_trajectory"].filepath, "wb") as f:
-        smee_reporter = TensorReporter(
+        tensor_reporter = TensorReporter(
             output_file=f,
             report_interval=1000,
             beta=1.0 / openmm.unit.kilocalories_per_mole,
@@ -114,7 +114,7 @@ def _run_production(
         )
 
     simulation.reporters.append(dcd_reporter)
-    simulation.reporters.append(smee_reporter)
+    simulation.reporters.append(tensor_reporter)
 
     logger.info("Running 100,000 steps of MD")
 
