@@ -41,15 +41,14 @@ openff-nagl-models = "*"
 openmmtools = "*"
 pydantic-units = "*"
 pytorch = "*"
-smee = "*"
-descent = "*"
+datasets = "*"
 # shims
 pyarrow = "20.*"
 rdkit = "2023.*"
 
 [environments]
 py312amber = [ "py312", "ambertools", "test", "typing" ]
-py312openeye = [ "py312", "openeye", "test", "typing" ]
+py312openeye = [ "py312", "openeye", "packmol", "test", "typing" ]
 dev = [ "py312", "openeye", "test", "typing", "dev" ]
 
 [feature.dev.dependencies]
@@ -70,6 +69,9 @@ ambertools = "*"
 [feature.openeye]
 channels = [ "openeye", "conda-forge" ]
 dependencies = { openeye-toolkits = "*" }
+
+[feature.packmol.dependencies]
+packmol = ">=20"
 
 [feature.py312.dependencies]
 python = "3.12.*"
