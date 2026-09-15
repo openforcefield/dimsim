@@ -78,7 +78,7 @@ class TestTensorReporter:
             reporter.report(None, mock_state)
 
     @pytest.mark.parametrize("input_type", ["file", "object"])
-    def test_report_during_simulatuion(self, tmp_path, input_type):
+    def test_report_during_simulation(self, tmp_path, input_type):
         import openmm
         from openff.toolkit import ForceField, Molecule, Quantity
 
@@ -108,16 +108,17 @@ class TestTensorReporter:
         )
 
         if input_type == "file":
-            tensor_reporter = TensorReporter(
+            reporter = TensorReporter(
                 output_file=str(tmp_path / "1.msgpack"),
                 report_interval=10,
                 beta=_BETA,
                 pressure=1.0 * openmm.unit.atmospheres,
             )
 
-            simulation.reporters.append(tensor_reporter)
+            simulation.reporters.append(reporter)
 
             simulation.step(50)
+            reporter.close()
         elif input_type == "object":
             with open(tmp_path / "2.msgpack", "wb") as output_file:
                 tensor_reporter = TensorReporter(
