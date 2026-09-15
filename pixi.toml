@@ -67,6 +67,7 @@ python = "3.12.*"
 pytest = "*"
 pytest-cov = "*"
 pytest-xdist = "*"
+pytest-mock = "*"
 pytest-randomly = "*"
 
 [feature.typing.pypi-dependencies]
