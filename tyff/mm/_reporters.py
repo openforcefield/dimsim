@@ -55,7 +55,13 @@ class TensorReporter:
             pressure: The pressure the simulation is being run at, or None if NVT /
                 vacuum.
         """
-        self._output_file = output_file
+        if isinstance(output_file, (str, os.PathLike)):
+            # if it's str/pathlib.Path/etc., **need to open it first** in binary mode
+            self._output_file = open(output_file, "wb")
+        else:
+            # otherwise hope that it's already opened in write+binary mode
+            self._output_file = output_file
+
         self._report_interval = report_interval
 
         self._beta = beta
