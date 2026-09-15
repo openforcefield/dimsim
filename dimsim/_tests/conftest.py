@@ -2,19 +2,16 @@
 
 from __future__ import annotations
 
-import random
-
-import pytest
-
-from dimsim.configs.targets.thermo import DataEntry
-
 import pathlib
+import random
 
 import openff.interchange
 import openff.toolkit
 import openff.units
 import pytest
 import torch
+
+from dimsim.configs.targets.thermo import DataEntry
 
 _ANGSTROM = openff.units.unit.angstrom
 _NM = openff.units.unit.nanometer
@@ -58,6 +55,7 @@ def dielectric_entry() -> DataEntry:
         "source": "",
     }
 
+
 @pytest.fixture(scope="module")
 def toolkit_registry_rdkit_first():
     """Returns a toolkit registry with RDKit as the first toolkit."""
@@ -98,9 +96,7 @@ def default_force_field() -> openff.toolkit.ForceField:
 def ethanol() -> openff.toolkit.Molecule:
     """Returns an OpenFF ethanol molecule with a fixed atom order."""
 
-    return openff.toolkit.Molecule.from_mapped_smiles(
-        "[H:5][C:2]([H:6])([H:7])[C:3]([H:8])([H:9])[O:1][H:4]"
-    )
+    return openff.toolkit.Molecule.from_mapped_smiles("[H:5][C:2]([H:6])([H:7])[C:3]([H:8])([H:9])[O:1][H:4]")
 
 
 @pytest.fixture(scope="module")
@@ -115,13 +111,9 @@ def ethanol_conformer(ethanol) -> torch.Tensor:
 
 
 @pytest.fixture(scope="module")
-def ethanol_interchange(
-    ethanol, default_force_field, toolkit_registry_rdkit_first
-) -> openff.interchange.Interchange:
+def ethanol_interchange(ethanol, default_force_field, toolkit_registry_rdkit_first) -> openff.interchange.Interchange:
     """Returns a parameterized system of ethanol."""
-    return default_force_field.create_interchange(
-        ethanol.to_topology(), toolkit_registry=toolkit_registry_rdkit_first
-    )
+    return default_force_field.create_interchange(ethanol.to_topology(), toolkit_registry=toolkit_registry_rdkit_first)
 
 
 @pytest.fixture(scope="module")
@@ -169,9 +161,7 @@ def v_site_force_field() -> openff.toolkit.ForceField:
     )
 
     charge_handler = force_field.get_parameter_handler("LibraryCharges")
-    charge_handler.add_parameter(
-        {"smirks": "[*:1]", "charge1": 0.0 * openff.units.unit.e}
-    )
+    charge_handler.add_parameter({"smirks": "[*:1]", "charge1": 0.0 * openff.units.unit.e})
 
     vsite_handler = force_field.get_parameter_handler("VirtualSites")
 

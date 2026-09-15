@@ -93,7 +93,7 @@ def test_convert_to_openmm_ffxml(tmp_cwd, with_constraints, smiles):
     coords = off_mol.conformers[0].m_as("angstrom")
 
     for _ in range(5):
-        coords_rand = coords + RNG.standard_normal(*coords.shape) * 0.1
+        coords_rand = coords + RNG.standard_normal(coords.shape) * 0.1
 
         energy_off = compute_energy(system_from_off, coords_rand)
         energy_xml = compute_energy(system_from_xml, coords_rand)

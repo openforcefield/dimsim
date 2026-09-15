@@ -4,12 +4,13 @@ import importlib
 import inspect
 import typing
 
-import smee
-import smee.utils
 import torch
 
+import dimsim
+import dimsim.utils
+
 if typing.TYPE_CHECKING:
-    import smee.potentials.nonbonded
+    import dimsim.potentials.nonbonded
 
 
 _POTENTIAL_ENERGY_FUNCTIONS = {}
@@ -31,7 +32,7 @@ def potential_energy_fn(handler_type: str, energy_expression: str):
     return _potential_function_inner
 
 
-def broadcast_parameters(system: smee.TensorSystem, potential: smee.TensorPotential) -> torch.Tensor:
+def broadcast_parameters(system: dimsim.TensorSystem, potential: dimsim.TensorPotential) -> torch.Tensor:
     """Returns parameters for the full system by broadcasting and stacking the
     parameters of each topology.
 
@@ -65,8 +66,8 @@ def broadcast_parameters(system: smee.TensorSystem, potential: smee.TensorPotent
 
 
 def broadcast_exceptions(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
     idxs_a: torch.Tensor,
     idxs_b: torch.Tensor,
 ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -92,7 +93,7 @@ def broadcast_exceptions(
     for topology, n_copies in zip(system.topologies, system.n_copies, strict=True):
         parameter_map = topology.parameters[potential.type]
 
-        if isinstance(parameter_map, smee.ValenceParameterMap):
+        if isinstance(parameter_map, dimsim.ValenceParameterMap):
             raise NotImplementedError("valence exceptions are not supported")
 
         # check that each particle is assigned to exactly one parameter
@@ -136,7 +137,7 @@ def broadcast_exceptions(
     return exception_idxs, exceptions
 
 
-def broadcast_idxs(system: smee.TensorSystem, potential: smee.TensorPotential) -> torch.Tensor:
+def broadcast_idxs(system: dimsim.TensorSystem, potential: dimsim.TensorPotential) -> torch.Tensor:
     """Broadcasts the particle indices of each topology for a given potential
     to the full system.
 
@@ -159,7 +160,7 @@ def broadcast_idxs(system: smee.TensorSystem, potential: smee.TensorPotential) -
 
         idxs = parameter_map.particle_idxs
 
-        offset = idx_offset + smee.utils.arange_like(n_copies, idxs) * topology.n_particles
+        offset = idx_offset + dimsim.utils.arange_like(n_copies, idxs) * topology.n_particles
 
         if len(idxs) > 0:
             idxs = offset[:, None, None] + idxs[None, :, :]
@@ -171,10 +172,10 @@ def broadcast_idxs(system: smee.TensorSystem, potential: smee.TensorPotential) -
 
 
 def _prepare_inputs(
-    system: smee.TensorSystem | smee.TensorTopology,
+    system: dimsim.TensorSystem | dimsim.TensorTopology,
     conformer: torch.Tensor,
     box_vectors: torch.Tensor | None = None,
-) -> tuple[smee.TensorSystem, torch.Tensor, torch.Tensor | None]:
+) -> tuple[dimsim.TensorSystem, torch.Tensor, torch.Tensor | None]:
     """Prepare inputs for a potential energy function.
 
     Args:
@@ -193,8 +194,8 @@ def _prepare_inputs(
     conformer = conformer.float()
     box_vectors = box_vectors.float() if box_vectors is not None else None
 
-    if isinstance(system, smee.TensorTopology):
-        system = smee.TensorSystem([system], [1], False)
+    if isinstance(system, dimsim.TensorTopology):
+        system = dimsim.TensorSystem([system], [1], False)
 
     if conformer.ndim == 3 and system.is_periodic:
         raise NotImplementedError("batched periodic systems are not supported")
@@ -206,11 +207,11 @@ def _prepare_inputs(
 
 
 def _precompute_pairwise(
-    system: smee.TensorSystem,
-    force_field: smee.TensorForceField,
+    system: dimsim.TensorSystem,
+    force_field: dimsim.TensorForceField,
     conformer: torch.Tensor,
     box_vectors: torch.Tensor | None = None,
-) -> typing.Optional["smee.potentials.nonbonded.PairwiseDistances"]:
+) -> typing.Optional["dimsim.potentials.nonbonded.PairwiseDistances"]:
     """Pre-compute pairwise distances for a system if required by any of the
     potential energy functions.
 
@@ -239,8 +240,8 @@ def _precompute_pairwise(
 
         requires_pairwise = True
 
-        if smee.CUTOFF_ATTRIBUTE in potential.attribute_cols:
-            cutoff = potential.attributes[potential.attribute_cols.index(smee.CUTOFF_ATTRIBUTE)]
+        if dimsim.CUTOFF_ATTRIBUTE in potential.attribute_cols:
+            cutoff = potential.attributes[potential.attribute_cols.index(dimsim.CUTOFF_ATTRIBUTE)]
             cutoffs.append(cutoff)
 
         break
@@ -253,15 +254,15 @@ def _precompute_pairwise(
 
     cutoff = None if len(cutoffs) == 0 else cutoffs[0]
 
-    return smee.potentials.nonbonded.compute_pairwise(system, conformer, box_vectors, cutoff)
+    return dimsim.potentials.nonbonded.compute_pairwise(system, conformer, box_vectors, cutoff)
 
 
 def compute_energy_potential(
-    system: smee.TensorSystem | smee.TensorTopology,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem | dimsim.TensorTopology,
+    potential: dimsim.TensorPotential,
     conformer: torch.Tensor,
     box_vectors: torch.Tensor | None = None,
-    pairwise: typing.Optional["smee.potentials.nonbonded.PairwiseDistances"] = None,
+    pairwise: typing.Optional["dimsim.potentials.nonbonded.PairwiseDistances"] = None,
 ) -> torch.Tensor:
     """Computes the potential energy [kcal / mol] due to a SMIRNOFF potential
     handler for a given conformer(s).
@@ -281,8 +282,8 @@ def compute_energy_potential(
     """
 
     # register the built-in potential energy functions
-    importlib.import_module("smee.potentials.nonbonded")
-    importlib.import_module("smee.potentials.valence")
+    importlib.import_module("dimsim.potentials.nonbonded")
+    importlib.import_module("dimsim.potentials.valence")
 
     system, conformer, box_vectors = _prepare_inputs(system, conformer, box_vectors)
 
@@ -300,8 +301,8 @@ def compute_energy_potential(
 
 
 def compute_energy(
-    system: smee.TensorSystem | smee.TensorTopology,
-    force_field: smee.TensorForceField,
+    system: dimsim.TensorSystem | dimsim.TensorTopology,
+    force_field: dimsim.TensorForceField,
     conformer: torch.Tensor,
     box_vectors: torch.Tensor | None = None,
 ) -> torch.Tensor:
@@ -321,13 +322,13 @@ def compute_energy(
     """
 
     # register the built-in potential energy functions
-    importlib.import_module("smee.potentials.nonbonded")
-    importlib.import_module("smee.potentials.valence")
+    importlib.import_module("dimsim.potentials.nonbonded")
+    importlib.import_module("dimsim.potentials.valence")
 
     system, conformer, box_vectors = _prepare_inputs(system, conformer, box_vectors)
     pairwise = _precompute_pairwise(system, force_field, conformer, box_vectors)
 
-    energy = smee.utils.zeros_like(conformer.shape[0] if conformer.ndim == 3 else 1, conformer)
+    energy = dimsim.utils.zeros_like(conformer.shape[0] if conformer.ndim == 3 else 1, conformer)
 
     for potential in force_field.potentials:
         energy += compute_energy_potential(system, potential, conformer, box_vectors, pairwise)

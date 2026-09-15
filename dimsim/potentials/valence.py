@@ -1,15 +1,16 @@
 """Valence potential energy functions."""
 
-import smee.geometry
-import smee.potentials
-import smee.utils
 import torch
 
+import dimsim.geometry
+import dimsim.potentials
+import dimsim.utils
 
-@smee.potentials.potential_energy_fn(smee.PotentialType.BONDS, smee.EnergyFn.BOND_HARMONIC)
+
+@dimsim.potentials.potential_energy_fn(dimsim.PotentialType.BONDS, dimsim.EnergyFn.BOND_HARMONIC)
 def compute_harmonic_bond_energy(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
     conformer: torch.Tensor,
 ) -> torch.Tensor:
     """Compute the potential energy [kcal / mol] of a set of bonds for a given
@@ -25,10 +26,10 @@ def compute_harmonic_bond_energy(
         The computed potential energy [kcal / mol].
     """
 
-    parameters = smee.potentials.broadcast_parameters(system, potential)
-    particle_idxs = smee.potentials.broadcast_idxs(system, potential)
+    parameters = dimsim.potentials.broadcast_parameters(system, potential)
+    particle_idxs = dimsim.potentials.broadcast_idxs(system, potential)
 
-    _, distances = smee.geometry.compute_bond_vectors(conformer, particle_idxs)
+    _, distances = dimsim.geometry.compute_bond_vectors(conformer, particle_idxs)
 
     k = parameters[:, potential.parameter_cols.index("k")]
     length = parameters[:, potential.parameter_cols.index("length")]
@@ -36,10 +37,10 @@ def compute_harmonic_bond_energy(
     return (0.5 * k * (distances - length) ** 2).sum(-1)
 
 
-@smee.potentials.potential_energy_fn(smee.PotentialType.ANGLES, smee.EnergyFn.ANGLE_HARMONIC)
+@dimsim.potentials.potential_energy_fn(dimsim.PotentialType.ANGLES, dimsim.EnergyFn.ANGLE_HARMONIC)
 def compute_harmonic_angle_energy(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
     conformer: torch.Tensor,
 ) -> torch.Tensor:
     """Compute the potential energy [kcal / mol] of a set of valence angles for a given
@@ -55,10 +56,10 @@ def compute_harmonic_angle_energy(
         The computed potential energy [kcal / mol].
     """
 
-    parameters = smee.potentials.broadcast_parameters(system, potential)
-    particle_idxs = smee.potentials.broadcast_idxs(system, potential)
+    parameters = dimsim.potentials.broadcast_parameters(system, potential)
+    particle_idxs = dimsim.potentials.broadcast_idxs(system, potential)
 
-    theta = smee.geometry.compute_angles(conformer, particle_idxs)
+    theta = dimsim.geometry.compute_angles(conformer, particle_idxs)
 
     k = parameters[:, potential.parameter_cols.index("k")]
     angle = parameters[:, potential.parameter_cols.index("angle")]
@@ -67,8 +68,8 @@ def compute_harmonic_angle_energy(
 
 
 def _compute_cosine_torsion_energy(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
     conformer: torch.Tensor,
 ) -> torch.Tensor:
     """Compute the potential energy [kcal / mol] of a set of torsions for a given
@@ -85,10 +86,10 @@ def _compute_cosine_torsion_energy(
         The computed potential energy [kcal / mol].
     """
 
-    parameters = smee.potentials.broadcast_parameters(system, potential)
-    particle_idxs = smee.potentials.broadcast_idxs(system, potential)
+    parameters = dimsim.potentials.broadcast_parameters(system, potential)
+    particle_idxs = dimsim.potentials.broadcast_idxs(system, potential)
 
-    phi = smee.geometry.compute_dihedrals(conformer, particle_idxs)
+    phi = dimsim.geometry.compute_dihedrals(conformer, particle_idxs)
 
     k = parameters[:, potential.parameter_cols.index("k")]
     periodicity = parameters[:, potential.parameter_cols.index("periodicity")]
@@ -98,10 +99,10 @@ def _compute_cosine_torsion_energy(
     return ((k / idivf) * (1.0 + torch.cos(periodicity * phi - phase))).sum(-1)
 
 
-@smee.potentials.potential_energy_fn(smee.PotentialType.PROPER_TORSIONS, smee.EnergyFn.TORSION_COSINE)
+@dimsim.potentials.potential_energy_fn(dimsim.PotentialType.PROPER_TORSIONS, dimsim.EnergyFn.TORSION_COSINE)
 def compute_cosine_proper_torsion_energy(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
     conformer: torch.Tensor,
 ) -> torch.Tensor:
     """Compute the potential energy [kcal / mol] of a set of proper torsions
@@ -121,10 +122,10 @@ def compute_cosine_proper_torsion_energy(
     return _compute_cosine_torsion_energy(system, potential, conformer)
 
 
-@smee.potentials.potential_energy_fn(smee.PotentialType.IMPROPER_TORSIONS, smee.EnergyFn.TORSION_COSINE)
+@dimsim.potentials.potential_energy_fn(dimsim.PotentialType.IMPROPER_TORSIONS, dimsim.EnergyFn.TORSION_COSINE)
 def compute_cosine_improper_torsion_energy(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
     conformer: torch.Tensor,
 ) -> torch.Tensor:
     """Compute the potential energy [kcal / mol] of a set of improper torsions
@@ -144,10 +145,10 @@ def compute_cosine_improper_torsion_energy(
     return _compute_cosine_torsion_energy(system, potential, conformer)
 
 
-@smee.potentials.potential_energy_fn(smee.PotentialType.LINEAR_BONDS, smee.EnergyFn.BOND_LINEAR)
+@dimsim.potentials.potential_energy_fn(dimsim.PotentialType.LINEAR_BONDS, dimsim.EnergyFn.BOND_LINEAR)
 def compute_linear_bond_energy(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
     conformer: torch.Tensor,
 ) -> torch.Tensor:
     """Compute the potential energy [kcal / mol] of a set of bonds for a given
@@ -163,10 +164,10 @@ def compute_linear_bond_energy(
     Returns:
         The computed potential energy [kcal / mol].
     """
-    parameters = smee.potentials.broadcast_parameters(system, potential)
-    particle_idxs = smee.potentials.broadcast_idxs(system, potential)
+    parameters = dimsim.potentials.broadcast_parameters(system, potential)
+    particle_idxs = dimsim.potentials.broadcast_idxs(system, potential)
 
-    _, distances = smee.geometry.compute_bond_vectors(conformer, particle_idxs)
+    _, distances = dimsim.geometry.compute_bond_vectors(conformer, particle_idxs)
 
     k1 = parameters[:, potential.parameter_cols.index("k1")]
     k2 = parameters[:, potential.parameter_cols.index("k2")]
@@ -177,10 +178,10 @@ def compute_linear_bond_energy(
     return (0.5 * k0 * (distances - b0) ** 2).sum(-1)
 
 
-@smee.potentials.potential_energy_fn(smee.PotentialType.LINEAR_ANGLES, smee.EnergyFn.ANGLE_LINEAR)
+@dimsim.potentials.potential_energy_fn(dimsim.PotentialType.LINEAR_ANGLES, dimsim.EnergyFn.ANGLE_LINEAR)
 def compute_linear_angle_energy(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
     conformer: torch.Tensor,
 ) -> torch.Tensor:
     """Compute the potential energy [kcal / mol] of a set of valence angles for a given
@@ -197,9 +198,9 @@ def compute_linear_angle_energy(
         The computed potential energy [kcal / mol].
     """
 
-    parameters = smee.potentials.broadcast_parameters(system, potential)
-    particle_idxs = smee.potentials.broadcast_idxs(system, potential)
-    theta = smee.geometry.compute_angles(conformer, particle_idxs)
+    parameters = dimsim.potentials.broadcast_parameters(system, potential)
+    particle_idxs = dimsim.potentials.broadcast_idxs(system, potential)
+    theta = dimsim.geometry.compute_angles(conformer, particle_idxs)
     k1 = parameters[:, potential.parameter_cols.index("k1")]
     k2 = parameters[:, potential.parameter_cols.index("k2")]
     a1 = parameters[:, potential.parameter_cols.index("angle1")]

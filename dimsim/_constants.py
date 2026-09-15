@@ -24,7 +24,7 @@ else:
 
 
 class PotentialType(_StrEnum):
-    """An enumeration of the potential types supported by ``smee`` out of the box."""
+    """An enumeration of the potential types supported by ``dimsim`` out of the box."""
 
     BONDS = "Bonds"
     ANGLES = "Angles"
@@ -40,7 +40,7 @@ class PotentialType(_StrEnum):
 
 
 class EnergyFn(_StrEnum):
-    """An enumeration of the energy functions supported by ``smee`` out of the box."""
+    """An enumeration of the energy functions supported by ``dimsim`` out of the box."""
 
     COULOMB = "coul"
 

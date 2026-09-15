@@ -1,6 +1,6 @@
 """Evaluate the potential energy of parameterized topologies."""
 
-from smee.potentials._potentials import (
+from dimsim.potentials._potentials import (
     broadcast_exceptions,
     broadcast_idxs,
     broadcast_parameters,

@@ -61,7 +61,7 @@ def _compare_dimsim_and_interchange(
     assert isinstance(system_dimsim, openmm.System)
     system_interchange = interchange.to_openmm(False, False)
 
-    coords += (RNG.standard_normal(*coords.shape) * 0.1) * openmm.unit.angstrom
+    coords += (RNG.standard_normal(coords.shape) * 0.1) * openmm.unit.angstrom
 
     energy_dimsim = _compute_energy(system_dimsim, coords, box_vectors)
     energy_interchange = _compute_energy(system_interchange, coords, box_vectors)

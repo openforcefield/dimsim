@@ -5,9 +5,10 @@ import math
 import typing
 
 import openff.units
-import smee.potentials
-import smee.utils
 import torch
+
+import dimsim.potentials
+import dimsim.utils
 
 _UNIT = openff.units.unit
 
@@ -34,7 +35,7 @@ class PairwiseDistances(typing.NamedTuple):
 
 
 def _broadcast_exclusions(
-    system: smee.TensorSystem, potential: smee.TensorPotential
+    system: dimsim.TensorSystem, potential: dimsim.TensorPotential
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Broadcasts the exclusions (indices and scale factors) of each topology to the
     full system.
@@ -56,7 +57,7 @@ def _broadcast_exclusions(
     for topology, n_copies in zip(system.topologies, system.n_copies, strict=True):
         exclusion_idxs = topology.parameters[potential.type].exclusions
 
-        exclusion_offset = idx_offset + smee.utils.arange_like(n_copies, exclusion_idxs) * topology.n_particles
+        exclusion_offset = idx_offset + dimsim.utils.arange_like(n_copies, exclusion_idxs) * topology.n_particles
         idx_offset += n_copies * topology.n_particles
 
         if len(exclusion_idxs) == 0:
@@ -84,7 +85,7 @@ def _broadcast_exclusions(
     return system_idxs, system_scales
 
 
-def compute_pairwise_scales(system: smee.TensorSystem, potential: smee.TensorPotential) -> torch.Tensor:
+def compute_pairwise_scales(system: dimsim.TensorSystem, potential: dimsim.TensorPotential) -> torch.Tensor:
     """Returns the scale factor for each pair of particles in the system by
     broadcasting and stacking the exclusions of each topology.
 
@@ -102,12 +103,12 @@ def compute_pairwise_scales(system: smee.TensorSystem, potential: smee.TensorPot
 
     exclusion_idxs, exclusion_scales = _broadcast_exclusions(system, potential)
 
-    pair_scales = smee.utils.ones_like(n_pairs, other=potential.parameters)
+    pair_scales = dimsim.utils.ones_like(n_pairs, other=potential.parameters)
 
     if len(exclusion_idxs) > 0:
         exclusion_idxs, _ = exclusion_idxs.sort(dim=1)  # ensure upper triangle
 
-        pair_idxs = smee.utils.to_upper_tri_idx(exclusion_idxs[:, 0], exclusion_idxs[:, 1], n_particles)
+        pair_idxs = dimsim.utils.to_upper_tri_idx(exclusion_idxs[:, 0], exclusion_idxs[:, 1], n_particles)
         pair_scales[pair_idxs] = exclusion_scales
 
     return pair_scales
@@ -161,7 +162,7 @@ def _compute_pairwise_non_periodic(conformer: torch.Tensor) -> PairwiseDistances
 
 
 def compute_pairwise(
-    system: smee.TensorSystem,
+    system: dimsim.TensorSystem,
     conformer: torch.Tensor,
     box_vectors: torch.Tensor | None,
     cutoff: torch.Tensor,
@@ -189,8 +190,8 @@ def compute_pairwise(
 
 
 def prepare_lrc_types(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Finds the unique vdW interactions present in a system, ready to use
     for computing the long range dispersion correction.
@@ -213,7 +214,7 @@ def prepare_lrc_types(
         for key, count in zip(potential.parameter_keys, parameter_counts, strict=True):
             n_by_type[key] += count.item() * n_copies
 
-    counts = smee.utils.tensor_like([n_by_type[key] for key in potential.parameter_keys], potential.parameters)
+    counts = dimsim.utils.tensor_like([n_by_type[key] for key in potential.parameter_keys], potential.parameters)
 
     n_ii_interactions = (counts * (counts + 1.0)) / 2.0
 
@@ -256,17 +257,17 @@ def lorentz_berthelot(
         The epsilon [kcal / mol] and sigma [Å] values of each pair, each with
         ``shape=(n_pairs, 1)``.
     """
-    return smee.utils.geometric_mean(epsilon_a, epsilon_b), 0.5 * (sigma_a + sigma_b)
+    return dimsim.utils.geometric_mean(epsilon_a, epsilon_b), 0.5 * (sigma_a + sigma_b)
 
 
 def _compute_switch_fn(
-    potential: smee.TensorPotential,
+    potential: dimsim.TensorPotential,
     pairwise: PairwiseDistances,
 ) -> tuple[torch.Tensor, torch.Tensor | None]:
-    if smee.SWITCH_ATTRIBUTE not in potential.attribute_cols:
+    if dimsim.SWITCH_ATTRIBUTE not in potential.attribute_cols:
         return torch.ones(1), None
 
-    switch_width_idx = potential.attribute_cols.index(smee.SWITCH_ATTRIBUTE)
+    switch_width_idx = potential.attribute_cols.index(dimsim.SWITCH_ATTRIBUTE)
     switch_width = pairwise.cutoff - potential.attributes[switch_width_idx]
 
     x_switch = (pairwise.distances - switch_width) / (pairwise.cutoff - switch_width)
@@ -322,15 +323,15 @@ def _integrate_lj_switch(
     """
     b = 1.0 / (rc - rs)
 
-    coeff_0 = smee.utils.tensor_like([rs**3, rs**2, rs, 1, b, b**2], rs) * (
-        smee.utils.tensor_like([rs**2 * b**2, rs * b, 1], rs)
-        * smee.utils.tensor_like([[6, 15, 10], [1, 2, 1], [2, 3, 1], [6, 6, 1], [0, 2, 1], [0, 0, 1]], rs)
+    coeff_0 = dimsim.utils.tensor_like([rs**3, rs**2, rs, 1, b, b**2], rs) * (
+        dimsim.utils.tensor_like([rs**2 * b**2, rs * b, 1], rs)
+        * dimsim.utils.tensor_like([[6, 15, 10], [1, 2, 1], [2, 3, 1], [6, 6, 1], [0, 2, 1], [0, 0, 1]], rs)
     ).sum(dim=-1)
 
-    coeff_01 = sig[:, None] ** 6 * smee.utils.tensor_like([-28, 945, -1080, 420, -756, 378], rs) * coeff_0
-    coeff_11 = smee.utils.tensor_like([84, -3780, 7560, 2520, -3780, 756], rs) * coeff_0
+    coeff_01 = sig[:, None] ** 6 * dimsim.utils.tensor_like([-28, 945, -1080, 420, -756, 378], rs) * coeff_0
+    coeff_11 = dimsim.utils.tensor_like([84, -3780, 7560, 2520, -3780, 756], rs) * coeff_0
 
-    powers = smee.utils.tensor_like([-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2], rs)
+    powers = dimsim.utils.tensor_like([-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2], rs)
     r_pow = torch.pow(r, powers)
     r_pow = torch.where(powers == 0, torch.log(r), r_pow)
 
@@ -340,8 +341,8 @@ def _integrate_lj_switch(
 
 
 def _compute_lj_lrc(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
     rs: torch.Tensor | None,
     rc: torch.Tensor | None,
     volume: torch.Tensor,
@@ -349,7 +350,7 @@ def _compute_lj_lrc(
     """Computes the long range dispersion correction due to the double exponential
     potential, possibly with a switching function."""
 
-    idxs_i, idxs_j, n_ij_interactions = smee.potentials.nonbonded.prepare_lrc_types(system, potential)
+    idxs_i, idxs_j, n_ij_interactions = dimsim.potentials.nonbonded.prepare_lrc_types(system, potential)
 
     eps_col = potential.parameter_cols.index("epsilon")
     sig_col = potential.parameter_cols.index("sigma")
@@ -358,7 +359,7 @@ def _compute_lj_lrc(
         potential.parameters[:, eps_col],
         potential.parameters[:, sig_col],
     )
-    eps_ij, sig_ij = smee.potentials.nonbonded.lorentz_berthelot(
+    eps_ij, sig_ij = dimsim.potentials.nonbonded.lorentz_berthelot(
         eps_ii[idxs_i], eps_ii[idxs_j], sig_ii[idxs_i], sig_ii[idxs_j]
     )
 
@@ -395,10 +396,10 @@ def _compute_lj_lrc(
     return 2.0 * system.n_particles**2 * torch.pi / volume * integral
 
 
-@smee.potentials.potential_energy_fn(smee.PotentialType.VDW, smee.EnergyFn.VDW_LJ)
+@dimsim.potentials.potential_energy_fn(dimsim.PotentialType.VDW, dimsim.EnergyFn.VDW_LJ)
 def compute_lj_energy(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
     conformer: torch.Tensor,
     box_vectors: torch.Tensor | None = None,
     pairwise: PairwiseDistances | None = None,
@@ -429,17 +430,17 @@ def compute_lj_energy(
 
     box_vectors = None if not system.is_periodic else box_vectors
 
-    cutoff = potential.attributes[potential.attribute_cols.index(smee.CUTOFF_ATTRIBUTE)]
+    cutoff = potential.attributes[potential.attribute_cols.index(dimsim.CUTOFF_ATTRIBUTE)]
 
     pairwise = pairwise if pairwise is not None else compute_pairwise(system, conformer, box_vectors, cutoff)
 
     if system.is_periodic and not torch.isclose(pairwise.cutoff, cutoff):
         raise ValueError("the pairwise cutoff does not match the potential.")
 
-    parameters = smee.potentials.broadcast_parameters(system, potential)
+    parameters = dimsim.potentials.broadcast_parameters(system, potential)
     pair_scales = compute_pairwise_scales(system, potential)
 
-    pairs_1d = smee.utils.to_upper_tri_idx(pairwise.idxs[:, 0], pairwise.idxs[:, 1], len(parameters))
+    pairs_1d = dimsim.utils.to_upper_tri_idx(pairwise.idxs[:, 0], pairwise.idxs[:, 1], len(parameters))
     pair_scales = pair_scales[pairs_1d]
 
     eps_column = potential.parameter_cols.index("epsilon")
@@ -453,7 +454,7 @@ def compute_lj_energy(
     )
 
     if potential.exceptions is not None:
-        exception_idxs, exceptions = smee.potentials.broadcast_exceptions(
+        exception_idxs, exceptions = dimsim.potentials.broadcast_exceptions(
             system, potential, pairwise.idxs[:, 0], pairwise.idxs[:, 1]
         )
 
@@ -522,10 +523,10 @@ def _integrate_dexp_switch(
         a: The prefactor of the exponential term.
         b: The exponent of the exponential term.
     """
-    rs_pow = smee.utils.tensor_like([rs**5, rs**4, rs**3, rs**2, rs, 1, 0, 0], rc).unsqueeze(1)
+    rs_pow = dimsim.utils.tensor_like([rs**5, rs**4, rs**3, rs**2, rs, 1, 0, 0], rc).unsqueeze(1)
 
     # fmt: off
-    c_n = smee.utils.tensor_like(
+    c_n = dimsim.utils.tensor_like(
         [
             [  6,  15,  10],
             [-30, -60, -30],
@@ -548,7 +549,7 @@ def _integrate_dexp_switch(
 
     b = b.unsqueeze(1)
     b_pow = torch.hstack(
-        [smee.utils.zeros_like((len(b), 1), b)] * 4
+        [dimsim.utils.zeros_like((len(b), 1), b)] * 4
         + [torch.ones_like(b), b, b**2, b**3, b**4, b**5, b**6, b**7, b**8],
     )
 
@@ -568,7 +569,7 @@ def _integrate_dexp_switch(
     mat = torch.where(torch.isinf(mat), torch.zeros_like(mat), mat)
 
     # fmt: off
-    mat_coeff = smee.utils.tensor_like(
+    mat_coeff = dimsim.utils.tensor_like(
         [
             [-2,    -2,    -1,     0,    0,    0,   0,  0],
             [-6,    -6,    -3,    -1,    0,    0,   0,  0],
@@ -586,8 +587,8 @@ def _integrate_dexp_switch(
 
 
 def _compute_dexp_lrc(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
     rs: torch.Tensor | None,
     rc: torch.Tensor | None,
     volume: torch.Tensor,
@@ -610,7 +611,7 @@ def _compute_dexp_lrc(
         potential.parameters[:, eps_col],
         potential.parameters[:, r_min_col],
     )
-    eps_ij, r_min_ij = smee.potentials.nonbonded.lorentz_berthelot(
+    eps_ij, r_min_ij = dimsim.potentials.nonbonded.lorentz_berthelot(
         eps_ii[idxs_i], eps_ii[idxs_j], r_min_ii[idxs_i], r_min_ii[idxs_j]
     )
 
@@ -662,10 +663,10 @@ def _compute_dexp_lrc(
     return 2.0 * system.n_particles**2 * torch.pi / volume * integral
 
 
-@smee.potentials.potential_energy_fn(smee.PotentialType.VDW, smee.EnergyFn.VDW_DEXP)
+@dimsim.potentials.potential_energy_fn(dimsim.PotentialType.VDW, dimsim.EnergyFn.VDW_DEXP)
 def compute_dexp_energy(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
     conformer: torch.Tensor,
     box_vectors: torch.Tensor | None = None,
     pairwise: PairwiseDistances | None = None,
@@ -691,23 +692,23 @@ def compute_dexp_energy(
     """
     box_vectors = None if not system.is_periodic else box_vectors
 
-    cutoff = potential.attributes[potential.attribute_cols.index(smee.CUTOFF_ATTRIBUTE)]
+    cutoff = potential.attributes[potential.attribute_cols.index(dimsim.CUTOFF_ATTRIBUTE)]
 
     pairwise = pairwise if pairwise is not None else compute_pairwise(system, conformer, box_vectors, cutoff)
 
     if system.is_periodic and not torch.isclose(pairwise.cutoff, cutoff):
         raise ValueError("the pairwise cutoff does not match the potential.")
 
-    parameters = smee.potentials.broadcast_parameters(system, potential)
+    parameters = dimsim.potentials.broadcast_parameters(system, potential)
     pair_scales = compute_pairwise_scales(system, potential)
 
-    pairs_1d = smee.utils.to_upper_tri_idx(pairwise.idxs[:, 0], pairwise.idxs[:, 1], len(parameters))
+    pairs_1d = dimsim.utils.to_upper_tri_idx(pairwise.idxs[:, 0], pairwise.idxs[:, 1], len(parameters))
     pair_scales = pair_scales[pairs_1d]
 
     eps_column = potential.parameter_cols.index("epsilon")
     r_min_column = potential.parameter_cols.index("r_min")
 
-    eps, r_min = smee.potentials.nonbonded.lorentz_berthelot(
+    eps, r_min = dimsim.potentials.nonbonded.lorentz_berthelot(
         parameters[pairwise.idxs[:, 0], eps_column],
         parameters[pairwise.idxs[:, 1], eps_column],
         parameters[pairwise.idxs[:, 0], r_min_column],
@@ -715,7 +716,7 @@ def compute_dexp_energy(
     )
 
     if potential.exceptions is not None:
-        exception_idxs, exceptions = smee.potentials.broadcast_exceptions(
+        exception_idxs, exceptions = dimsim.potentials.broadcast_exceptions(
             system, potential, pairwise.idxs[:, 0], pairwise.idxs[:, 1]
         )
 
@@ -753,7 +754,7 @@ def compute_dexp_energy(
     return energy
 
 
-def _compute_pme_exclusions(system: smee.TensorSystem, potential: smee.TensorPotential) -> torch.Tensor:
+def _compute_pme_exclusions(system: dimsim.TensorSystem, potential: dimsim.TensorPotential) -> torch.Tensor:
     """Builds the exclusion tensor required by NNPOps pme functions
 
     Args:
@@ -818,11 +819,11 @@ def _compute_pme_grid(
 
 
 def _compute_coulomb_energy_non_periodic(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
     pairwise: PairwiseDistances,
 ):
-    parameters = smee.potentials.broadcast_parameters(system, potential)
+    parameters = dimsim.potentials.broadcast_parameters(system, potential)
     pair_scales = compute_pairwise_scales(system, potential)
 
     energy = (
@@ -837,19 +838,19 @@ def _compute_coulomb_energy_non_periodic(
 
 
 def _compute_coulomb_energy_periodic(
-    system: smee.TensorSystem,
+    system: dimsim.TensorSystem,
     conformer: torch.Tensor,
     box_vectors: torch.Tensor,
-    potential: smee.TensorPotential,
+    potential: dimsim.TensorPotential,
     pairwise: PairwiseDistances,
 ) -> torch.Tensor:
     import NNPOps.pme
 
     assert system.is_periodic, "the system must be periodic."
 
-    charges = smee.potentials.broadcast_parameters(system, potential).squeeze(-1)
+    charges = dimsim.potentials.broadcast_parameters(system, potential).squeeze(-1)
 
-    cutoff = potential.attributes[potential.attribute_cols.index(smee.CUTOFF_ATTRIBUTE)]
+    cutoff = potential.attributes[potential.attribute_cols.index(dimsim.CUTOFF_ATTRIBUTE)]
     error_tol = torch.tensor(0.0001)
 
     exceptions = _compute_pme_exclusions(system, potential).to(charges.device)
@@ -899,10 +900,10 @@ def _compute_coulomb_energy_periodic(
     return energy_direct + energy_recip + energy_exclusion
 
 
-@smee.potentials.potential_energy_fn(smee.PotentialType.ELECTROSTATICS, smee.EnergyFn.COULOMB)
+@dimsim.potentials.potential_energy_fn(dimsim.PotentialType.ELECTROSTATICS, dimsim.EnergyFn.COULOMB)
 def compute_coulomb_energy(
-    system: smee.TensorSystem,
-    potential: smee.TensorPotential,
+    system: dimsim.TensorSystem,
+    potential: dimsim.TensorPotential,
     conformer: torch.Tensor,
     box_vectors: torch.Tensor | None = None,
     pairwise: PairwiseDistances | None = None,
@@ -931,7 +932,7 @@ def compute_coulomb_energy(
 
     box_vectors = None if not system.is_periodic else box_vectors
 
-    cutoff = potential.attributes[potential.attribute_cols.index(smee.CUTOFF_ATTRIBUTE)]
+    cutoff = potential.attributes[potential.attribute_cols.index(dimsim.CUTOFF_ATTRIBUTE)]
 
     pairwise = pairwise if pairwise is not None else compute_pairwise(system, conformer, box_vectors, cutoff)
 

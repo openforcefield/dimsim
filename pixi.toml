@@ -15,6 +15,7 @@ numpy = "*"
 setuptools_scm = "*"
 distributed = "*"
 openmm = "==8.4.*"
+symengine = "*"
 rdkit = "==2023.*"
 sqlmodel = "*"
 dask = "*"
@@ -40,7 +41,7 @@ pyarrow = "20.*"
 rdkit = "2023.*"
 
 [environments]
-py312 = [ "py312", "test", "typing" ]
+py312amber = [ "py312", "ambertools", "test", "typing" ]
 py312openeye = [ "py312", "openeye", "test", "typing" ]
 dev = [ "py312", "openeye", "test", "typing", "dev" ]
 
@@ -55,6 +56,9 @@ jupyterlab = "*"
 ipython = "*"
 ipdb = "*"
 ruff = "*"
+
+[feature.ambertools.dependencies]
+ambertools = "*"
 
 [feature.openeye]
 channels = [ "openeye", "conda-forge" ]
