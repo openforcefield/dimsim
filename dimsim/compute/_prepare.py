@@ -27,6 +27,7 @@ def _prepare_openmm_system(
     files = PreparingFiles(
         openmm_system=File(f"{job_dir}/openmm_system.xml"),
         packed_topology=File(f"{job_dir}/packed_topology.pdb"),
+        interchange=File(f"{job_dir}/interchange.json"),
     )
 
     if pathlib.Path(files["openmm_system"].filepath).exists():
