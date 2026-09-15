@@ -45,6 +45,7 @@ class TensorReporter:
         report_interval: int,
         beta: openmm.unit.Quantity,
         pressure: openmm.unit.Quantity | None,
+        append: bool = True,
     ):
         """
 
@@ -54,10 +55,15 @@ class TensorReporter:
             beta: The inverse temperature the simulation is being run at.
             pressure: The pressure the simulation is being run at, or None if NVT /
                 vacuum.
+            append: Whether to append to the output file if it exists. Defaults to
+                True, ignored if output_file is a file-like object.not a path.
         """
         if isinstance(output_file, (str, os.PathLike)):
             # if it's str/pathlib.Path/etc., **need to open it first** in binary mode
-            self._output_file = open(output_file, "wb")
+            if append:
+                self._output_file = open(output_file, "ab")
+            else:
+                self._output_file = open(output_file, "wb")
         else:
             # otherwise hope that it's already opened in write+binary mode
             self._output_file = output_file

@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import copy
+
 import pytest
 
 pytest.importorskip("openmm")
@@ -8,6 +12,51 @@ import openmm.unit
 from tyff.mm._reporters import TensorReporter, tensor_reporter, unpack_frames
 
 _BETA = 1.0 / (298.15 * openmm.unit.kelvin * openmm.unit.MOLAR_GAS_CONSTANT_R)
+
+
+def copy_simulation(simulation: openmm.app.Simulation) -> openmm.app.Simulation:
+    positions = simulation.context.getState(getPositions=True).getPositions()
+
+    simulation = openmm.app.Simulation(
+        copy.deepcopy(simulation.topology),
+        copy.deepcopy(simulation.system),
+        copy.deepcopy(simulation.integrator),
+    )
+
+    simulation.context.setPositions(positions)
+
+    return simulation
+
+
+@pytest.fixture(scope="module")
+def basic_simulation() -> openmm.app.Simulation:
+    import openmm
+    from openff.toolkit import ForceField, Molecule, Quantity
+
+    molecule = Molecule.from_smiles("CCO")
+    molecule.generate_conformers(n_conformers=1)
+
+    # TensorReporter takes a pressure, can it be used with NVT/gas simulations?
+    topology = molecule.to_topology()
+    topology.box_vectors = Quantity(numpy.eye(3) * 5.0, "nanometer")
+
+    return (
+        ForceField("openff-2.3.0.offxml")
+        .create_interchange(topology)
+        .to_openmm_simulation(
+            integrator=openmm.LangevinIntegrator(
+                298.15 * openmm.unit.kelvin,
+                1.0 / openmm.unit.picoseconds,
+                0.002 * openmm.unit.picoseconds,
+            ),
+            additional_forces=[
+                openmm.MonteCarloBarostat(
+                    1.0 * openmm.unit.atmospheres,
+                    298.15 * openmm.unit.kelvin,
+                )
+            ],
+        )
+    )
 
 
 class TestTensorReporter:
@@ -78,34 +127,9 @@ class TestTensorReporter:
             reporter.report(None, mock_state)
 
     @pytest.mark.parametrize("input_type", ["file", "object"])
-    def test_report_during_simulation(self, tmp_path, input_type):
-        import openmm
-        from openff.toolkit import ForceField, Molecule, Quantity
+    def test_report_during_simulation(self, basic_simulation, tmp_path, input_type):
 
-        molecule = Molecule.from_smiles("CCO")
-        molecule.generate_conformers(n_conformers=1)
-
-        # TensorReporter takes a pressure, can it be used with NVT/gas simulations?
-        topology = molecule.to_topology()
-        topology.box_vectors = Quantity(numpy.eye(3) * 5.0, "nanometer")
-
-        simulation = (
-            ForceField("openff-2.3.0.offxml")
-            .create_interchange(topology)
-            .to_openmm_simulation(
-                integrator=openmm.LangevinIntegrator(
-                    298.15 * openmm.unit.kelvin,
-                    1.0 / openmm.unit.picoseconds,
-                    0.002 * openmm.unit.picoseconds,
-                ),
-                additional_forces=[
-                    openmm.MonteCarloBarostat(
-                        1.0 * openmm.unit.atmospheres,
-                        298.15 * openmm.unit.kelvin,
-                    )
-                ],
-            )
-        )
+        simulation = copy_simulation(basic_simulation)
 
         if input_type == "file":
             reporter = TensorReporter(
@@ -133,6 +157,45 @@ class TestTensorReporter:
                 simulation.reporters.append(tensor_reporter)
 
                 simulation.step(50)
+
+    @pytest.mark.parametrize("append", [True, False])
+    def test_append(self, basic_simulation, tmp_path, append):
+        simulation = copy_simulation(basic_simulation)
+
+        reporter = TensorReporter(
+            output_file=str(tmp_path / "append.msgpack"),
+            report_interval=10,
+            beta=_BETA,
+            pressure=1.0 * openmm.unit.atmospheres,
+            append=True,
+        )
+
+        simulation.reporters.append(reporter)
+
+        simulation.step(100)
+
+        reporter.close()
+
+        simulation.reporters.clear()
+
+        second_reporter = TensorReporter(
+            output_file=str(tmp_path / "append.msgpack"),
+            report_interval=10,
+            beta=_BETA,
+            pressure=1.0 * openmm.unit.atmospheres,
+            append=append,
+        )
+
+        simulation.reporters.append(second_reporter)
+
+        simulation.step(100)
+
+        second_reporter.close()
+
+        with (tmp_path / "append.msgpack").open("rb") as file:
+            frames = [*unpack_frames(file)]
+
+            assert len(frames) == 20 if append else 10, f"found {len(frames)=}"
 
 
 def test_tensor_reporter(tmp_path):
