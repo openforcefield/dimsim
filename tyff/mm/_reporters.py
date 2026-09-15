@@ -41,7 +41,7 @@ class TensorReporter:
 
     def __init__(
         self,
-        output_file: typing.BinaryIO,
+        output_file: str | typing.BinaryIO,
         report_interval: int,
         beta: openmm.unit.Quantity,
         pressure: openmm.unit.Quantity | None,
@@ -56,7 +56,7 @@ class TensorReporter:
             pressure: The pressure the simulation is being run at, or None if NVT /
                 vacuum.
             append: Whether to append to the output file if it exists. Defaults to
-                True, ignored if output_file is a file-like object.not a path.
+                True, ignored if output_file is a file-like object and not path-like.
         """
         if isinstance(output_file, (str, os.PathLike)):
             # if it's str/pathlib.Path/etc., **need to open it first** in binary mode
@@ -65,7 +65,7 @@ class TensorReporter:
             else:
                 self._output_file = open(output_file, "wb")
         else:
-            # otherwise hope that it's already opened in write+binary mode
+            # here we expect that it's already opened in write+binary mode
             self._output_file = output_file
 
         self._report_interval = report_interval

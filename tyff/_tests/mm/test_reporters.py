@@ -7,6 +7,7 @@ import pytest
 pytest.importorskip("openmm")
 
 import numpy
+import openmm.app
 import openmm.unit
 
 from tyff.mm._reporters import TensorReporter, tensor_reporter, unpack_frames
@@ -195,7 +196,7 @@ class TestTensorReporter:
         with (tmp_path / "append.msgpack").open("rb") as file:
             frames = [*unpack_frames(file)]
 
-            assert len(frames) == 20 if append else 10, f"found {len(frames)=}"
+            assert len(frames) == (20 if append else 10), f"found {len(frames)=}"
 
 
 def test_tensor_reporter(tmp_path):
