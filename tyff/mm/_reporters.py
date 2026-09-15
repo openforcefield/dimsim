@@ -41,10 +41,11 @@ class TensorReporter:
 
     def __init__(
         self,
-        output_file: typing.BinaryIO,
+        output_file: str | typing.BinaryIO,
         report_interval: int,
         beta: openmm.unit.Quantity,
         pressure: openmm.unit.Quantity | None,
+        append: bool = True,
     ):
         """
 
@@ -54,8 +55,19 @@ class TensorReporter:
             beta: The inverse temperature the simulation is being run at.
             pressure: The pressure the simulation is being run at, or None if NVT /
                 vacuum.
+            append: Whether to append to the output file if it exists. Defaults to
+                True, ignored if output_file is a file-like object and not path-like.
         """
-        self._output_file = output_file
+        if isinstance(output_file, (str, os.PathLike)):
+            # if it's str/pathlib.Path/etc., **need to open it first** in binary mode
+            if append:
+                self._output_file = open(output_file, "ab")
+            else:
+                self._output_file = open(output_file, "wb")
+        else:
+            # here we expect that it's already opened in write+binary mode
+            self._output_file = output_file
+
         self._report_interval = report_interval
 
         self._beta = beta
@@ -98,6 +110,10 @@ class TensorReporter:
             kinetic_energy.value_in_unit(_KCAL_PER_MOL),
         )
         self._output_file.write(msgpack.dumps(frame, default=_encoder))
+
+    def close(self):
+        """Close the file object associated with this reporter."""
+        self._output_file.close()
 
 
 def unpack_frames(
