@@ -6,16 +6,16 @@ requires = [
 ]
 
 [project]
-name = "dimsim"
+name = "tyff"
 description = "Distributed simulation package"
 readme = "README.md"
 license = "MIT"
 license-files = [ "LICENSE", "LICENSE-3RD-PARTY" ]
 maintainers = [
-  { name = "Lily Wang", email = "lily.wang@openforcefield.org" },
+  { name = "Lily Wang", email = "info@openforcefield.org" },
 ]
 authors = [
-  { name = "Lily Wang", email = "lily.wang@openforcefield.org" },
+  { name = "Lily Wang", email = "info@openforcefield.org" },
 ]
 requires-python = ">=3.12"
 classifiers = [
@@ -40,14 +40,14 @@ optional-dependencies.test = [
   "pytest-cov>=3",
   "pytest-xdist>=2.5",
 ]
-urls.Documentation = "https://dimsim.readthedocs.io"
-urls.Homepage = "https://github.com/lilyminium/dimsim"
-urls.Issues = "https://github.com/lilyminium/dimsim/issues"
-urls.Repository = "https://github.com/lilyminium/dimsim"
+urls.Documentation = "https://tyff.readthedocs.io"
+urls.Homepage = "https://github.com/openforcefield/tyff"
+urls.Issues = "https://github.com/openforcefield/tyff/issues"
+urls.Repository = "https://github.com/openforcefield/tyff"
 
 [tool.setuptools]
-packages.find.include = [ "dimsim*" ]
-packages.find.exclude = [ "dimsim._tests.data*" ]
+packages.find.include = [ "tyff*" ]
+packages.find.exclude = [ "tyff._tests.data*" ]
 packages.find.namespaces = false
 include-package-data = false
 zip-safe = false
@@ -61,10 +61,10 @@ lint.select = [ "E", "F", "I", "NPY", "RUF", "UP", "W" ]
 lint.isort.known-third-party = [ "openff.toolkit", "openff.utilities", "openff.units", "openff.interchange" ]
 
 [tool.ruff.lint.per-file-ignores]
-"dimsim/potentials/nonbonded.py" = [ "E501" ]
+"tyff/potentials/nonbonded.py" = [ "E501" ]
 
 [tool.mypy]
-exclude = "dimsim/_tests"
+exclude = "tyff/_tests"
 ignore_missing_imports = true
 python_version = "3.12"
 disallow_untyped_defs = false
@@ -95,13 +95,11 @@ warn_unused_configs = true
 
 [tool.pytest]
 ini_options.minversion = "6.0"
-ini_options.testpaths = [ "dimsim/_tests" ]
-ini_options.addopts = """\
-  -v --durations=10 --cov=dimsim --cov-report=xml --cov-append --cov-report=term-missing --color=yes\
-  """
+ini_options.testpaths = [ "tyff/_tests" ]
+ini_options.addopts = "-v --durations=10 --cov=tyff --cov-report=xml --cov-append --cov-report=term-missing --color=yes"
 
 [tool.coverage]
-run.source = [ "dimsim" ]
+run.source = [ "tyff" ]
 run.omit = [
   "*/__init__.py",
   "*/_tests/*",

@@ -4,12 +4,12 @@ import mdtraj
 import parsl
 from rich import print
 
-from dimsim.compute.configs import local_config, slurm_config
-from dimsim.compute.fetch import fetch_trajectory_paths_from_target
-from dimsim.compute.workflow import SimulationWorkflow
-from dimsim.datasets.thermoml import ThermoMLDataSet
+from tyff.compute.configs import local_config, slurm_config
+from tyff.compute.fetch import fetch_trajectory_paths_from_target
+from tyff.compute.workflow import SimulationWorkflow
+from tyff.datasets.thermoml import ThermoMLDataSet
 
-with open("dimsim/_tests/data/thermoml/single_density.xml") as f:
+with open("tyff/_tests/data/thermoml/single_density.xml") as f:
     dataset = ThermoMLDataSet.from_xml(f.read())
     density_target = dataset.properties[0]
 
