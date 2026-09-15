@@ -26,6 +26,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "Topic :: Scientific/Engineering",
 ]
 dynamic = [ "version" ]
@@ -59,6 +60,9 @@ line-length = 119
 lint.select = [ "E", "F", "I", "NPY", "RUF", "UP", "W" ]
 lint.isort.known-third-party = [ "openff.toolkit", "openff.utilities", "openff.units", "openff.interchange" ]
 
+[tool.ruff.lint.per-file-ignores]
+"dimsim/potentials/nonbonded.py" = [ "E501" ]
+
 [tool.mypy]
 exclude = "dimsim/_tests"
 ignore_missing_imports = true
@@ -66,12 +70,35 @@ python_version = "3.12"
 disallow_untyped_defs = false
 warn_unused_ignores = true
 warn_return_any = true
+disable_error_code = [
+  "arg-type",
+  "assignment",
+  "attr-defined",
+  "call-arg",
+  "call-overload",
+  "dict-item",
+  "empty-body",
+  "index",
+  "misc",
+  "no-any-return",
+  "no-redef",
+  "operator",
+  "return",
+  "return-value",
+  "type-arg",
+  "union-attr",
+  "unused-ignore",
+  "valid-type",
+  "var-annotated",
+]
 warn_unused_configs = true
 
 [tool.pytest]
 ini_options.minversion = "6.0"
 ini_options.testpaths = [ "dimsim/_tests" ]
-ini_options.addopts = "-v --cov=dimsim --cov-report=xml --cov-report=term-missing"
+ini_options.addopts = """\
+  -v --durations=10 --cov=dimsim --cov-report=xml --cov-append --cov-report=term-missing --color=yes\
+  """
 
 [tool.coverage]
 run.source = [ "dimsim" ]

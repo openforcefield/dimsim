@@ -161,7 +161,7 @@ class CoordinateStore:
 
             if temperature is not None and temperature_tolerance is not None:
                 query = query.where(
-                    CoordinatesDB.temperature.between(  # type: ignore[union-attr]
+                    CoordinatesDB.temperature.between(
                         temperature - temperature_tolerance,
                         temperature + temperature_tolerance,
                     )

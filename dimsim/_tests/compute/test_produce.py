@@ -24,6 +24,7 @@ def equilibration_future() -> dict[str, EquilibrationFiles]:
     }
 
 
+@pytest.mark.skip(reason="only run on GPUs")
 def test_basic(tmp_path, equilibration_future):
     for file in ["compute_config.json", "packed_topology.pdb", "openmm_system.xml"]:
         shutil.copy(

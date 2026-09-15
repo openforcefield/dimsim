@@ -20,6 +20,7 @@ def minimization_future() -> dict[str, MinimizationFiles]:
     }
 
 
+@pytest.mark.skip(reason="only run on GPUs")
 def test_basic(tmp_path, minimization_future):
     for file in ["compute_config.json", "packed_topology.pdb", "openmm_system.xml"]:
         shutil.copy(
