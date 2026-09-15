@@ -1,8 +1,8 @@
-from dimsim.compute.configs import local_config, slurm_config
-from dimsim.compute.workflow import SimulationWorkflow
-from dimsim.datasets.thermoml import ThermoMLDataSet
+from tyff.compute.configs import local_config, slurm_config
+from tyff.compute.workflow import SimulationWorkflow
+from tyff.datasets.thermoml import ThermoMLDataSet
 
-with open("dimsim/_tests/data/thermoml/single_dhvap.xml") as f:
+with open("tyff/_tests/data/thermoml/single_dhvap.xml") as f:
     dataset = ThermoMLDataSet.from_xml(f.read())
     dhvap_target = dataset.properties[0]
 
