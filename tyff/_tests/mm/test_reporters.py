@@ -118,7 +118,9 @@ class TestTensorReporter:
             simulation.reporters.append(reporter)
 
             simulation.step(50)
+
             reporter.close()
+
         elif input_type == "object":
             with open(tmp_path / "2.msgpack", "wb") as output_file:
                 tensor_reporter = TensorReporter(

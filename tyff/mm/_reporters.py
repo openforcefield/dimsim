@@ -105,6 +105,10 @@ class TensorReporter:
         )
         self._output_file.write(msgpack.dumps(frame, default=_encoder))
 
+    def close(self):
+        """Close the file object associated with this reporter."""
+        self._output_file.close()
+
 
 def unpack_frames(
     file: typing.BinaryIO,
